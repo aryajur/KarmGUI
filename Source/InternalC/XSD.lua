@@ -102,13 +102,14 @@ function readXSD(fileName)
 		else
 			-- Go up a level in elements if needed
 			if elemLvlControl[i] then
+				elemLvlControl[i] = nil
 				elements = elements[-1]
 			end
 			-- Go up a level in the hierarchy since all children in this hierarchy are done
 			i = i - 1
 		end
-	end
+	end				-- while(i>0) do ends here
 	return true, elements
 end
 
-status,e = readXSD('Task_Spore.xsd')
+status,e = readXSD('Test_XSD.xsd')
