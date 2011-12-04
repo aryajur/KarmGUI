@@ -3,7 +3,25 @@
 <xs:schema elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:complexType name="Task">
     <xs:sequence minOccurs="0">
+      <xs:element name="DB-Data">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="DBID" type="xs:string" />
+            <xs:element minOccurs="0" name="Updated" type="xs:string">
+              <xs:annotation>
+                <xs:documentation>Date and time the task is updated in the central database</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
       <xs:element default="NO" name="Modified">
+        <xs:annotation>
+          <xs:documentation>Tag having 3 possible values:
+YES: Task has been modified by the offline system
+NO: Task has not been touched by the offline system
+DEL: Offline system requests task to be deleted.</xs:documentation>
+        </xs:annotation>
         <xs:simpleType>
           <xs:restriction base="xs:string">
             <xs:enumeration value="YES" />
@@ -22,97 +40,15 @@
           <xs:documentation>Title/Name for the task for identification</xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element minOccurs="0" name="DBID" type="xs:string" />
-      <xs:element minOccurs="0" name="Date_d" type="xs:string">
-        <xs:annotation>
-          <xs:documentation>Date and time the task is updated in the central database</xs:documentation>
-        </xs:annotation>
-      </xs:element>
-      <xs:element minOccurs="0" name="Priority">
-        <xs:annotation>
-          <xs:documentation>Priority of the Task for its parent task completion. 1 is highest priority.</xs:documentation>
-        </xs:annotation>
-        <xs:simpleType>
-          <xs:restriction base="xs:positiveInteger">
-            <xs:minInclusive value="1" />
-            <xs:maxInclusive value="10" />
-          </xs:restriction>
-        </xs:simpleType>
-      </xs:element>
       <xs:element name="Date_Started" type="xs:date">
         <xs:annotation>
           <xs:documentation>Date the Task is started. XML Date format is YYYY-MM-DD</xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element minOccurs="0" name="Date_Due" type="xs:date">
+      <xs:element name="Who" type="ID_list">
         <xs:annotation>
-          <xs:documentation>Date the Task is started. XML Date format is YYYY-MM-DD</xs:documentation>
+          <xs:documentation>People incharge of the task</xs:documentation>
         </xs:annotation>
-      </xs:element>
-      <xs:element minOccurs="0" maxOccurs="1" name="Schedule">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element minOccurs="1" maxOccurs="unbounded" name="Plan">
-              <xs:annotation>
-                <xs:documentation>This element contains the planned work dates for the task as planned by the responsible people for the task. The list of periods listed in this can be ORed with the periods of all sub tasks to create a Gantt chart for this Task. Maximum 3 revisions allowed for this.</xs:documentation>
-              </xs:annotation>
-              <xs:complexType>
-                <xs:sequence>
-                  <xs:element name="Comment" type="xs:string">
-                    <xs:annotation>
-                      <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
-                    </xs:annotation>
-                  </xs:element>
-                  <xs:element name="Updated" type="xs:date" />
-                  <xs:element minOccurs="1" maxOccurs="unbounded" name="Period">
-                    <xs:annotation>
-                      <xs:documentation>Defines a working period for this task.</xs:documentation>
-                    </xs:annotation>
-                    <xs:complexType>
-                      <xs:sequence>
-                        <xs:element name="Start" type="xs:date" />
-                        <xs:element name="Stop" type="xs:date" />
-                      </xs:sequence>
-                    </xs:complexType>
-                  </xs:element>
-                </xs:sequence>
-              </xs:complexType>
-            </xs:element>
-          </xs:sequence>
-        </xs:complexType>
-      </xs:element>
-      <xs:element minOccurs="0" name="Hours">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element maxOccurs="unbounded" name="HourPlan">
-              <xs:complexType>
-                <xs:sequence>
-                  <xs:element name="Comment" type="xs:string">
-                    <xs:annotation>
-                      <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
-                    </xs:annotation>
-                  </xs:element>
-                  <xs:element name="Updated" type="xs:date" />
-                  <xs:element name="TotalHours" type="xs:integer" />
-                </xs:sequence>
-              </xs:complexType>
-            </xs:element>
-          </xs:sequence>
-        </xs:complexType>
-      </xs:element>
-      <xs:element minOccurs="0" name="ActualSchedule">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element maxOccurs="unbounded" name="WorkDone">
-              <xs:complexType>
-                <xs:sequence>
-                  <xs:element name="Date" type="xs:date" />
-                  <xs:element name="Hours" type="xs:integer" />
-                </xs:sequence>
-              </xs:complexType>
-            </xs:element>
-          </xs:sequence>
-        </xs:complexType>
       </xs:element>
       <xs:element name="Locked">
         <xs:annotation>
@@ -155,16 +91,6 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="Who" type="ID_list">
-        <xs:annotation>
-          <xs:documentation>People incharge of the task</xs:documentation>
-        </xs:annotation>
-      </xs:element>
-      <xs:element minOccurs="0" name="Comments" type="xs:string">
-        <xs:annotation>
-          <xs:documentation>Any comments or description points for the task go here.</xs:documentation>
-        </xs:annotation>
-      </xs:element>
       <xs:element name="Status">
         <xs:annotation>
           <xs:documentation>To indicate if the task is done or not. If Status = "Yes" then Date finished should contain the date the task was finished.</xs:documentation>
@@ -185,6 +111,126 @@
             <xs:element minOccurs="0" name="Date_Finished" type="xs:date" />
           </xs:sequence>
         </xs:complexType>
+      </xs:element>
+      <xs:element minOccurs="0" name="Priority">
+        <xs:annotation>
+          <xs:documentation>Priority of the Task for its parent task completion. 1 is highest priority.</xs:documentation>
+        </xs:annotation>
+        <xs:simpleType>
+          <xs:restriction base="xs:positiveInteger">
+            <xs:minInclusive value="1" />
+            <xs:maxInclusive value="10" />
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element minOccurs="0" name="Date_Due" type="xs:date">
+        <xs:annotation>
+          <xs:documentation>Date the Task is started. XML Date format is YYYY-MM-DD</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element minOccurs="0" maxOccurs="1" name="Schedules">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="Estimate">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element minOccurs="1" maxOccurs="unbounded" name="Estimates">
+                    <xs:annotation>
+                      <xs:documentation>This element contains the planned work dates for the task as planned by the responsible people for the task. The list of periods listed in this can be ORed with the periods of all sub tasks to create a Gantt chart for this Task. Maximum 3 revisions allowed for this.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element minOccurs="0" name="Hours" type="xs:positiveInteger" />
+                        <xs:element name="Comment" type="xs:string">
+                          <xs:annotation>
+                            <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                        <xs:element name="Updated" type="xs:date" />
+                        <xs:element minOccurs="1" maxOccurs="1" name="Period" type="Period">
+                          <xs:annotation>
+                            <xs:documentation>Defines a working period for this task.</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element minOccurs="0" name="Accountable">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element minOccurs="1" maxOccurs="1" name="Accountable">
+                    <xs:annotation>
+                      <xs:documentation>This element contains the planned work dates for the task as planned by the responsible people for the task. The list of periods listed in this can be ORed with the periods of all sub tasks to create a Gantt chart for this Task. Maximum 3 revisions allowed for this.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Comment" type="xs:string">
+                          <xs:annotation>
+                            <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                        <xs:element name="Updated" type="xs:date" />
+                        <xs:element minOccurs="1" maxOccurs="1" name="Period" type="Period">
+                          <xs:annotation>
+                            <xs:documentation>Defines a working period for this task.</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element minOccurs="0" name="Revisions">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element minOccurs="1" maxOccurs="unbounded" name="Revision">
+                    <xs:annotation>
+                      <xs:documentation>This element contains the planned work dates for the task as planned by the responsible people for the task. The list of periods listed in this can be ORed with the periods of all sub tasks to create a Gantt chart for this Task. Maximum 3 revisions allowed for this.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Comment" type="xs:string">
+                          <xs:annotation>
+                            <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                        <xs:element name="Updated" type="xs:date" />
+                        <xs:element minOccurs="1" maxOccurs="1" name="Period" type="Period">
+                          <xs:annotation>
+                            <xs:documentation>Defines a working period for this task.</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element minOccurs="0" name="Actual">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element maxOccurs="unbounded" name="WorkDone">
+                    <xs:complexType>
+                      <xs:sequence>
+                        <xs:element name="Date" type="xs:date" />
+                        <xs:element name="Hours" type="xs:integer" />
+                      </xs:sequence>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element minOccurs="0" name="Comments" type="xs:string">
+        <xs:annotation>
+          <xs:documentation>Any comments or description points for the task go here.</xs:documentation>
+        </xs:annotation>
       </xs:element>
       <xs:element minOccurs="0" maxOccurs="1" name="Category" type="xs:string">
         <xs:annotation>
@@ -608,6 +654,39 @@
       <xs:pattern value="[a-zA-Z]+[.a-zA-Z0-9]*(_[1-9][0-9]*)*" />
     </xs:restriction>
   </xs:simpleType>
+  <xs:complexType name="Period">
+    <xs:sequence>
+      <xs:element maxOccurs="unbounded" name="DP">
+        <xs:annotation>
+          <xs:documentation>The Day plan element contains the date and the work hours planned for the day</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Date" type="xs:date" />
+            <xs:element minOccurs="0" maxOccurs="10" name="TP" type="Time_Period">
+              <xs:annotation>
+                <xs:documentation>The Time plan for the day</xs:documentation>
+              </xs:annotation>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="Time_Period">
+    <xs:sequence>
+      <xs:element name="STA" type="xs:time">
+        <xs:annotation>
+          <xs:documentation>Start Time</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="STP" type="xs:time">
+        <xs:annotation>
+          <xs:documentation>Stop Time</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
   <xs:element name="Task_Spore">
     <xs:complexType>
       <xs:sequence>

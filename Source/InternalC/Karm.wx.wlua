@@ -12,6 +12,9 @@
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
 require("wx")
+require("LuaXML")
+
+configFile = "KarmConfig.lua"
 
 -- create a nice string using the wxTreeItemId and our table of "data"
 function CreateLogString(treeitem_id)
@@ -81,6 +84,19 @@ function main()
     local root_id = tree:AddRoot( "Root" )
     treedata[root_id:GetValue()] = { id = root_id:GetValue(), data = "I'm the root item" }
 
+	-- load the configuration file
+	dofile("KarmConfig.lua")
+	-- Load all the XML spores
+	count = 1
+	-- print(Spores[count])
+	if Spores then
+		SporeXML = {}
+		while Spores[count] do
+			SporeXML[1] = xml.load(Spores[count])
+			count = count + 1
+		end
+	end
+	-- print("count = ", count)
     for idx = 0, 10 do
         local parent_id = tree:AppendItem( root_id, "Parent ("..idx..")" )
         treedata[parent_id:GetValue()] = { id = parent_id:GetValue(), data = "I'm the data for Parent ("..idx..")" }
@@ -126,6 +142,7 @@ function main()
 end
 
 main()
+print(Spores)
 
 -- Call wx.wxGetApp():MainLoop() last to start the wxWidgets event loop,
 -- otherwise the wxLua program will exit immediately.
