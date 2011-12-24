@@ -1,12 +1,45 @@
 
---module(...)
+
+module(...,package.seeall)
 
 require('LuaXml')
 
+
+local privates = {}		-- table to store all private data of instantiated objects
+
+function xsdFile(self)
+	return privates[self].xsdFile
+end
+
+function xmlFiles(self)
+	return privates[self].xmlFiles
+end
+
+function xsdStruct(self)
+	return privates[self].xsdStruct
+end
+
+--****f* XSD/readXSD
+-- FUNCTION
 -- Function to read an XSD file and create the tree XML for the elements defined in the xsdFile
 -- The Choice and all content organizers are ignored in the collection since all the possible elements
 -- need to be accumulated which is what this function does.
-function readXSD(fileName)
+
+-- KNOWN ISSUES
+-- o XSD allows multiple elements tobe defined in the  XSD file which may be used as the root element but any XML document can have just 1 root element
+-- ASSUMPTION 1:
+-- Here the code assumes that the XSD file only has 1 element defined in the xsdFile
+-- that can act as the root element
+-- ASSUMPTION 2:
+-- Any included files with defined types will not be read
+
+-- RETURNS
+-- status - status code for the function
+-- XML table representing the elements allowed in the XSD
+
+-- SOURCE
+local function readXSD(fileName)
+--@@END@@
 	local xsdFile = xml.load(fileName)
 	local elements = {}			-- Blank table to store the element hierarchy
 	local hier = {}				-- Table to traverse the hierarchy without recursion
@@ -15,18 +48,6 @@ function readXSD(fileName)
 	local customTypes = {}		-- Blank table to store custom types defined in the XSD
 	local customTypeHier = {}	-- To store the custom type hierarchy to detect recursive XSDs
 
--- ######################################################################
--- XSD STANDARD NOTE
--- ######################################################################
--- XSD allows multiple elements tobe defined in the  XSD file which may
--- be used as the root element but any XML document can have just 1 root
--- element
--- CODE ASSUMPTION 1:
--- Here the code assumes that the XSD file only has 1 element defined in the xsdFile
--- that can act as the root element
--- CODE ASSUMPTION 2:
--- Any included files with defined types will not be read
--- ######################################################################
 	-- Find the initial root element
 	-- Also collect all the customTypes at this level
 	for i=1,#xsdFile do
@@ -150,7 +171,24 @@ function readXSD(fileName)
 			i = i - 1
 		end
 	end				-- while(i>0) do ends here
+	setmetatable(elements,getmetatable(xsdFile))
 	return true, elements
 end
 
-status,e = readXSD('Task_Spore.xsd')
+--****f* XSD.new
+-- FUNCTION
+-- Function to create a new XSD object with an associated XSD file and xmlfiles
+function new(self,xsdFile,xmlFiles)
+	-- Do error checking for xsdFile and xmlFiles
+	print(xsdFile)
+	print(xmlFiles)
+	local status
+	local xsdStruct
+	status, xsdStruct = readXSD(xsdFile)
+
+	local newObj = {}
+	setmetatable(newObj,self)
+	self.__index = self
+	privates[newObj] = {xsdFile = xsdFile, xmlFiles = xmlFiles, xsdStruct = xsdStruct}
+	return newObj
+end

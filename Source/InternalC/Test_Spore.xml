@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Created with Liquid XML Studio 1.0.7.0 (http://www.liquid-technologies.com) -->
+<Task_Spore>
+	<Task>
+		<Modified>YES</Modified>
+		<TaskID>tst1</TaskID>
+		<Title>Test task 2</Title>
+		<Date_Started>2010-12-01</Date_Started>
+		<Locked>
+			<Status>No</Status>
+		</Locked>
+		<Who>
+			<Item>
+				<ID>mil</ID>
+				<Status>Active</Status>
+			</Item>
+		</Who>
+		<Status>
+			<Status>Not Started</Status>
+		</Status>
+		<Tags>
+			<tag>New Tag</tag>
+			<tag>Tag 3</tag>
+		</Tags>
+		<Advanced>
+			<Links>
+				<Item>
+					<Link>Test Link</Link>
+					<Type>File</Type>
+				</Item>
+				<Item>
+					<Link>Wiki Link</Link>
+					<Type>Wiki</Type>
+				</Item>
+			</Links>
+			<Approvers>
+				<Item>
+					<ID>milind.gupta</ID>
+					<Status>Active</Status>
+				</Item>
+				<Item>
+					<ID>dhampo.murari</ID>
+					<Status>Active</Status>
+				</Item>
+			</Approvers>
+		</Advanced>
+	</Task>
+	<Task>
+		<Modified>YES</Modified>
+		<TaskID>tst</TaskID>
+		<Title>Huge task</Title>
+		<Date_Started>2010-12-02</Date_Started>
+		<Locked>
+			<Status>No</Status>
+		</Locked>
+		<Who>
+			<Item>
+				<ID>milind.gupta</ID>
+				<Status>Active</Status>
+			</Item>
+		</Who>
+		<Comments>This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.This is a Huge task.</Comments>
+		<Status>
+			<Status>Not Started</Status>
+		</Status>
+		<Category>Cat1</Category>
+		<Sub-Category>SubCat1</Sub-Category>
+		<Tags>
+			<tag>Tag 1</tag>
+			<tag>Tag 4</tag>
+			<tag>Tag 5</tag>
+		</Tags>
+		<Advanced>
+			<Links>
+				<Item>
+					<Link>Link 1</Link>
+					<Type>File</Type>
+				</Item>
+				<Item>
+					<Link>Links</Link>
+					<Type>Internet</Type>
+				</Item>
+			</Links>
+		</Advanced>
+	</Task>
+</Task_Spore>
