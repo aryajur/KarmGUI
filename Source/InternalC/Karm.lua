@@ -9,25 +9,75 @@
 package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
 require("wx")
 
+GUI = {["__index"]=_G}
+setmetatable(GUI,GUI)
+setfenv(1,GUI)
+initFrameH = 400
+initFrameW = 450
+setfenv(1,_G)
 
--- create a nice string using the wxTreeItemId and our table of "data"
-function CreateLogString(treeitem_id)
-    local value = treeitem_id:GetValue()
-    local str = "wxTreeItemId:GetValue():"..tostring(value)
-    str = str.." Data: '"..treedata[value].data.."'"
-    return str
+-- To fill the GUI with Dummy data in the treeList and ganttList
+function fillDummyData()
+
+	treeGrid:SetCellValue(0,0,"Test Item 0")
+	treeGrid:SetCellBackgroundColour(0,0,wx.wxColour(255,255,255))
+    for i = 1,100 do
+    	treeGrid:InsertRows(i)
+		treeGrid:SetCellValue(i,0,"Test Item " .. i)
+		treeGrid:SetCellBackgroundColour(i,0,wx.wxColour(255,255,255))
+	end
+	scrollWin1:SetScrollbars(3,3,treeGrid:GetSize():GetWidth(),treeGrid:GetSize():GetHeight())
+	
+	-- Fill the gantt chart list
+	date = 17
+	for i = 0,100 do	-- row count
+		if i > 0 then 
+			-- insert a row
+			ganttGrid:InsertRows(i)
+		end
+		for j = 0,29 do
+			if i == 0 then
+				if j > 0 then
+					-- insert a column
+					ganttGrid:InsertCols(j)
+				end
+				-- set the column labels
+				ganttGrid:SetColLabelValue(j,tostring(date+j))
+				ganttGrid:SetColSize(j,25)
+			end
+			if (i+j)%2 == 0 then
+				ganttGrid:SetCellBackgroundColour(i,j,wx.wxColour(128,34,170))
+			end
+		end
+	end
+
+	scrollWin2:SetScrollbars(3,3,ganttGrid:GetSize():GetWidth(),ganttGrid:GetSize():GetHeight())
+end
+
+function onScrollWin1(event)
+	scrollWin2:Scroll(scrollWin1:GetScrollPos(wx.wxHORIZONTAL), scrollWin1:GetScrollPos(wx.wxVERTICAL))
+	event:Skip()
+end
+
+function onScrollWin2(event)
+	scrollWin1:Scroll(scrollWin2:GetScrollPos(wx.wxHORIZONTAL), scrollWin2:GetScrollPos(wx.wxVERTICAL))
+	event:Skip()
 end
 
 function main()
-    frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "wxLua wxTreeCtrl Sample",
-                        wx.wxDefaultPosition, wx.wxSize(450, 400),
+    frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
+                        wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE )
+
+	-- Create status Bar in the window
+    frame:CreateStatusBar(1)
+    frame:SetStatusText("Welcome to Karm", 0)
 
     -- create the menubar and attach it
     local fileMenu = wx.wxMenu()
     fileMenu:Append(wx.wxID_EXIT, "E&xit", "Quit the program")
     local helpMenu = wx.wxMenu()
-    helpMenu:Append(wx.wxID_ABOUT, "&About", "About the wxLua wxTreeCtrl Sample")
+    helpMenu:Append(wx.wxID_ABOUT, "&About", "About Karm")
 
     local menuBar = wx.wxMenuBar()
     menuBar:Append(fileMenu, "&File")
@@ -45,81 +95,63 @@ function main()
     -- connect the selection event of the about menu item
     frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
         function (event)
-            wx.wxMessageBox('This is the "About" dialog of the wxLua wxTreeCtrl sample.\n'..
+            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
                             wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
-                            "About wxLua",
+                            "About Karm",
                             wx.wxOK + wx.wxICON_INFORMATION,
                             frame)
         end )
 
-    -- create our treectrl
-    tree = wx.wxTreeCtrl( frame, wx.wxID_ANY,
-                          wx.wxDefaultPosition, wx.wxSize(-1, 200),
-                          wx.wxTR_LINES_AT_ROOT + wx.wxTR_HAS_BUTTONS 
-                          + wx.wxTR_ROW_LINES)
+	local SplitterSizer = wx.wxSplitterWindow(frame, wx.wxID_ANY, wx.wxDefaultPosition, 
+							wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxSP_3D, "Karm_SplitterWindow")
+	SplitterSizer:SetMinimumPaneSize(10)
+	-- Create the 2 list controls with 2 wxScrolledwindows
+	scrollWin1 = wx.wxScrolledWindow(SplitterSizer, wx.wxID_ANY)
+	local boxSizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+    -- treeList = wx.wxListCtrl(scrollWin1, wx.wxID_ANY, wx.wxDefaultPosition,
+    --                              wx.wxDefaultSize, wx.wxLC_REPORT, wx.wxDefaultValidator, "Karm Task Tree")
+    treeGrid = wx.wxGrid(scrollWin1,wx.wxID_ANY)
+    treeGrid:CreateGrid(1,1)
+    treeGrid:SetRowLabelSize(0)
+    treeGrid:SetColLabelValue(0,"Tasks")
+    boxSizer1:Add(treeGrid, 1, bit.bor(wx.wxALL, wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL),1)
+    scrollWin1:SetSizer(boxSizer1)
+    boxSizer1:Fit(scrollWin1)
+    boxSizer1:SetSizeHints(scrollWin1)
 
-    -- create our log window
-    textCtrl = wx.wxTextCtrl( frame, wx.wxID_ANY, "",
-                              wx.wxDefaultPosition, wx.wxSize(-1, 200),
-                              wx.wxTE_READONLY + wx.wxTE_MULTILINE )
+    scrollWin2 = wx.wxScrolledWindow(SplitterSizer, wx.wxID_ANY)
+	local boxSizer2 = wx.wxBoxSizer(wx.wxVERTICAL)
+    -- ganttList = wx.wxListCtrl(scrollWin2, wx.wxID_ANY, wx.wxDefaultPosition,
+    --                            wx.wxDefaultSize, wx.wxLC_REPORT, wx.wxDefaultValidator, "Karm Task Tree")
+    ganttGrid = wx.wxGrid(scrollWin2,wx.wxID_ANY)
+    ganttGrid:CreateGrid(1,1)
+    ganttGrid:SetRowLabelSize(0)
+    boxSizer2:Add(ganttGrid, 1, bit.bor(wx.wxALL, wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL),1)
+    scrollWin2:SetSizer(boxSizer2)
+    boxSizer2:Fit(scrollWin2)
+    boxSizer2:SetSizeHints(scrollWin2)
+    -- Place them in the Splitter sizer
+	SplitterSizer:SplitVertically(scrollWin1, scrollWin2)
+	
+	--	scrollWin1:SetBackgroundColour(wx.wxColour(0,0,0))
+	
+	-- Create the scroll event to sync the 2 scroll bars in the wxScrolledWindow
+	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, onScrollWin1)
+	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollWin1)
+	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollWin1)
+	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollWin1)
 
-    rootSizer = wx.wxFlexGridSizer(0, 1, 0, 0)
-    rootSizer:AddGrowableCol(0)
-    rootSizer:AddGrowableRow(0)
-    rootSizer:Add( tree, 0, wx.wxGROW+wx.wxALIGN_CENTER_HORIZONTAL, 0 )
-    rootSizer:Add( textCtrl, 0, wx.wxGROW+wx.wxALIGN_CENTER_HORIZONTAL, 0 )
-    frame:SetSizer( rootSizer )
     frame:Layout() -- help sizing the windows before being shown
 
-    -- create a table to store any extra information for each node like this
-    -- you don't have to store the id in the table, but it might be useful
-    -- treedata[id] = { id=wx.wxTreeCtrlId, data="whatever data we want" }
-    treedata = {}
+    treeGrid:SetColSize(0,boxSizer1:GetSize():GetWidth())
 
-    local root_id = tree:AddRoot( "Root" )
-    treedata[root_id:GetValue()] = { id = root_id:GetValue(), data = "I'm the root item" }
-
-    for idx = 0, 10 do
-        local parent_id = tree:AppendItem( root_id, "Parent ("..idx..")" )
-        treedata[parent_id:GetValue()] = { id = parent_id:GetValue(), data = "I'm the data for Parent ("..idx..")" }
-        for jdx = 0, 5 do
-            local child_id = tree:AppendItem( parent_id, "Child ("..idx..", "..jdx..")" )
-            treedata[child_id:GetValue()] = { id = child_id:GetValue(), data = "I'm the child data for Parent ("..idx..", "..jdx..")" }
-        end
-        if (idx == 2) or (idx == 5) then
-            tree:Expand(parent_id)
-        end
-    end
-
-    -- connect to some events from the wxTreeCtrl
-    tree:Connect( wx.wxEVT_COMMAND_TREE_ITEM_EXPANDING,
-        function( event )
-            local item_id = event:GetItem()
-            local str = "Item expanding : "..CreateLogString(item_id).."\n"
-            textCtrl:AppendText(str)
-        end )
-    tree:Connect( wx.wxEVT_COMMAND_TREE_ITEM_COLLAPSING,
-        function( event )
-            local item_id = event:GetItem()
-            local str = "Item collapsing : "..CreateLogString(item_id).."\n"
-            textCtrl:AppendText(str)
-        end )
-    tree:Connect( wx.wxEVT_COMMAND_TREE_ITEM_ACTIVATED,
-        function( event )
-            local item_id = event:GetItem()
-            local str = "Item activated : "..CreateLogString(item_id).."\n"
-            textCtrl:AppendText(str)
-        end )
-    tree:Connect( wx.wxEVT_COMMAND_TREE_SEL_CHANGED,
-        function( event )
-            local item_id = event:GetItem()
-            local str = "Item sel changed : "..CreateLogString(item_id).."\n"
-            textCtrl:AppendText(str)
-        end )
-
-    tree:Expand(root_id)
+	-- Main table to store the GUI data
+	guiTable = {}
+	
+	fillDummyData()
+	
     wx.wxGetApp():SetTopWindow(frame)
-
+    
     frame:Show(true)
 end
 
