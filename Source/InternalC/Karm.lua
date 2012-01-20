@@ -9,6 +9,7 @@
 package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
 require("wx")
 
+-- Creating GUI the main table containing all the GUI objects and data
 GUI = {["__index"]=_G}
 setmetatable(GUI,GUI)
 setfenv(1,GUI)
@@ -19,59 +20,99 @@ setfenv(1,_G)
 -- To fill the GUI with Dummy data in the treeList and ganttList
 function fillDummyData()
 
-	treeGrid:SetCellValue(0,0,"Test Item 0")
-	treeGrid:SetCellBackgroundColour(0,0,wx.wxColour(255,255,255))
+	GUI.treeGrid:SetCellValue(0,0,"Test Item 0")
+	GUI.treeGrid:SetCellBackgroundColour(0,0,wx.wxColour(255,255,255))
     for i = 1,100 do
-    	treeGrid:InsertRows(i)
-		treeGrid:SetCellValue(i,0,"Test Item " .. i)
-		treeGrid:SetCellBackgroundColour(i,0,wx.wxColour(255,255,255))
+    	GUI.treeGrid:InsertRows(i)
+		GUI.treeGrid:SetCellValue(i,0,"Test Item " .. i)
+		GUI.treeGrid:SetCellBackgroundColour(i,0,wx.wxColour(255,255,255))
 	end
-	scrollWin1:SetScrollbars(3,3,treeGrid:GetSize():GetWidth(),treeGrid:GetSize():GetHeight())
+	-- GUI.treeGrid:SetScrollbars(3,3,treeGrid:GetSize():GetWidth(),treeGrid:GetSize():GetHeight())
 	
 	-- Fill the gantt chart list
 	date = 17
 	for i = 0,100 do	-- row count
 		if i > 0 then 
 			-- insert a row
-			ganttGrid:InsertRows(i)
+			GUI.ganttGrid:InsertRows(i)
 		end
 		for j = 0,29 do
 			if i == 0 then
 				if j > 0 then
 					-- insert a column
-					ganttGrid:InsertCols(j)
+					GUI.ganttGrid:InsertCols(j)
 				end
 				-- set the column labels
-				ganttGrid:SetColLabelValue(j,tostring(date+j))
-				ganttGrid:SetColSize(j,25)
+				GUI.ganttGrid:SetColLabelValue(j,tostring(date+j))
+				GUI.ganttGrid:SetColSize(j,25)
 			end
 			if (i+j)%2 == 0 then
-				ganttGrid:SetCellBackgroundColour(i,j,wx.wxColour(128,34,170))
+				GUI.ganttGrid:SetCellBackgroundColour(i,j,wx.wxColour(128,34,170))
 			end
 		end
 	end
 
-	scrollWin2:SetScrollbars(3,3,ganttGrid:GetSize():GetWidth(),ganttGrid:GetSize():GetHeight())
+	-- GUI.ganttGrid:SetScrollbars(3,3,ganttGrid:GetSize():GetWidth(),ganttGrid:GetSize():GetHeight())
 end
 
-function onScrollWin1(event)
-	scrollWin2:Scroll(scrollWin1:GetScrollPos(wx.wxHORIZONTAL), scrollWin1:GetScrollPos(wx.wxVERTICAL))
+function onScrollTree(event)
+	GUI.ganttGrid:Scroll(GUI.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.treeGrid:GetScrollPos(wx.wxVERTICAL))
 	event:Skip()
 end
 
-function onScrollWin2(event)
-	scrollWin1:Scroll(scrollWin2:GetScrollPos(wx.wxHORIZONTAL), scrollWin2:GetScrollPos(wx.wxVERTICAL))
+function onScrollGantt(event)
+	GUI.treeGrid:Scroll(GUI.treeGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.ganttGrid:GetScrollPos(wx.wxVERTICAL))
 	event:Skip()
 end
 
 function main()
-    frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
+    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE )
 
+	GUI.ID_LOAD = wx.wxID_ANY
+	GUI.ID_UNLOAD = wx.wxID_ANY
+	GUI.ID_SAVEALL = wx.wxID_ANY
+	GUI.ID_SAVECURR = wx.wxID_ANY
+	GUI.ID_SET_FILTER = wx.wxID_ANY
+	GUI.ID_NEW_SUB_TASK = wx.wxID_ANY
+	GUI.ID_EDIT_TASK = wx.wxID_ANY
+	GUI.ID_DEL_TASK = wx.wxID_ANY
+	GUI.ID_MOVE_UNDER = wx.wxID_ANY
+	GUI.ID_MOVE_ABOVE = wx.wxID_ANY
+	GUI.ID_MOVE_BELOW = wx.wxID_ANY
+	GUI.ID_REPORT = wx.wxID_ANY
+	
+	local toolBar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
+	local toolBmpSize = toolBar:GetToolBitmapSize()
+	toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
+	toolBar:AddTool(wx.wxID_ANY, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
+	toolBar:AddTool(wx.wxID_ANY, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
+	toolBar:AddTool(wx.wxID_ANY, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
+	toolBar:AddSeparator()
+	toolBar:AddTool(GUI.ID_REPORT, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
+	toolBar:AddTool(GUI.ID_REPORT, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
+	toolBar:AddTool(GUI.ID_REPORT, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
+	toolBar:AddTool(GUI.ID_REPORT, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
+	toolBar:AddTool(GUI.ID_REPORT, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...")
+	toolBar:AddTool(GUI.ID_REPORT, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...")
+	toolBar:AddTool(GUI.ID_REPORT, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...")
+	toolBar:AddSeparator()
+	toolBar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
+	toolBar:Realize()
+
 	-- Create status Bar in the window
-    frame:CreateStatusBar(1)
-    frame:SetStatusText("Welcome to Karm", 0)
+    GUI.frame:CreateStatusBar(2)
+    -- Text for the 1st field in the status bar
+    GUI.frame:SetStatusText("Welcome to Karm", 0)
+    -- text for the second field in the status bar
+    GUI.frame:SetStatusText("Test", 1)
+    -- Set the width of the second field to 25% of the whole window
+    local widths = {}
+    widths[1]=-3
+    widths[2] = -1
+    GUI.frame:SetStatusWidths(widths)
+    
 
     -- create the menubar and attach it
     local fileMenu = wx.wxMenu()
@@ -83,17 +124,17 @@ function main()
     menuBar:Append(fileMenu, "&File")
     menuBar:Append(helpMenu, "&Help")
 
-    frame:SetMenuBar(menuBar)
+    GUI.frame:SetMenuBar(menuBar)
 
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
-    frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
+    GUI.frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
         function (event)
             frame:Close(true)
         end )
 
     -- connect the selection event of the about menu item
-    frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
+    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
         function (event)
             wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
                             wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
@@ -102,57 +143,79 @@ function main()
                             frame)
         end )
 
-	local SplitterSizer = wx.wxSplitterWindow(frame, wx.wxID_ANY, wx.wxDefaultPosition, 
-							wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxSP_3D, "Karm_SplitterWindow")
-	SplitterSizer:SetMinimumPaneSize(10)
-	-- Create the 2 list controls with 2 wxScrolledwindows
-	scrollWin1 = wx.wxScrolledWindow(SplitterSizer, wx.wxID_ANY)
+
+	GUI.vertSplitWin = wx.wxSplitterWindow(GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
+						wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxSP_3D, "Main Vertical Splitter")
+	GUI.vertSplitWin:SetMinimumPaneSize(10)
+	GUI.horSplitWin = wx.wxSplitterWindow(GUI.vertSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
+						wx.wxSize(GUI.initFrameW, 0.7*GUI.initFrameH), wx.wxSP_3D, "Task Splitter")
+	GUI.horSplitWin:SetMinimumPaneSize(10)
+	
+	GUI.treeGrid = wx.wxGrid(GUI.horSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
+					wx.wxDefaultSize, 0, "Task Tree Grid")
+    GUI.treeGrid:CreateGrid(1,1)
+    GUI.treeGrid:SetRowLabelSize(0)
+    GUI.treeGrid:SetColLabelValue(0,"Tasks")
+
+	GUI.ganttGrid = wx.wxGrid(GUI.horSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
+						wx.wxDefaultSize, 0, "Gantt Chart Grid")
+    GUI.ganttGrid:CreateGrid(1,1)
+    GUI.ganttGrid:SetRowLabelSize(0)
+
+	GUI.horSplitWin:SplitVertically(GUI.treeGrid, GUI.ganttGrid)
+	GUI.horSplitWin:SetSashPosition(0.3*GUI.initFrameW)
+	
+	local detailsPanel = wx.wxPanel(GUI.vertSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
+							wx.wxDefaultSize, wx.wxTAB_TRAVERSAL, "Task Details Parent Panel")
 	local boxSizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
-    -- treeList = wx.wxListCtrl(scrollWin1, wx.wxID_ANY, wx.wxDefaultPosition,
-    --                              wx.wxDefaultSize, wx.wxLC_REPORT, wx.wxDefaultValidator, "Karm Task Tree")
-    treeGrid = wx.wxGrid(scrollWin1,wx.wxID_ANY)
-    treeGrid:CreateGrid(1,1)
-    treeGrid:SetRowLabelSize(0)
-    treeGrid:SetColLabelValue(0,"Tasks")
-    boxSizer1:Add(treeGrid, 1, bit.bor(wx.wxALL, wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL),1)
-    scrollWin1:SetSizer(boxSizer1)
-    boxSizer1:Fit(scrollWin1)
-    boxSizer1:SetSizeHints(scrollWin1)
+	local staticBoxSizer1 = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, detailsPanel, "Task Details")
+	
+	GUI.taskDetails = wx.wxTextCtrl(detailsPanel, wx.wxID_ANY, "No Task Selected", 
+						wx.wxDefaultPosition, wx.wxDefaultSize, bit.bor(wx.wxTE_AUTO_SCROLL, 
+						wx.wxTE_MULTILINE, wx.wxTE_READONLY), wx.wxDefaultValidator,"Task Details Box")
+	staticBoxSizer1:Add(GUI.taskDetails, 1, bit.bor(wx.wxALL,wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,
+						wx.wxALIGN_CENTER_VERTICAL), 2)
+	boxSizer1:Add(staticBoxSizer1, 1, bit.bor(wx.wxALL,wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
+						wx.wxALIGN_CENTER_VERTICAL), 1)
+	local staticBoxSizer2 = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, detailsPanel, "Filter Criteria")
+	GUI.taskFilter = wx.wxTextCtrl(detailsPanel, wx.wxID_ANY, "No Filter", 
+						wx.wxDefaultPosition, wx.wxDefaultSize, bit.bor(wx.wxTE_AUTO_SCROLL, 
+						wx.wxTE_MULTILINE, wx.wxTE_READONLY), wx.wxDefaultValidator,"Task Filter Criteria")
+	staticBoxSizer2:Add(GUI.taskFilter, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
+						wx.wxALIGN_CENTER_VERTICAL), 2)
+	boxSizer1:Add(staticBoxSizer2, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
+						wx.wxALIGN_CENTER_VERTICAL), 1)
+	detailsPanel:SetSizer(boxSizer1)
+	boxSizer1:Fit(detailsPanel)
+	boxSizer1:SetSizeHints(detailsPanel)
+	GUI.vertSplitWin:SplitHorizontally(GUI.horSplitWin, detailsPanel)
+	GUI.vertSplitWin:SetSashPosition(0.7*GUI.initFrameH)
 
-    scrollWin2 = wx.wxScrolledWindow(SplitterSizer, wx.wxID_ANY)
-	local boxSizer2 = wx.wxBoxSizer(wx.wxVERTICAL)
-    -- ganttList = wx.wxListCtrl(scrollWin2, wx.wxID_ANY, wx.wxDefaultPosition,
-    --                            wx.wxDefaultSize, wx.wxLC_REPORT, wx.wxDefaultValidator, "Karm Task Tree")
-    ganttGrid = wx.wxGrid(scrollWin2,wx.wxID_ANY)
-    ganttGrid:CreateGrid(1,1)
-    ganttGrid:SetRowLabelSize(0)
-    boxSizer2:Add(ganttGrid, 1, bit.bor(wx.wxALL, wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL),1)
-    scrollWin2:SetSizer(boxSizer2)
-    boxSizer2:Fit(scrollWin2)
-    boxSizer2:SetSizeHints(scrollWin2)
-    -- Place them in the Splitter sizer
-	SplitterSizer:SplitVertically(scrollWin1, scrollWin2)
-	
-	--	scrollWin1:SetBackgroundColour(wx.wxColour(0,0,0))
-	
+
+	-- SYNC THE SCROLLING OF THE TWO GRIDS	
 	-- Create the scroll event to sync the 2 scroll bars in the wxScrolledWindow
-	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, onScrollWin1)
-	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollWin1)
-	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollWin1)
-	scrollWin1:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollWin1)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollTree)
 
-    frame:Layout() -- help sizing the windows before being shown
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollGantt)
 
-    treeGrid:SetColSize(0,boxSizer1:GetSize():GetWidth())
+    GUI.frame:Layout() -- help sizing the windows before being shown
 
-	-- Main table to store the GUI data
-	guiTable = {}
+    GUI.treeGrid:SetColSize(0,GUI.horSplitWin:GetSashPosition())
+
+	-- Main table to store the tasks data
+	tasks = {}
 	
 	fillDummyData()
 	
-    wx.wxGetApp():SetTopWindow(frame)
+    wx.wxGetApp():SetTopWindow(GUI.frame)
     
-    frame:Show(true)
+    GUI.frame:Show(true)
 end
 
 main()

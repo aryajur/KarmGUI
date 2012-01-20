@@ -1,0 +1,18 @@
+Toolbar Icons from wxARTProvider
+
+Load Task Spore: wx.wxART_GO_DIR_UP
+Unload Task Spore: wx.wxART_FOLDER
+Save All Spores: wx.wxART_FILE_SAVE
+Save Current Spore: wx.wxART_FILE_SAVE_AS
+Sync Spore Online:
+
+Set Filter Criteria: wx.wxART_HELP_SIDE_PANEL
+Create Sub-Task: wx.wxART_ADD_BOOKMARK
+Edit Task: wx.wxART_REPORT_VIEW
+Delete Task: wx.wxART_CROSS_MARK
+Move Task Under: wx.wxART_GO_FORWARD
+Move Task Above: wx.wxART_GO_UP
+Move Task Below: wx.wxART_GO_DOWN
+
+Generate Report: wx.wxART_LIST_VIEW
+
