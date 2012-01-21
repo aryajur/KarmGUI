@@ -9,6 +9,9 @@
 package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
 require("wx")
 
+-- Include the XML handling module
+require("LuaXML")
+
 -- Creating GUI the main table containing all the GUI objects and data
 GUI = {["__index"]=_G}
 setmetatable(GUI,GUI)
@@ -16,6 +19,23 @@ setfenv(1,GUI)
 initFrameH = 400
 initFrameW = 450
 setfenv(1,_G)
+
+function Initialize()
+	configFile = "KarmConfig.lua"
+	
+	-- load the configuration file
+	dofile(configFile)
+	-- Load all the XML spores
+	count = 1
+	-- print(Spores[count])
+	if Spores then
+		SporeXML = {}
+		while Spores[count] do
+			SporeXML[1] = xml.load(Spores[count])
+			count = count + 1
+		end
+	end
+end
 
 -- To fill the GUI with Dummy data in the treeList and ganttList
 function fillDummyData()
@@ -86,17 +106,17 @@ function main()
 	local toolBar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
 	local toolBmpSize = toolBar:GetToolBitmapSize()
 	toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
-	toolBar:AddTool(wx.wxID_ANY, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
-	toolBar:AddTool(wx.wxID_ANY, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
-	toolBar:AddTool(wx.wxID_ANY, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
+	toolBar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
+	toolBar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
+	toolBar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
 	toolBar:AddSeparator()
-	toolBar:AddTool(GUI.ID_REPORT, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
-	toolBar:AddTool(GUI.ID_REPORT, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
-	toolBar:AddTool(GUI.ID_REPORT, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
-	toolBar:AddTool(GUI.ID_REPORT, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
-	toolBar:AddTool(GUI.ID_REPORT, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...")
-	toolBar:AddTool(GUI.ID_REPORT, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...")
-	toolBar:AddTool(GUI.ID_REPORT, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...")
+	toolBar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
+	toolBar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
+	toolBar:AddTool(GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
+	toolBar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
+	toolBar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...")
+	toolBar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...")
+	toolBar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...")
 	toolBar:AddSeparator()
 	toolBar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
 	toolBar:Realize()
@@ -120,11 +140,11 @@ function main()
     local helpMenu = wx.wxMenu()
     helpMenu:Append(wx.wxID_ABOUT, "&About", "About Karm")
 
-    local menuBar = wx.wxMenuBar()
-    menuBar:Append(fileMenu, "&File")
-    menuBar:Append(helpMenu, "&Help")
+    GUI.menuBar = wx.wxMenuBar()
+    GUI.menuBar:Append(fileMenu, "&File")
+    GUI.menuBar:Append(helpMenu, "&Help")
 
-    GUI.frame:SetMenuBar(menuBar)
+    GUI.frame:SetMenuBar(GUI.menuBar)
 
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
@@ -208,8 +228,8 @@ function main()
 
     GUI.treeGrid:SetColSize(0,GUI.horSplitWin:GetSashPosition())
 
-	-- Main table to store the tasks data
-	tasks = {}
+	-- Main table to store the task tree that is on display
+	GUI.taskTree = {}
 	
 	fillDummyData()
 	
@@ -217,6 +237,9 @@ function main()
     
     GUI.frame:Show(true)
 end
+
+-- Do all the initial Configuration and Initialization
+Initialize()
 
 main()
 
