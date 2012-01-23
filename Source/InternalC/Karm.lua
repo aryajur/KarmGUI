@@ -10,7 +10,7 @@ package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;
 require("wx")
 
 -- Include the XML handling module
-require("LuaXML")
+require("LuaXml")
 
 -- Creating GUI the main table containing all the GUI objects and data
 GUI = {["__index"]=_G}
@@ -20,21 +20,79 @@ initFrameH = 400
 initFrameW = 450
 setfenv(1,_G)
 
+-- Table to store all the Spores data 
+SporeData = {}
+
+-- Function to convert XML data to internal data structure
+function XML2Data(SporeXML)
+	local dataStruct = {tasks = 0, [0] = "Task_Spore"}	-- to create the data structure
+	if SporeXML[0]~="Task_Spore" then
+		return nil
+	end
+	-- Find the Task_Spore element
+	local currNode = SporeXML
+	local hierInfo = {}
+	local level = 1
+	hierInfo[level] = {count = 1}
+	while(currNode[hierInfo[level].count] or level > 1) do
+		if not(currNode[hierInfo[level].count]) then
+			currNode = hierInfo[level].parent
+			level = level - 1
+			dataStruct = dataStruct.parent
+		else
+			if currNode[hierInfo[level].count][0] == "Task" then
+				dataStruct.tasks = dataStruct.tasks + 1
+				dataStruct[dataStruct.tasks] = {[0] = "Task"}
+				-- Extract all task information here
+				local task = currNode[hierInfo[level].count]
+				hierInfo[level].count = hierInfo[level].count + 1
+				local count = 1
+				while(task[count]) do
+					if task[count][0] == "Title" then
+						dataStruct[dataStruct.tasks].Title = task[count][1]
+						-- print(task[count][1])
+					elseif task[count][0] == "SubTasks" then
+						level = level + 1
+						hierInfo[level] = {count = 1, parent = currNode}
+						currNode = task[count]
+						dataStruct[dataStruct.tasks].SubTasks = {parent = dataStruct, tasks = 0, [0]="SubTasks"}
+						dataStruct = dataStruct[dataStruct.tasks].SubTasks
+					end
+					count = count + 1
+				end
+			else
+				if currNode[hierInfo[level].parent] then
+					currNode = hierInfo[level].parent
+					level = level - 1
+					dataStruct = dataStruct.parent
+				end		-- if currNode[hierInfo[level].parent ends here
+			end		-- if currNode[hierInfo[level].count][0] == "Task"  ends here
+		end
+	end		-- while(currNode[hierInfo[level].count]) ends here
+	while dataStruct.parent do
+		dataStruct = dataStruct.parent
+	end
+	return dataStruct
+end		-- function XML2Data(SporeXML) ends here
+
 function Initialize()
 	configFile = "KarmConfig.lua"
 	
 	-- load the configuration file
 	dofile(configFile)
 	-- Load all the XML spores
-	count = 1
+	local count = 1
 	-- print(Spores[count])
 	if Spores then
-		SporeXML = {}
 		while Spores[count] do
-			SporeXML[1] = xml.load(Spores[count])
+			local xmlFile = xml.load(Spores[count])
+			SporeData[count] = XML2Data(xmlFile)
+			setmetatable({},getmetatable(xmlFile))
 			count = count + 1
 		end
 	end
+    SporeData[1] = xml.new(SporeData[1])
+	print(SporeData[1])
 end
 
 -- To fill the GUI with Dummy data in the treeList and ganttList
@@ -82,6 +140,12 @@ end
 
 function onScrollGantt(event)
 	GUI.treeGrid:Scroll(GUI.treeGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.ganttGrid:GetScrollPos(wx.wxVERTICAL))
+	event:Skip()
+end
+
+function horSashAdjust(event)
+	GUI.treeGrid:SetColSize(0,GUI.horSplitWin:GetSashPosition())
+	GUI.treeGrid:ForceRefresh()
 	event:Skip()
 end
 
@@ -223,6 +287,9 @@ function main()
 	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollGantt)
 	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollGantt)
 	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollGantt)
+	
+	-- Sash position changing event
+	GUI.horSplitWin:Connect(wx.wxEVT_COMMAND_SPLITTER_SASH_POS_CHANGED, horSashAdjust)
 
     GUI.frame:Layout() -- help sizing the windows before being shown
 
