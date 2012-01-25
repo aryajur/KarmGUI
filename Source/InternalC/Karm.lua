@@ -50,7 +50,8 @@ function XML2Data(SporeXML)
 				while(task[count]) do
 					if task[count][0] == "Title" then
 						dataStruct[dataStruct.tasks].Title = task[count][1]
-						-- print(task[count][1])
+					elseif task[count][0] == "TaskID" then
+						dataStruct[dataStruct.tasks].TaskID = task[count][1]
 					elseif task[count][0] == "SubTasks" then
 						level = level + 1
 						hierInfo[level] = {count = 1, parent = currNode}
@@ -85,14 +86,10 @@ function Initialize()
 	-- print(Spores[count])
 	if Spores then
 		while Spores[count] do
-			local xmlFile = xml.load(Spores[count])
-			SporeData[count] = XML2Data(xmlFile)
-			setmetatable({},getmetatable(xmlFile))
+			SporeData[count] = XML2Data(xml.load(Spores[count]))
 			count = count + 1
 		end
 	end
-    SporeData[1] = xml.new(SporeData[1])
-	print(SporeData[1])
 end
 
 -- To fill the GUI with Dummy data in the treeList and ganttList
@@ -133,6 +130,40 @@ function fillDummyData()
 	-- GUI.ganttGrid:SetScrollbars(3,3,ganttGrid:GetSize():GetWidth(),ganttGrid:GetSize():GetHeight())
 end
 
+function updateTree(treeData)
+	-- treeData should be the array of spores
+	GUI.treeGrid:DeleteRows(0,GUI.treeGrid:GetNumberRows())
+	GUI.ganttGrid:DeleteRows(0,GUI.ganttGrid:GetNumberRows())
+	local taskTree = {}	-- Table to store the GUI state which will replace the GUI.taskTree table
+	local rowPtr = 0
+	local hierLevel = 0
+	for i = 1,#treeData do
+		local spore = treeData[i]
+		local counts = {[spore] = 1} -- to count the children in the spore/task
+		while(spore[counts[spore]] or spore.parent) do
+			if not spore[counts[spore]] then
+				-- go up a level
+				spore = spore.parent
+				hierLevel = hierLevel - 1
+			else
+				if spore[counts[spore]].Title then
+					GUI.treeGrid:InsertRows(rowPtr)
+					GUI.treeGrid:SetCellValue(rowPtr,0,string.rep(" ",hierLevel*4)..spore[counts[spore]].Title)
+					rowPtr = rowPtr + 1
+				end
+				if spore[counts[spore]].SubTasks then
+					spore = spore[counts[spore]].SubTasks
+					hierLevel = hierLevel + 1
+					counts[spore] = 0
+				end
+			end
+			counts[spore] = counts[spore] + 1
+		end		-- while(treeData[i]) ends
+	end		-- Looping through all the spores	
+	GUI.treeGrid:SetColMinimalWidth(0,GUI.horSplitWin:GetSashPosition())
+	GUI.treeGrid:AutoSizeColumn(0,false)
+end		-- function updateTree(treeData) ends
+
 function onScrollTree(event)
 	GUI.ganttGrid:Scroll(GUI.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.treeGrid:GetScrollPos(wx.wxVERTICAL))
 	event:Skip()
@@ -144,8 +175,8 @@ function onScrollGantt(event)
 end
 
 function horSashAdjust(event)
-	GUI.treeGrid:SetColSize(0,GUI.horSplitWin:GetSashPosition())
-	GUI.treeGrid:ForceRefresh()
+	GUI.treeGrid:SetColMinimalWidth(0,GUI.horSplitWin:GetSashPosition())
+	GUI.treeGrid:AutoSizeColumn(0,false)
 	event:Skip()
 end
 
@@ -297,9 +328,7 @@ function main()
 
 	-- Main table to store the task tree that is on display
 	GUI.taskTree = {}
-	
-	fillDummyData()
-	
+		
     wx.wxGetApp():SetTopWindow(GUI.frame)
     
     GUI.frame:Show(true)
@@ -309,6 +338,11 @@ end
 Initialize()
 
 main()
+
+fillDummyData()
+
+updateTree(SporeData)
+
 
 -- Call wx.wxGetApp():MainLoop() last to start the wxWidgets event loop,
 -- otherwise the wxLua program will exit immediately.

@@ -1,0 +1,20 @@
+The Task Filter should filter the following:
+
+1. Tasks - Particular with out without its children
+2. Who - People responsible for the task (Boolean)
+3. Date_Started - Member of given end inclusive ranges
+4. Date_Finished - Member of given end inclusive ranges
+5. AccessIDs - Boolean expression of IDs and their access permission
+6. Status - Member of given list of status types
+7. Priority - Member of given list of priority types
+8. Date_Due - Member of given end inclusive ranges
+9. Category - Member of given list of Categories
+10. Sub-Category - Member of given list of Sub-Categories
+11. Tags - Boolean expression of Tags
+12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges
+		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual
+		Boolean expression of the above criteria with other criterias
+
+
+FOR Date ranges need a symbol for infinite date?
+FOR Date ranges need a symbol for no date in the task also
