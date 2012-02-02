@@ -24,6 +24,8 @@ initFrameH = 400
 initFrameW = 450
 nodeForeColor = {Red=0,Green=0,Blue=0}
 nodeBackColor = {Red=255,Green=255,Blue=255}
+noScheduleColor = {Red=170,Green=170,Blue=170}
+ScheduleColor = {Red=143,Green=62,Blue=215}
 setfenv(1,_G)
 
 -- Global Declarations
@@ -416,10 +418,38 @@ function updateTree(treeData)
 	GUI.treeGrid:AutoSizeColumn(0,false)
 end		-- function updateTree(treeData) ends
 
-function GUI.dispTask(row, createRow, taskNode)
-	if createRow and GUI.treeGrid:GetNumberRows()<row-1 then
+function GUI.dispTask(row, createRow, taskNode, hierLevel)
+	if createRow and GUI.treeGrid:GetNumberRows()<row-1 or GUI.treeGrid:GetNumberRows()<row then
 		return nil
 	end
+	if createRow then
+		GUI.treeGrid:InsertRows(row)
+	end
+	GUI.treeGrid:SetCellValue(rowPtr,0,string.rep(" ",hierLevel*4)..taskNode.Text)
+	-- Now update the ganttGrid to include the schedule
+	local startDay = GUI.dateStartPick:Getvalue():ToGMT()
+	local finDay = GUI.dateFinPick:GetValue():ToGMT()
+	local days = startDay:Subtract(finDay):GetDays()
+	if not taskNode.Task then
+		-- No task associated with the node so color the cells to show no schedule
+		GUI.ganttGrid:SetRowLabelValue(row-1,"X")
+		for i = 1,days do
+			GUI.ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
+			,GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+		end
+	else
+		-- Task exists so create the schedule
+		--Get the datelist
+		local dateList = getLatestScheduleDates(taskNode.Task)
+		for i=1,#dateList do
+			local start = toXMLDate(startDay.Format("%D"))
+			local fin = toXMLDate(finDay.Format("%D"))
+			if dateList[i]>=start and dateList[i]<=fin then
+				-- This date is in range
+				
+			end
+		end
+	end	
 end
 
 -- To fill the GUI with Dummy data in the treeList and ganttList
@@ -756,7 +786,7 @@ function main()
 	GUI.ganttGrid = wx.wxGrid(GUI.horSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
 						wx.wxDefaultSize, 0, "Gantt Chart Grid")
     GUI.ganttGrid:CreateGrid(1,1)
-    GUI.ganttGrid:SetRowLabelSize(0)
+    -- GUI.ganttGrid:SetRowLabelSize(0)
 
 	GUI.horSplitWin:SplitVertically(GUI.treeGrid, GUI.ganttGrid)
 	GUI.horSplitWin:SetSashPosition(0.3*GUI.initFrameW)

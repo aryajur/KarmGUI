@@ -25,6 +25,8 @@ function getLatestScheduleDates(task)
 		for i = 1,#task.Schedules[typeSchedule][index].Period do
 			dateList[#dateList + 1] = task.Schedules[typeSchedule][index].Period[i].Date
 		end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
+		dateList.typeSchedule = typeSchedule
+		dateList.index = index
 		return dateList
 	else
 		return nil
