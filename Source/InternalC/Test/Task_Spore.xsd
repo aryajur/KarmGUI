@@ -3,7 +3,7 @@
 <xs:schema elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:complexType name="Task">
     <xs:sequence minOccurs="0">
-      <xs:element name="DB-Data" minOccurs="0">
+      <xs:element minOccurs="0" name="DB-Data">
         <xs:complexType>
           <xs:sequence>
             <xs:element minOccurs="0" name="DBID" type="xs:string" />
@@ -40,12 +40,16 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
           <xs:documentation>Title/Name for the task for identification</xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="Date_Started" type="xs:date">
+      <xs:element name="Start" type="xs:date">
         <xs:annotation>
           <xs:documentation>Date the Task is started. XML Date format is YYYY-MM-DD</xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element minOccurs="0" name="Date_Finished" type="xs:date" />
+      <xs:element minOccurs="0" name="Fin" type="xs:date">
+        <xs:annotation>
+          <xs:documentation>The date task was marked DONE</xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element name="Who" type="ID_list">
         <xs:annotation>
           <xs:documentation>People incharge of the task</xs:documentation>
@@ -65,7 +69,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                 </xs:restriction>
               </xs:simpleType>
             </xs:element>
-            <xs:element minOccurs="0" name="Access_List">
+            <xs:element minOccurs="0" name="Access">
               <xs:complexType>
                 <xs:sequence>
                   <xs:element minOccurs="1" maxOccurs="unbounded" name="Item">
@@ -114,7 +118,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
           </xs:restriction>
         </xs:simpleType>
       </xs:element>
-      <xs:element minOccurs="0" name="Date_Due" type="xs:date">
+      <xs:element minOccurs="0" name="Due" type="xs:date">
         <xs:annotation>
           <xs:documentation>Date the Task is started. XML Date format is YYYY-MM-DD</xs:documentation>
         </xs:annotation>
@@ -131,7 +135,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                     </xs:annotation>
                     <xs:complexType>
                       <xs:sequence>
-                        <xs:element minOccurs="0" name="Hours" type="xs:positiveInteger" />
+                        <xs:element minOccurs="0" name="Hours" type="xs:float" />
                         <xs:element name="Comment" type="xs:string">
                           <xs:annotation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
@@ -175,10 +179,10 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                 </xs:sequence>
               </xs:complexType>
             </xs:element>
-            <xs:element minOccurs="0" name="Revisions">
+            <xs:element minOccurs="0" name="Revs">
               <xs:complexType>
                 <xs:sequence>
-                  <xs:element minOccurs="1" maxOccurs="unbounded" name="Revision">
+                  <xs:element minOccurs="1" maxOccurs="unbounded" name="Rev">
                     <xs:annotation>
                       <xs:documentation>This element contains the planned work dates for the task as planned by the responsible people for the task. The list of periods listed in this can be ORed with the periods of all sub tasks to create a Gantt chart for this Task. Maximum 3 revisions allowed for this.</xs:documentation>
                     </xs:annotation>
@@ -243,7 +247,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
           </xs:sequence>
         </xs:complexType>
       </xs:element>
-      <xs:element name="Advanced" minOccurs="0">
+      <xs:element minOccurs="0" name="Advanced">
         <xs:complexType>
           <xs:sequence>
             <xs:element minOccurs="0" name="Updates">
@@ -654,11 +658,14 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
         <xs:complexType>
           <xs:sequence>
             <xs:element name="Date" type="xs:date" />
-            <xs:element minOccurs="0" maxOccurs="10" name="TP" type="Time_Period">
-              <xs:annotation>
-                <xs:documentation>The Time plan for the day</xs:documentation>
-              </xs:annotation>
-            </xs:element>
+            <xs:choice>
+              <xs:element minOccurs="0" maxOccurs="10" name="TP" type="Time_Period">
+                <xs:annotation>
+                  <xs:documentation>The Time plan for the day</xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element minOccurs="0" name="Hours" type="xs:float" />
+            </xs:choice>
           </xs:sequence>
         </xs:complexType>
       </xs:element>

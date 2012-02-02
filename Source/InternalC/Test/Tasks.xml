@@ -4,7 +4,7 @@
 		<Modified>YES</Modified>
 		<TaskID>HomeChores</TaskID>
 		<Title>Home Chores</Title>
-		<Date_Started>2010-02-24</Date_Started>
+		<Start>2010-02-24</Start>
 		<Who>
 			<Item>
 				<ID>milind.gupta</ID>
@@ -24,7 +24,7 @@
 		<Modified>YES</Modified>
 		<TaskID>TechChores</TaskID>
 		<Title>Technical Work</Title>
-		<Date_Started>2010-02-24</Date_Started>
+		<Start>2010-02-24</Start>
 		<Who>
 			<Item>
 				<ID>milind.gupta</ID>
@@ -41,7 +41,7 @@
 				<Modified>YES</Modified>
 				<TaskID>TechChores_9</TaskID>
 				<Title>Documentation Tasks</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -57,7 +57,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_9_2</TaskID>
 						<Title>Document LEDSINK oscillation issue</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -74,7 +74,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_9_3</TaskID>
 						<Title>Finish Oscillator Notes</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -96,7 +96,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_9_5</TaskID>
 						<Title>Document Transconductance Enhancement cell</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -112,8 +112,8 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_9_7</TaskID>
 						<Title>Document Slope Compensation Learnings</Title>
-						<Date_Started>2010-02-24</Date_Started>
-						<Date_Finished>2010-12-22</Date_Finished>
+						<Start>2010-02-24</Start>
+						<Fin>2010-12-22</Fin>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -133,7 +133,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_9_8</TaskID>
 						<Title>Add formula Compendium for each design in Circuit ideas XSD</Title>
-						<Date_Started>2010-02-26</Date_Started>
+						<Start>2010-02-26</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -151,7 +151,7 @@
 				<Modified>YES</Modified>
 				<TaskID>TechChores_10</TaskID>
 				<Title>Write the Trinary DAC circuit idea article</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -169,7 +169,7 @@
 				<Modified>YES</Modified>
 				<TaskID>TechChores_11</TaskID>
 				<Title>Port FreeRTOS in MSP430F2013</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -185,7 +185,7 @@
 				<Modified>YES</Modified>
 				<TaskID>TechChores_12</TaskID>
 				<Title>Circuit Search Engine</Title>
-				<Date_Started>2010-12-28</Date_Started>
+				<Start>2010-12-28</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -203,8 +203,8 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_1</TaskID>
 						<Title>Make the Structure creation and Files reading code</Title>
-						<Date_Started>2010-12-28</Date_Started>
-						<Date_Finished>2011-02-04</Date_Finished>
+						<Start>2010-12-28</Start>
+						<Fin>2011-02-04</Fin>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -215,10 +215,10 @@
 							<Status>No</Status>
 						</Locked>
 						<Status>Done</Status>
-						<Date_Due>2010-12-29</Date_Due>
+						<Due>2010-12-29</Due>
 						<Schedules>
-							<Revisions>
-								<Revision>
+							<Revs>
+								<Rev>
 									<Comment/>
 									<Updated>2010-12-28</Updated>
 									<Period>
@@ -227,8 +227,8 @@
 										</DP>
 										<DP><Date>2010-12-29</Date></DP>
 									</Period>
-								</Revision>
-							</Revisions>
+								</Rev>
+							</Revs>
 						</Schedules>
 						<Category>Design</Category>
 						<Sub-Category>Development</Sub-Category>
@@ -238,8 +238,8 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_2</TaskID>
 						<Title>Write the Main algorithm</Title>
-						<Date_Started>2010-12-28</Date_Started>
-							<Date_Finished>2011-02-04</Date_Finished>
+						<Start>2010-12-28</Start>
+							<Fin>2011-02-04</Fin>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -250,18 +250,18 @@
 							<Status>No</Status>
 						</Locked>
 						<Status>Done</Status>
-						<Date_Due>2010-12-31</Date_Due>
+						<Due>2010-12-31</Due>
 						<Schedules>
-							<Revisions>
-							<Revision>
+							<Revs>
+							<Rev>
 								<Comment/>
 								<Updated>2010-12-28</Updated>
 								<Period>
 									<DP><Date>2010-12-30</Date></DP>
 									<DP><Date>2010-12-31</Date></DP>
 								</Period>
-							</Revision>
-							</Revisions>
+							</Rev>
+							</Revs>
 						</Schedules>
 						<Category>Design</Category>
 						<Sub-Category>Development</Sub-Category>
@@ -270,8 +270,8 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_3</TaskID>
 						<Title>Debugging and Testing</Title>
-						<Date_Started>2010-12-28</Date_Started>
-						<Date_Finished>2011-02-08</Date_Finished>
+						<Start>2010-12-28</Start>
+						<Fin>2011-02-08</Fin>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -282,10 +282,10 @@
 							<Status>No</Status>
 						</Locked>
 						<Status>Done</Status>
-						<Date_Due>2011-02-08</Date_Due>
+						<Due>2011-02-08</Due>
 						<Schedules>
-							<Revisions>
-							<Revision>
+							<Revs>
+							<Rev>
 								<Comment/>
 								<Updated>2010-12-28</Updated>
 								<Period>
@@ -293,8 +293,8 @@
 									<DP>
 									<Date>2011-01-02</Date></DP>
 								</Period>
-							</Revision>
-							<Revision>
+							</Rev>
+							<Rev>
 								<Comment/>
 								<Updated>2011-02-04</Updated>
 								<Period>
@@ -303,8 +303,8 @@
 									</DP>
 									<DP><Date>2011-02-08</Date></DP>
 								</Period>
-							</Revision>
-							</Revisions>
+							</Rev>
+							</Revs>
 						</Schedules>
 						<Category>Design</Category>
 						<Sub-Category>Development</Sub-Category>
@@ -313,7 +313,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_4</TaskID>
 						<Title>Add subcircuit support for SPICE netlist</Title>
-						<Date_Started>2011-02-08</Date_Started>
+						<Start>2011-02-08</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -329,7 +329,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_5</TaskID>
 						<Title>Add spectre netlist parser</Title>
-						<Date_Started>2011-02-08</Date_Started>
+						<Start>2011-02-08</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -345,7 +345,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_6</TaskID>
 						<Title>Add support for ORing component existence</Title>
-						<Date_Started>2011-02-08</Date_Started>
+						<Start>2011-02-08</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -361,7 +361,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_7</TaskID>
 						<Title>Add support for ignoring components</Title>
-						<Date_Started>2011-02-08</Date_Started>
+						<Start>2011-02-08</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -378,7 +378,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_8</TaskID>
 						<Title>Add support for Passive network reduction in search</Title>
-						<Date_Started>2011-02-09</Date_Started>
+						<Start>2011-02-09</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -394,7 +394,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_9</TaskID>
 						<Title>Modify matching percentage to show nodes and components both</Title>
-						<Date_Started>2011-02-15</Date_Started>
+						<Start>2011-02-15</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -411,7 +411,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_10</TaskID>
 						<Title>Implement a totally Explicit match flag</Title>
-						<Date_Started>2011-02-15</Date_Started>
+						<Start>2011-02-15</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -428,7 +428,7 @@
 						<Modified>YES</Modified>
 						<TaskID>TechChores_12_11</TaskID>
 						<Title>Add ability to make a node match to anything at all</Title>
-						<Date_Started>2011-02-16</Date_Started>
+						<Start>2011-02-16</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -450,7 +450,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 		<Modified>YES</Modified>
 		<TaskID>StudyChores</TaskID>
 		<Title>Study Work</Title>
-		<Date_Started>2010-02-24</Date_Started>
+		<Start>2010-02-24</Start>
 		<Who>
 			<Item>
 				<ID>milind.gupta</ID>
@@ -467,7 +467,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_2</TaskID>
 				<Title>Switching Regulators Study</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -483,7 +483,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_2_1</TaskID>
 						<Title>Create Compensation cookbook with derivation</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -499,7 +499,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_1_1</TaskID>
 								<Title>Buck Regulator</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -515,7 +515,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_1_1</TaskID>
 										<Title>Current Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -531,7 +531,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_1_2</TaskID>
 										<Title>Voltage Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -547,7 +547,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_1_3</TaskID>
 										<Title>Average Current Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -565,7 +565,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_1_2</TaskID>
 								<Title>Boost Regulator</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -581,7 +581,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_2_1</TaskID>
 										<Title>Current Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -597,7 +597,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_2_2</TaskID>
 										<Title>Voltage Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -613,7 +613,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_2_3</TaskID>
 										<Title>Average Current Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -631,7 +631,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_1_3</TaskID>
 								<Title>Buck-Boost Regulator</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -647,7 +647,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_3_1</TaskID>
 										<Title>Current Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -663,7 +663,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_3_2</TaskID>
 										<Title>Voltage Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -679,7 +679,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 										<Modified>YES</Modified>
 										<TaskID>StudyChores_2_1_3_3</TaskID>
 										<Title>Average Current Mode Control</Title>
-										<Date_Started>2010-02-24</Date_Started>
+										<Start>2010-02-24</Start>
 										<Who>
 											<Item>
 												<ID>milind.gupta</ID>
@@ -697,7 +697,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_1_4</TaskID>
 								<Title>Feedforward Compensation</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -716,7 +716,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_2_3</TaskID>
 						<Title>Create Macromodels</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -733,7 +733,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_3_1</TaskID>
 								<Title>Buck Regulator</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -749,7 +749,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_3_2</TaskID>
 								<Title>Boost Regulator</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -765,7 +765,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 								<Modified>YES</Modified>
 								<TaskID>StudyChores_2_3_3</TaskID>
 								<Title>Buck-Boost Regulator</Title>
-								<Date_Started>2010-02-24</Date_Started>
+								<Start>2010-02-24</Start>
 								<Who>
 									<Item>
 										<ID>milind.gupta</ID>
@@ -783,7 +783,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_2_4</TaskID>
 						<Title>Verify Slope Compensation Derivations using Octave Programs</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -801,7 +801,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_3</TaskID>
 				<Title>Study PLLs</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -817,7 +817,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_3_1</TaskID>
 						<Title>Razavi Chapter</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -833,7 +833,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_3_2</TaskID>
 						<Title>TH Lee Chapter</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -849,7 +849,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_3_3</TaskID>
 						<Title>F M Gardener</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -867,7 +867,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_5</TaskID>
 				<Title>Listen to Advanced Analog Lectures (Berkeley)</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -883,7 +883,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_6</TaskID>
 				<Title>Signals and Systems</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -900,7 +900,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_6_1</TaskID>
 						<Title>Listen to EE120 Advanced Signals and Systems (Berkeley)</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -916,7 +916,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_6_2</TaskID>
 						<Title>Study Oppenheim</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -934,7 +934,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_8</TaskID>
 				<Title>Listen to ADC/DAC lectures (berkeley)</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -950,7 +950,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_8_1</TaskID>
 						<Title>Create Sample ADC/DAC Circuits</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -968,7 +968,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_9</TaskID>
 				<Title>Listen to Wireless Lectures (Berkeley)</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -984,7 +984,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_10</TaskID>
 				<Title>Feedback Theory Intricacies</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -1000,7 +1000,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_10_1</TaskID>
 						<Title>Gray and Meyer</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -1016,7 +1016,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 						<Modified>YES</Modified>
 						<TaskID>StudyChores_10_2</TaskID>
 						<Title>Choma notes</Title>
-						<Date_Started>2010-02-24</Date_Started>
+						<Start>2010-02-24</Start>
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
@@ -1034,7 +1034,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_12</TaskID>
 				<Title>Study Gm/Id methodology and list out techniques</Title>
-				<Date_Started>2010-02-24</Date_Started>
+				<Start>2010-02-24</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -1054,7 +1054,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 				<Modified>YES</Modified>
 				<TaskID>StudyChores_15</TaskID>
 				<Title>Study the Output stages chapter from Gray and Meyer</Title>
-				<Date_Started>2010-11-30</Date_Started>
+				<Start>2010-11-30</Start>
 				<Who>
 					<Item>
 						<ID>milind.gupta</ID>
@@ -1078,7 +1078,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 		<Modified>YES</Modified>
 		<TaskID>InternetWork</TaskID>
 		<Title>Internet Work</Title>
-		<Date_Started>2010-02-24</Date_Started>
+		<Start>2010-02-24</Start>
 		<Who>
 			<Item>
 				<ID>milind.gupta</ID>
@@ -1095,7 +1095,7 @@ This could be done by creating a 0 in the connection configuration for that pin 
 		<Modified>YES</Modified>
 		<TaskID>MarketTasks</TaskID>
 		<Title>Market Tasks</Title>
-		<Date_Started>2010-02-24</Date_Started>
+		<Start>2010-02-24</Start>
 		<Who>
 			<Item>
 				<ID>milind.gupta</ID>
