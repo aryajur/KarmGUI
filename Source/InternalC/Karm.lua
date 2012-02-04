@@ -15,6 +15,7 @@ require("LuaXml")
 -- Karm files
 require("Filter")
 require("DataHandler")
+require("TestFuncs")		-- Containing all testing functions not used in final deployment
 
 -- Creating GUI the main table containing all the GUI objects and data
 GUI = {["__index"]=_G}
@@ -26,6 +27,7 @@ nodeForeColor = {Red=0,Green=0,Blue=0}
 nodeBackColor = {Red=255,Green=255,Blue=255}
 noScheduleColor = {Red=170,Green=170,Blue=170}
 ScheduleColor = {Red=143,Green=62,Blue=215}
+emptyDayColor = {Red=255,Green=255,Blue=255}
 setfenv(1,_G)
 
 -- Global Declarations
@@ -143,21 +145,17 @@ function GUI.taskTreeINT.__newindex(tab,key,val)
 	end
 end
 
-function GUI.taskTreeINT.Nodes.Clear()
-	if GUI.taskTree.update then
-		GUI.taskTreeINT.Nodes = {}
-		GUI.taskTreeINT.nodeCount = 0
-		GUI.taskTreeINT.Roots = {}
-		GUI.treeGrid:DeleteRows(0,GUI.treeGrid:GetNumberRows())
-		GUI.ganttGrid:DeleteRows(0,GUI.ganttGrid:GetNumberRows())
-	else
-		GUI.taskTree.actionQ[#GUI.taskTree.actionQ + 1]="GUI.taskTreeINT.Nodes.Clear()"
-	end
+function GUI.taskTreeINT.Clear()
+	GUI.taskTreeINT.Nodes = {}
+	GUI.taskTreeINT.nodeCount = 0
+	GUI.taskTreeINT.Roots = {}
+	GUI.treeGrid:DeleteRows(0,GUI.treeGrid:GetNumberRows())
+	GUI.ganttGrid:DeleteRows(0,GUI.ganttGrid:GetNumberRows())
 end
 
 -- Function to return the iterator function to iterate over all taskTree Nodes 
 -- This the function to be used in a Generic for
-function GUI.taskTreeINT.Nodes.tpairs(taskTree)
+function GUI.taskTreeINT.tpairs(taskTree)
 	-- taskTree is ignored since this is only for the GUI.taskTree table
 	return (
 		-- Iterator for all nodes will give the effect of iterating over all the tasks in the task tree sequentially as if the whole tree is expanded
@@ -187,7 +185,7 @@ function GUI.taskTreeINT.Nodes.tpairs(taskTree)
 end
 
 -- Function to return the iterator function to iterate over only visible taskTree Nodes
-function GUI.taskTreeINT.Nodes.tvpairs(taskTree)
+function GUI.taskTreeINT.tvpairs(taskTree)
 	-- Note if GUI.taskTreeINT.update = false then the results of this iterator may not be in sync with what is seen on the GUI
 	return (
 		-- Iterator for all visible nodes, will give the effect of iterating over all the visible tasks in the taskGrid
@@ -216,7 +214,7 @@ function GUI.taskTreeINT.Nodes.tvpairs(taskTree)
 	), taskTree, GUI.taskTreeINT.Roots[1]._INT_TABLE.Key
 end
 
-function GUI.taskTreeINT.Nodes.Add(nodeInfo)
+function GUI.taskTreeINT.AddNode(nodeInfo)
 	-- Add the node to the GUI task tree
 	-- nodeInfo.Relative = relative of this new node (should be a task ID) (Can be nil - together with relation means root node)
 	-- nodeInfo.Relation = relation of this new node to the Relative. This can be "Child", "Next Sibling", "Prev Sibling" (Can be nil)
@@ -270,8 +268,25 @@ function GUI.taskTreeINT.Nodes.Add(nodeInfo)
 		GUI.taskTreeINT.Nodes[nodeInfo.Key] = GUI.taskTreeINT.Roots[#GUI.taskTreeINT.Roots]
 		GUI.taskTreeINT.nodeCount = GUI.taskTreeINT.nodeCount + 1
 		-- Add it to the GUI here
-		--#################################################################
-		
+		if GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev then
+			GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
+			if GUI.taskTreeINT.update then
+				GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],0)
+			else
+				-- Add to actionQ
+				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+					nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],0)"
+			end
+		else
+			GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = 1
+			if GUI.taskTreeINT.update then
+				GUI.dispTask(1,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],0)
+			else
+				-- Add to actionQ
+				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(1,true,GUI.taskTreeINT.Nodes['"..
+					nodeInfo.Key.."'],0)"
+			end
+		end
 		-- return the node
 		return GUI.taskTreeINT.Nodes[nodeInfo.Key]
 	else
@@ -383,113 +398,169 @@ function Initialize()
 	SporeData[0] = count - 1
 end
 
-function updateTree(treeData)
-	-- treeData should be the array of spore dataStruct returned by XML2DATA
-	GUI.treeGrid:DeleteRows(0,GUI.treeGrid:GetNumberRows())
+function GUI.dateRangeChangeEvent(event)
+	GUI.dateRangeChange()
+	refreshGantt()
+	event:Skip()
+end
+function GUI.dateRangeChange()
+	-- Clear the GanttGrid
 	GUI.ganttGrid:DeleteRows(0,GUI.ganttGrid:GetNumberRows())
-	local taskTree = {}	-- Table to store the GUI state which will replace the GUI.taskTree table
+	GUI.ganttGrid:DeleteCols(0,GUI.ganttGrid:GetNumberCols())
+	local startDate = GUI.dateStartPick:GetValue()
+	local finDate = GUI.dateFinPick:GetValue()
+	local currDate = startDate
+	local count = 0
+	while not currDate:IsLaterThan(finDate) do
+		GUI.ganttGrid:InsertCols(count)
+		-- set the column labels
+		GUI.ganttGrid:SetColLabelValue(count,string.sub(toXMLDate(currDate:Format("%m/%d/%Y")),-2,-1))
+		GUI.ganttGrid:AutoSizeColumn(count)
+		currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+		count = count + 1
+	end
+end
+
+function refreshGantt()
+	-- Erase the previous data
+	GUI.ganttGrid:DeleteRows(0,GUI.ganttGrid:GetNumberRows())
 	local rowPtr = 0
 	local hierLevel = 0
-	for i,spore in pairs(treeData) do
-		if i ~=0 then
-			local counts = {[spore] = 1} -- to count the children in the spore/task
-			while(spore[counts[spore]] or spore.parent) do
-				if not spore[counts[spore]] then
-					-- go up a level
-					spore = spore.parent
-					hierLevel = hierLevel - 1
-				else
-					if spore[counts[spore]].Title then
-						GUI.treeGrid:InsertRows(rowPtr)
-						GUI.treeGrid:SetCellValue(rowPtr,0,string.rep(" ",hierLevel*4)..spore[counts[spore]].Title)
-						rowPtr = rowPtr + 1
-					end
-					if spore[counts[spore]].SubTasks then
-						spore = spore[counts[spore]].SubTasks
-						hierLevel = hierLevel + 1
-						counts[spore] = 0
-					end
-				end
-				counts[spore] = counts[spore] + 1
-			end		-- while(treeData[i]) ends
-		end		-- if i ~=0 then ends
-	end		-- Looping through all the spores	
-	GUI.treeGrid:SetColMinimalWidth(0,GUI.horSplitWin:GetSashPosition())
-	GUI.treeGrid:AutoSizeColumn(0,false)
-end		-- function updateTree(treeData) ends
+	for i,v in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
+		GUI.dispGantt(rowPtr+1,true,v)
+		rowPtr = rowPtr + 1
+	end		-- Looping through all the nodes ends	
+end
 
 function GUI.dispTask(row, createRow, taskNode, hierLevel)
-	if createRow and GUI.treeGrid:GetNumberRows()<row-1 or GUI.treeGrid:GetNumberRows()<row then
+	if (createRow and GUI.treeGrid:GetNumberRows()<row-1) then
+		return nil
+	end
+	if not createRow and GUI.treeGrid:GetNumberRows()<row then
 		return nil
 	end
 	if createRow then
-		GUI.treeGrid:InsertRows(row)
+		GUI.treeGrid:InsertRows(row-1)
 	end
-	GUI.treeGrid:SetCellValue(rowPtr,0,string.rep(" ",hierLevel*4)..taskNode.Text)
+	GUI.treeGrid:SetCellValue(row-1,0,string.rep(" ",hierLevel*4)..taskNode.Title)
+	-- Set the back ground color
+	if taskNode.BackColor then
+		GUI.treeGrid.SetCellBackgroundColour(row-1,0,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
+	end
+	if taskNode.ForeColor then
+		GUI.treeGrid:SetCellTextColour(row-1,0,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
+	end
+end
+
+function GUI.dispGantt(row,createRow,taskNode)
+	if (createRow and GUI.ganttGrid:GetNumberRows()<row-1) then
+		return nil
+	end
+	if not createRow and GUI.ganttGrid:GetNumberRows()<row then
+		return nil
+	end
+	if createRow then
+		GUI.ganttGrid:InsertRows(row)
+	end
 	-- Now update the ganttGrid to include the schedule
-	local startDay = GUI.dateStartPick:Getvalue():ToGMT()
-	local finDay = GUI.dateFinPick:GetValue():ToGMT()
-	local days = startDay:Subtract(finDay):GetDays()
+	local startDay = toXMLDate(GUI.dateStartPick:GetValue():Format("%m/%d/%Y"))
+	local finDay = toXMLDate(GUI.dateFinPick:GetValue():Format("%m/%d/%Y"))
+	local days = GUI.ganttGrid:GetNumberCols()
+
+--	local startDay = GUI.dateStartPick:GetValue():ToGMT()
+--	local finDay = GUI.dateFinPick:GetValue():ToGMT()
+--	local days = finDay:Subtract(startDay):GetDays()
 	if not taskNode.Task then
 		-- No task associated with the node so color the cells to show no schedule
 		GUI.ganttGrid:SetRowLabelValue(row-1,"X")
 		for i = 1,days do
 			GUI.ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
-			,GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+				GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
 		end
 	else
 		-- Task exists so create the schedule
 		--Get the datelist
 		local dateList = getLatestScheduleDates(taskNode.Task)
-		for i=1,#dateList do
-			local start = toXMLDate(startDay.Format("%D"))
-			local fin = toXMLDate(finDay.Format("%D"))
-			if dateList[i]>=start and dateList[i]<=fin then
-				-- This date is in range
-				
+		if not dateList then
+			-- No task associated with the node so color the cells to show no schedule
+			GUI.ganttGrid:SetRowLabelValue(row-1,"X")
+			for i = 1,days do
+				GUI.ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
+					GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
 			end
-		end
+		else
+			local map = {Estimate="E",Commit = "C", Revs = "R", Actual = "A"}
+			local map1 = {
+			[1] = wx.wxDateTime.Jan,
+			[2] = wx.wxDateTime.Feb,
+			[3] = wx.wxDateTime.Mar,
+			[4] = wx.wxDateTime.Apr,
+			[5] = wx.wxDateTime.May,
+			[6] = wx.wxDateTime.Jun,
+			[7] = wx.wxDateTime.Jul,
+			[8] = wx.wxDateTime.Aug,
+			[9] = wx.wxDateTime.Sep,
+			[10] = wx.wxDateTime.Oct,
+			[11] = wx.wxDateTime.Nov,
+			[12] = wx.wxDateTime.Dec
+			}
+			-- Erase the previous schedule on the row
+			for i=1,days do
+				GUI.ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.emptyDayColor.Red,
+					GUI.emptyDayColor.Green,GUI.emptyDayColor.Blue))
+			end		
+			local before,after
+			for i=1,#dateList do
+				if dateList[i]>=startDay and dateList[i]<=finDay then
+					-- This date is in range find the column which needs to be highlighted
+					local currDate = wx.wxDateTimeFromDMY(tonumber(string.sub(dateList[i],-2,-1)),map1[tonumber(string.sub(dateList[i],6,7))],tonumber(string.sub(dateList[i],1,4)))
+--					local range = days
+--					local stepDate = GUI.dateStartPick:GetValue()
+--					stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
+--					local col = math.ceil(range/2)
+--					while not stepDate:IsSameDate(currDate) do
+--						if stepDate:IsEarlierThan(currDate) then
+--							-- Select the upper range
+--							range = math.ceil(range/2)
+--							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
+--							col = math.ceil(range/2)
+--						else
+--							-- Select lower range
+--							stepDate = stepDate:Subtract(wx.wxDateSpan(0,0,0,math.floor(range/2)))
+--							range = math.floor(range/2)
+--							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
+--							col = math.floor(range/2)							
+--						end
+--					end
+
+					local col = 0					
+					local stepDate = GUI.dateStartPick:GetValue()
+					while not stepDate:IsSameDate(currDate) do
+						stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
+						col = col + 1
+					end
+					GUI.ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(GUI.ScheduleColor.Red,
+						GUI.ScheduleColor.Green,GUI.ScheduleColor.Blue))
+				else
+					if dateList[i]<startDay then
+						before = true
+					end
+					if dateList[i]>finDay then
+						after = true
+					end
+				end
+			end		-- for i=1,#dateList do ends
+			local str = ""
+			if before then
+				str = "<"
+			end
+			if after then
+				str = str..">"
+			end
+			GUI.ganttGrid:SetRowLabelValue(row-1,map[dateList.typeSchedule]..tostring(dateList.index)..str)
+		end		-- if not dateList then ends
 	end	
 end
-
--- To fill the GUI with Dummy data in the treeList and ganttList
-function fillDummyData()
-
-	GUI.treeGrid:SetCellValue(0,0,"Test Item 0")
-	GUI.treeGrid:SetCellBackgroundColour(0,0,wx.wxColour(255,255,255))
-    for i = 1,100 do
-    	GUI.treeGrid:InsertRows(i)
-		GUI.treeGrid:SetCellValue(i,0,"Test Item " .. i)
-		GUI.treeGrid:SetCellBackgroundColour(i,0,wx.wxColour(255,255,255))
-	end
-	-- GUI.treeGrid:SetScrollbars(3,3,treeGrid:GetSize():GetWidth(),treeGrid:GetSize():GetHeight())
-	
-	-- Fill the gantt chart list
-	date = 17
-	for i = 0,100 do	-- row count
-		if i > 0 then 
-			-- insert a row
-			GUI.ganttGrid:InsertRows(i)
-		end
-		for j = 0,29 do
-			if i == 0 then
-				if j > 0 then
-					-- insert a column
-					GUI.ganttGrid:InsertCols(j)
-				end
-				-- set the column labels
-				GUI.ganttGrid:SetColLabelValue(j,tostring(date+j))
-				GUI.ganttGrid:SetColSize(j,25)
-			end
-			if (i+j)%2 == 0 then
-				GUI.ganttGrid:SetCellBackgroundColour(i,j,wx.wxColour(128,34,170))
-			end
-		end
-	end
-
-	-- GUI.ganttGrid:SetScrollbars(3,3,ganttGrid:GetSize():GetWidth(),ganttGrid:GetSize():GetHeight())
-end
-
 
 --****f* Karm/fillTaskTree
 -- FUNCTION
@@ -504,7 +575,7 @@ function fillTaskTree()
 	GUI.taskTree.update = false		-- stop GUI updates for the time being    
     if GUI.taskTree.nodeCount > 0 then
 -- Check if the task Tree has elements then get the current selected nodekey this will be selected again after the tree view is refreshed
-        for i,v in GUI.taskTree.Nodes.tpairs(GUI.taskTree.Nodes) do
+        for i,v in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
         	if v.Expanded then
         		-- NOTE: i is the same as the TaskID i.e. i == GUI.taskTree.Nodes[i].Task.TaskID
             	expandedStatus[i] = true
@@ -517,9 +588,9 @@ function fillTaskTree()
     end
     
 -- Clear the treeview and add the root element
-    GUI.taskTree.Nodes.Clear()
-    GUI.taskTree.Nodes.Add{Key=Globals.ROOTKEY, Text = "Task Spores"}
-    GUI.taskTree.Nodes(Globals.ROOTKEY).ForeColor = GUI.nodeForeColor
+    GUI.taskTree.Clear()
+    GUI.taskTree.AddNode{Key=Globals.ROOTKEY, Text = "Task Spores"}
+    GUI.taskTree.Nodes[Globals.ROOTKEY].ForeColor = GUI.nodeForeColor
 
     if SporeData[0] > 0 then
 -- Populate the tree control view
@@ -529,33 +600,37 @@ function fillTaskTree()
             -- Get the tasks in the spore
 -- Add the spore to the TaskTree
 				local strVar
+        		local intVar1 = -1
 				count = count + 1
             	for intVar = #k,1,-1 do
-            		local intVar1 = -1
                 	if string.sub(k, intVar, intVar) == "." then
                     	intVar1 = intVar
                 	end
                 	if string.sub(k, intVar, intVar) == "\\" or string.sub(k, intVar, intVar) == "/" then
-                    	strVar = string.sub(k, intVar + 1, intVar1)
+                    	strVar = string.sub(k, intVar + 1, intVar1-1)
                     	break
                 	end
             	end
-	            GUI.taskTree.Nodes.Add{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY.."_"..tostring(count), Text=strVar}
+	            GUI.taskTree.AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY.."_"..tostring(count), Text=strVar}
 	            GUI.taskTree.Nodes[Globals.ROOTKEY.."_"..tostring(count)].ForeColor = GUI.nodeForeColor
 				local taskList = applyFilterHier(Filter, v)
 -- Now add the tasks under the spore in the TaskTree
             	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
 	                -- Add the 1st element under the spore
-    	            local currNode = GUI.taskTree.Nodes.Add{Relative=Globals.ROOTKEY.."_"..tostring(count), Relation="Child", Key=taskList[1].TaskID, Text=taskList[1].Title}
+    	            local currNode = GUI.taskTree.AddNode{Relative=Globals.ROOTKEY.."_"..tostring(count), Relation="Child", Key=taskList[1].TaskID, 
+    	            		Text=taskList[1].Title, Task=taskList[1]}
                 	currNode.ForeColor = GUI.nodeForeColor
 	                for intVar = 2,taskList.count do
-                    	while currNode.Key ~= Globals.ROOTKEY.."_"..tostring(count) and not #taskList[intVar].TaskID > #currNode.Key and 
-                      			string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_" do
+	                	local cond1 = currNode.Key ~= Globals.ROOTKEY.."_"..tostring(count)
+	                	local cond2 = #taskList[intVar].TaskID > #currNode.Key
+	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+                    	while cond1 and not cond2 and cond3 do
                         	-- Go up the hierarchy
                         	currNode = currNode.Parent
                         end
                     	-- Now currNode has the node which is the right parent
-	                    currNode = GUI.taskTree.Nodes.Add{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, Text=taskList[intVar].Title}
+	                    currNode = GUI.taskTree.AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
+	                    		Text=taskList[intVar].Title, Task = taskList[intVar]}
                     	currNode.ForeColor = nodeColor
                     end
 	            end  -- if taskList.count > 0 then ends
@@ -566,7 +641,7 @@ function fillTaskTree()
     
     if restorePrev then
 -- Update the tree status to before the refresh
-        for k,currNode in GUI.taskTree.Nodes.tpairs(GUI.taskTree.Nodes) do
+        for k,currNode in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
             if expandedStatus[currNode.Key] then
                 currNode.Expanded = true
 			end
@@ -577,6 +652,7 @@ function fillTaskTree()
     else
         GUI.taskTree.Nodes[Globals.ROOTKEY].Expanded = true
     end
+	GUI.taskTree.update = true		-- Resume the tasktree update        
     --Call TaskTree_Click
 end
 --@@END@@
@@ -675,17 +751,17 @@ end
 
 
 
-function onScrollTree(event)
+function GUI.onScrollTree(event)
 	GUI.ganttGrid:Scroll(GUI.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.treeGrid:GetScrollPos(wx.wxVERTICAL))
 	event:Skip()
 end
 
-function onScrollGantt(event)
+function GUI.onScrollGantt(event)
 	GUI.treeGrid:Scroll(GUI.treeGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.ganttGrid:GetScrollPos(wx.wxVERTICAL))
 	event:Skip()
 end
 
-function horSashAdjust(event)
+function GUI.horSashAdjust(event)
 	GUI.treeGrid:SetColMinimalWidth(0,GUI.horSplitWin:GetSashPosition())
 	GUI.treeGrid:AutoSizeColumn(0,false)
 	event:Skip()
@@ -752,24 +828,6 @@ function main()
 
     GUI.frame:SetMenuBar(GUI.menuBar)
 
-    -- connect the selection event of the exit menu item to an
-    -- event handler that closes the window
-    GUI.frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
-        function (event)
-            frame:Close(true)
-        end )
-
-    -- connect the selection event of the about menu item
-    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
-        function (event)
-            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
-                            wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
-                            "About Karm",
-                            wx.wxOK + wx.wxICON_INFORMATION,
-                            frame)
-        end )
-
-
 	GUI.vertSplitWin = wx.wxSplitterWindow(GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
 						wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxSP_3D, "Main Vertical Splitter")
 	GUI.vertSplitWin:SetMinimumPaneSize(10)
@@ -813,7 +871,9 @@ function main()
 	-- Sizer inside box sizer2 containing the date picker controls
 	local boxSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 	GUI.dateStartPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
-	GUI.dateFinPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+	local startDate = GUI.dateStartPick:GetValue()
+	local month = wx.wxDateSpan(0,1,0,0)
+	GUI.dateFinPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 	boxSizer3:Add(GUI.dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 1)
 	boxSizer3:Add(GUI.dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
@@ -836,25 +896,51 @@ function main()
 	GUI.vertSplitWin:SplitHorizontally(GUI.horSplitWin, detailsPanel)
 	GUI.vertSplitWin:SetSashPosition(0.7*GUI.initFrameH)
 
-
+	-- ********************EVENTS***********************************************************************
 	-- SYNC THE SCROLLING OF THE TWO GRIDS	
 	-- Create the scroll event to sync the 2 scroll bars in the wxScrolledWindow
-	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, onScrollTree)
-	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollTree)
-	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollTree)
-	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, GUI.onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, GUI.onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, GUI.onScrollTree)
+	GUI.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, GUI.onScrollTree)
 
-	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, onScrollGantt)
-	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, onScrollGantt)
-	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, onScrollGantt)
-	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, GUI.onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, GUI.onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, GUI.onScrollGantt)
+	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, GUI.onScrollGantt)
 	
 	-- Sash position changing event
-	GUI.horSplitWin:Connect(wx.wxEVT_COMMAND_SPLITTER_SASH_POS_CHANGED, horSashAdjust)
+	GUI.horSplitWin:Connect(wx.wxEVT_COMMAND_SPLITTER_SASH_POS_CHANGED, GUI.horSashAdjust)
+	
+	-- Date Picker Events
+	GUI.dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,GUI.dateRangeChangeEvent)
+	GUI.dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,GUI.dateRangeChangeEvent)
 
+	-- MENU COMMANDS
+    -- connect the selection event of the exit menu item to an
+    -- event handler that closes the window
+    GUI.frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
+        function (event)
+            frame:Close(true)
+        end )
+
+    -- connect the selection event of the about menu item
+    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
+        function (event)
+            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
+                            wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
+                            "About Karm",
+                            wx.wxOK + wx.wxICON_INFORMATION,
+                            frame)
+        end )
+    -- *******************EVENTS FINISHED***************************************************************
     GUI.frame:Layout() -- help sizing the windows before being shown
+    GUI.dateRangeChange()	-- To create the colums for the current date range in the GanttGrid
 
     GUI.treeGrid:SetColSize(0,GUI.horSplitWin:GetSashPosition())
+    
+    -- Fill the task tree now
+    fillTaskTree()
 		
     wx.wxGetApp():SetTopWindow(GUI.frame)
     
@@ -866,9 +952,10 @@ Initialize()
 
 main()
 
-fillDummyData()
+refreshTree()
+-- fillDummyData()
 
-updateTree(SporeData)
+-- updateTree(SporeData)
 
 
 -- Call wx.wxGetApp():MainLoop() last to start the wxWidgets event loop,

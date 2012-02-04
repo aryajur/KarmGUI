@@ -2,7 +2,8 @@
 SporeData = {}
 
 function getLatestScheduleDates(task)
-	local typeSchedule, index, dateList
+	local typeSchedule, index
+	local dateList = {}
 	if task.Schedules then
 		-- Find the latest schedule in the task here
 		if string.upper(task.Status) == "DONE" and task.Schedules.Actual then
@@ -11,7 +12,7 @@ function getLatestScheduleDates(task)
 		elseif task.Schedules.Revs then
 			-- Actual is not the latest one but Revision is 
 			typeSchedule = "Revs"
-			index = task.Schedule.Revs.count
+			index = task.Schedules.Revs.count
 		elseif task.Schedules.Commit then
 			-- Actual and Revisions don't exist but Commit does
 			typeSchedule = "Commit"
@@ -95,41 +96,48 @@ function XML2Data(SporeXML)
 			dataStruct = dataStruct.parent
 		else
 			if currNode[hierInfo[currNode].count][0] == "Task" then
+				local task = currNode[hierInfo[currNode].count]
+				hierInfo[currNode].count = hierInfo[currNode].count + 1
+				local necessary = 0
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
 				-- Extract all task information here
-				local task = currNode[hierInfo[currNode].count]
-				hierInfo[currNode].count = hierInfo[currNode].count + 1
 				local count = 1
 				while(task[count]) do
 					if task[count][0] == "Title" then
 						dataStruct[dataStruct.tasks].Title = task[count][1]
+						necessary = necessary + 1
 					elseif task[count][0] == "TaskID" then
 						dataStruct[dataStruct.tasks].TaskID = task[count][1]
+						necessary = necessary + 1
 					elseif task[count][0] == "Start" then
 						dataStruct[dataStruct.tasks].Start = task[count][1]
+						necessary = necessary + 1
 					elseif task[count][0] == "Fin" then
 						dataStruct[dataStruct.tasks].Fin = task[count][1]
 					elseif task[count][0] == "Who" then
 						local WhoTable = {[0]="Who", count = #task[count]}
 						-- Loop through all the items in the Who element
 						for i = 1,#task[count] do
-							WhoTable[i] = {ID = task[count][i][1][0], Status = task[count][i][2][0]}
+							WhoTable[i] = {ID = task[count][i][1][1], Status = task[count][i][2][1]}
 						end
+						necessary = necessary + 1
 						dataStruct[dataStruct.tasks].Who = WhoTable
 					elseif task[count][0] == "Locked" then
-						local locked = {[0]="Locked", Status = task[count][1][0]}
+						local locked = {[0]="Locked", Status = task[count][1][1]}
 						if task[count][2] == "Access" then
 							local AccessTable = {[0]="Access", count = #task[count][2]}
 							-- Loop through all the items in the Locked element Access List
 							for i = 1,#task[count][2] do
-								AccessTable[i] = {ID = task[count][2][i][1][0], Status = task[count][2][i][2][0]}
+								AccessTable[i] = {ID = task[count][2][i][1][1], Status = task[count][2][i][2][1]}
 							end
 							locked.Access = AccessTable
 						end
+						necessary = necessary + 1
 						dataStruct[dataStruct.tasks].Locked = locked
 					elseif task[count][0] == "Status" then
 						dataStruct[dataStruct.tasks].Status = task[count][1]
+						necessary = necessary + 1
 					elseif task[count][0] == "Priority" then
 						dataStruct[dataStruct.tasks].Priority = task[count][1]
 					elseif task[count][0] == "Due" then
@@ -254,6 +262,11 @@ function XML2Data(SporeXML)
 						dataStruct = dataStruct[dataStruct.tasks].SubTasks
 					end
 					count = count + 1
+				end		-- while(task[count]) do ends
+				if necessary < 6 then
+					-- this is not valid task
+					dataStruct[dataStruct.tasks] = nil
+					dataStruct.tasks = dataStruct.tasks - 1
 				end
 			else
 				if currNode[hierInfo[currNode].parent] then
