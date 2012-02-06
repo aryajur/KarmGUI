@@ -310,8 +310,27 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 			GUI.taskTreeINT.Nodes[nodeInfo.Key] = newNode
 			GUI.taskTreeINT.nodeCount = GUI.taskTreeINT.nodeCount + 1
 			-- Add it to the GUI here
-			--#################################################################
-			
+			if parent._INT_TABLE.Expanded then
+				-- This child needs to be displayed
+				local hierLevel = 0
+				local currNode = GUI.taskTreeINT.Nodes[nodeInfo.Key]
+				while currNode._INT_TABLE.Parent do
+					hierLevel = hierLevel + 1
+					currNode = currNode._INT_TABLE.Parent
+				end
+				if GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev then
+					GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
+				else
+					GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent._INT_TABLE.Row + 1
+				end				
+				if GUI.taskTreeINT.update then
+					GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],hierLevel)
+				else
+					-- Add to actionQ
+					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
+				end
+			end			
 			-- return the node
 			return GUI.taskTreeINT.Nodes[nodeInfo.Key]
 		elseif string.upper(nodeInfo.Relation) == "NEXT SIBLING" then
@@ -325,8 +344,6 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				newNode._INT_TABLE.Next = sib._INT_TABLE.Next
 				sib._INT_TABLE.Next = newNode
 				newNode._INT_TABLE.Prev = sib
-				-- Add it to the GUI here
-				--#################################################################
 			else
 				-- Node is the last one
 				sib._INT_TABLE.Next = newNode
@@ -334,13 +351,31 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				if sib._INT_TABLE.Parent then
 					sib._INT_TABLE.Parent._INT_TABLE.LastChild = newNode
 				end
-				-- Add it to the GUI here
-				--#################################################################
 			end
 			-- Set the metatable
 			setmetatable(parent._INT_TABLE.LastChild,GUI.nodeMeta) 
 			GUI.taskTreeINT.Nodes[nodeInfo.Key] = newNode
 			GUI.taskTreeINT.nodeCount = GUI.taskTreeINT.nodeCount + 1
+			-- Add it to the GUI here
+			if (GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent and 
+				GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent._INT_TABLE.Expanded) or
+				not GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent then
+				-- This child needs to be displayed
+				local hierLevel = 0
+				local currNode = GUI.taskTreeINT.Nodes[nodeInfo.Key]
+				while currNode._INT_TABLE.Parent do
+					hierLevel = hierLevel + 1
+					currNode = currNode._INT_TABLE.Parent
+				end
+				GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
+				if GUI.taskTreeINT.update then
+					GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],hierLevel)
+				else
+					-- Add to actionQ
+					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
+				end
+			end			
 			-- return the node
 			return GUI.taskTreeINT.Nodes[nodeInfo.Key]
 		else 
@@ -354,8 +389,6 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				newNode._INT_TABLE.Prev = sib._INT_TABLE.Prev
 				sib._INT_TABLE.Prev = newNode
 				newNode._INT_TABLE.Next = sib
-				-- Add it to the GUI here
-				--#################################################################
 			else
 				-- Node is the First one
 				sib._INT_TABLE.Prev = newNode
@@ -363,13 +396,31 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				if sib._INT_TABLE.Parent then
 					sib._INT_TABLE.Parent._INT_TABLE.FirstChild = newNode
 				end
-				-- Add it to the GUI here
-				--#################################################################
 			end
 			-- Set the metatable
 			setmetatable(parent._INT_TABLE.LastChild,GUI.nodeMeta) 
 			GUI.taskTreeINT.Nodes[nodeInfo.Key] = newNode
 			GUI.taskTreeINT.nodeCount = GUI.taskTreeINT.nodeCount + 1
+			-- Add it to the GUI here
+			if (GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent and 
+				GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent._INT_TABLE.Expanded) or
+				not GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Parent then
+				-- This child needs to be displayed
+				local hierLevel = 0
+				local currNode = GUI.taskTreeINT.Nodes[nodeInfo.Key]
+				while currNode._INT_TABLE.Parent do
+					hierLevel = hierLevel + 1
+					currNode = currNode._INT_TABLE.Parent
+				end
+				GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
+				if GUI.taskTreeINT.update then
+					GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],hierLevel)
+				else
+					-- Add to actionQ
+					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
+				end
+			end			
 			-- return the node
 			return GUI.taskTreeINT.Nodes[nodeInfo.Key]
 		end
@@ -426,7 +477,7 @@ function refreshGantt()
 	GUI.ganttGrid:DeleteRows(0,GUI.ganttGrid:GetNumberRows())
 	local rowPtr = 0
 	local hierLevel = 0
-	for i,v in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
+	for i,v in GUI.taskTree.tvpairs(GUI.taskTree.Nodes) do
 		GUI.dispGantt(rowPtr+1,true,v)
 		rowPtr = rowPtr + 1
 	end		-- Looping through all the nodes ends	
