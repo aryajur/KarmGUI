@@ -63,9 +63,35 @@
 								<ID>milind.gupta</ID>
 								<Status>Active</Status>
 							</Item>
+							<Item>
+								<ID>milind0x</ID>
+								<Status>Inactive</Status>
+							</Item>
 						</Who>
 						<Locked>
-							<Status>No</Status>
+							<Status>Yes</Status>
+							<Access>
+								<Item>
+									<ID>Guy1</ID>
+									<Status>Read Only</Status>
+								</Item>
+								<Item>
+									<ID>Guy2</ID>
+									<Status>Read Only</Status>
+								</Item>
+								<Item>
+									<ID>Guy3</ID>
+									<Status>Read/Write</Status>
+								</Item>
+								<Item>
+									<ID>Guy4</ID>
+									<Status>Read Only</Status>
+								</Item>
+								<Item>
+									<ID>Guy 5</ID>
+									<Status>Read/Write</Status>
+								</Item>
+							</Access>
 						</Locked>
 						<Status>Not Started</Status>
 						<Comments>Oscillation due to large inductance on the drain of the Source follower. Which made the gain of the Diamond buffer &gt; 1 since the impedance on the gate became inuctive!</Comments>
@@ -78,6 +104,10 @@
 						<Who>
 							<Item>
 								<ID>milind.gupta</ID>
+								<Status>Active</Status>
+							</Item>
+							<Item>
+								<ID>aryajur</ID>
 								<Status>Active</Status>
 							</Item>
 						</Who>

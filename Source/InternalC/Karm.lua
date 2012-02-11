@@ -12,11 +12,6 @@ require("wx")
 -- Include the XML handling module
 require("LuaXml")
 
--- Karm files
-require("Filter")
-require("DataHandler")
-require("TestFuncs")		-- Containing all testing functions not used in final deployment
-
 -- Creating GUI the main table containing all the GUI objects and data
 GUI = {["__index"]=_G}
 setmetatable(GUI,GUI)
@@ -28,12 +23,30 @@ nodeBackColor = {Red=255,Green=255,Blue=255}
 noScheduleColor = {Red=170,Green=170,Blue=170}
 ScheduleColor = {Red=143,Green=62,Blue=215}
 emptyDayColor = {Red=255,Green=255,Blue=255}
+-- Task status colors
+
 setfenv(1,_G)
 
 -- Global Declarations
 Globals = {
 	ROOTKEY = "T0",
+	PriorityList = {'1','2','3','4','5','6','7','8','9','10'},
+	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'}
 }
+
+-- Generate a unique new wxWindowID
+local ID_IDCOUNTER = wx.wxID_HIGHEST + 1
+function NewID()
+    ID_IDCOUNTER = ID_IDCOUNTER + 1
+    return ID_IDCOUNTER
+end
+
+-- Karm files
+require("Filter")
+require("DataHandler")
+require("FilterForm")		-- Containing all Filter Form GUI code
+
+require("TestFuncs")		-- Containing all testing functions not used in final deployment
 
 -- Main table to store the task tree that is on display
 GUI.taskTreeINT = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {},__metatable="Hidden, Do not change!"}
@@ -64,16 +77,123 @@ function GUI.nodeMeta.__newindex(tab,key,val)
 	-- function to catch all setting commands to taskTree nodes
 	if key == "Expanded" then
 		if tab._INT_TABLE.Expanded and not val then
-			-- Expanded was true and now making it false
-			tab._INT_TABLE.Expanded = nil
-			-- Collapse this node in the GUI here
-			-- #######################################################################
+			-- Check if updates are enabled
+			if GUI.taskTreeINT.update then
+				if tab._INT_TABLE.Row then
+					-- Task is visible on the GUI
+					-- Collapse this node in the GUI here
+					-- Number of rows to collapse
+					local nextNode = nil
+					local rows
+					local currNode
+					if tab._INT_TABLE.Next then
+						rows = tab._INT_TABLE.Next._INT_TABLE.Row - tab._INT_TABLE.Row - 1
+						-- Decrement the rows of subsequent tasks
+						nextNode = tab._INT_TABLE.Next
+						while nextNode do
+							nextNode._INT_TABLE.Row = nextNode._INT_TABLE.Row - rows 
+							nextNode = GUI.taskTreeINT.Nodes[GUI.taskTreeINT.nextVisibleNode(nextNode,nextNode._INT_TABLE.Key)]
+						end
+						nextNode = tab._INT_TABLE.Next
+					else
+						currNode = tab._INT_TABLE.Parent
+						while currNode and (not currNode._INT_TABLE.Next) do
+							currNode = currNode._INT_TABLE.Parent
+						end
+						if currNode then
+							nextNode = currNode._INT_TABLE.Next
+							rows = nextNode._INT_TABLE.Row - tab._INT_TABLE.Row - 1
+							-- Decrement the rows of subsequent tasks
+							while nextNode do
+								nextNode._INT_TABLE.Row = nextNode._INT_TABLE.Row - rows 
+								nextNode = GUI.taskTreeINT.Nodes[GUI.taskTreeINT.nextVisibleNode(nextNode,nextNode._INT_TABLE.Key)]
+							end
+							nextNode = currNode._INT_TABLE.Next
+						else
+							rows = GUI.treeGrid:GetNumberRows() - tab._INT_TABLE.Row
+						end
+					end
+					-- Make nil the Row index of all children in the hierarchy of tab
+					currNode = GUI.taskTreeINT.Nodes[GUI.taskTreeINT.nextNode(tab,tab._INT_TABLE.Key)]
+					while currNode ~= nextNode do
+						currNode._INT_TABLE.Row = nil
+						currNode = GUI.taskTreeINT.Nodes[GUI.taskTreeINT.nextNode(currNode,currNode._INT_TABLE.Key)]
+					end
+					-- Adjust the row labels
+					if nextNode then
+						for i = nextNode._INT_TABLE.Row+rows,GUI.treeGrid:GetNumberRows() do
+							GUI.treeGrid:SetRowLabelValue(i-rows-1,GUI.treeGrid:GetRowLabelValue(i-1))
+							GUI.ganttGrid:SetRowLabelValue(i-rows-1,GUI.ganttGrid:GetRowLabelValue(i-1))
+						end		
+					end			
+					-- Now delete all the rows
+					GUI.treeGrid:DeleteRows(tab._INT_TABLE.Row,rows)
+					GUI.ganttGrid:DeleteRows(tab._INT_TABLE.Row,rows)
+					GUI.treeGrid:SetRowLabelValue(tab._INT_TABLE.Row-1,"+")
+				end
+				-- Expanded was true and now making it false
+				tab._INT_TABLE.Expanded = nil
+			else
+				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ + 1] = "GUI.taskTreeINT.Nodes['"..
+						tab._INT_TABLE.Key.."'].Expanded = nil"
+			end		-- if GUI.taskTreeINT.update then ends
 		elseif not tab._INT_TABLE.Expanded and val then
-			-- Expanded was false and now making it true
-			tab._INT_TABLE.Expanded = true
-			-- Expand the node in the GUI here
-			-- #######################################################################
-		end
+			-- Check if updates are enabled
+			if GUI.taskTreeINT.update then
+				if tab._INT_TABLE.Row then
+					-- Task is visible on the GUI
+					-- Expand the node in the GUI here
+					-- Number of rows to insert
+					local rows = tab._INT_TABLE.Children
+					-- Increment the rows of subsequent tasks
+					local nextNode = GUI.taskTreeINT.Nodes[GUI.taskTreeINT.nextVisibleNode(tab,tab._INT_TABLE.Key)]
+					while nextNode do
+						nextNode._INT_TABLE.Row = nextNode._INT_TABLE.Row + rows 
+						nextNode = GUI.taskTreeINT.Nodes[GUI.taskTreeINT.nextVisibleNode(nextNode,nextNode._INT_TABLE.Key)]
+					end
+					-- Now insert the child rows here
+					-- Find the hierarchy level
+					local hierLevel = -1
+					nextNode = tab._INT_TABLE.FirstChild
+					while nextNode do
+						hierLevel = hierLevel + 1
+						nextNode = nextNode._INT_TABLE.Parent
+					end			
+					nextNode = tab._INT_TABLE.FirstChild
+					local currRow = tab._INT_TABLE.Row
+					while nextNode do
+						currRow = currRow + 1
+						nextNode._INT_TABLE.Row = currRow
+						GUI.dispTask(nextNode._INT_TABLE.Row,true,nextNode,hierLevel)
+						GUI.dispGantt(nextNode._INT_TABLE.Row,true,nextNode)
+						nextNode = nextNode._INT_TABLE.Next
+					end
+					GUI.treeGrid:SetRowLabelValue(tab._INT_TABLE.Row-1,"-")
+					-- Expanded was false and now making it true
+					tab._INT_TABLE.Expanded = true
+					-- Now check if any of the exposed children have expanded true
+					nextNode = tab._INT_TABLE.FirstChild
+					local toExpand = {}
+					while nextNode do
+						if nextNode._INT_TABLE.Expanded then
+							nextNode._INT_TABLE.Expanded = nil
+							toExpand[#toExpand + 1] = nextNode
+						end
+						nextNode = nextNode._INT_TABLE.Next
+					end
+					-- Perform expansion of child nodes if any
+					for i = 1,#toExpand do
+						toExpand[i].Expanded = true
+					end
+				else
+					-- Expanded was false and now making it true
+					tab._INT_TABLE.Expanded = true
+				end
+			else
+				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ + 1] = "GUI.taskTreeINT.Nodes['"..
+						tab._INT_TABLE.Key.."'].Expanded = true"
+			end		-- if GUI.taskTreeINT.update then ends
+		end		-- if tab._INT_TABLE.Expanded and not val then ends
 	elseif key == "Task" then
 		-- do nothing since reserved key set automatically
 	elseif key == "Children" then
@@ -157,61 +277,66 @@ end
 -- This the function to be used in a Generic for
 function GUI.taskTreeINT.tpairs(taskTree)
 	-- taskTree is ignored since this is only for the GUI.taskTree table
-	return (
-		-- Iterator for all nodes will give the effect of iterating over all the tasks in the task tree sequentially as if the whole tree is expanded
-		function (node,index)
-			-- node is any node of taskTreeINT it is not used by the function
-			-- index is the index of the node whose next node this function returns
-			local i = index
-			-- Check if this node has children
-			if GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild then
-				return GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild
+	return GUI.taskTreeINT.nextNode, taskTree, nil
+end
+
+-- Iterator for all nodes will give the effect of iterating over all the tasks in the task tree sequentially as if the whole tree is expanded
+function GUI.taskTreeINT.nextNode(node,index)
+	-- node is any node of taskTreeINT it is not used by the function
+	-- index is the index of the node whose next node this function returns
+	local i = index
+	if not i then
+		return GUI.taskTreeINT.Roots[1]._INT_TABLE.Key, GUI.taskTreeINT.Roots[1]
+	end
+	-- Check if this node has children
+	if GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild then
+		return GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild
+	end
+	-- No children so only way is next sibling or parents
+	while GUI.taskTreeINT.Nodes[i] do
+		if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next then
+			return GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next
+		else
+			-- No next siblings so go up a level and continue
+			if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent then
+				i = GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent._INT_TABLE.Key
+			else
+				i = nil
 			end
-			-- No children so only way is next sibling or parents
-			while GUI.taskTreeINT.Nodes[i] do
-				if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next then
-					return GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next
-				else
-					-- No next siblings so go up a level and continue
-					if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent then
-						i = GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent._INT_TABLE.Key
-					else
-						i = nil
-					end
-				end
-			end		-- while GUI.taskTreeINT.Nodes[i] do ends
 		end
-	), taskTree, GUI.taskTreeINT.Roots[1]._INT_TABLE.Key
+	end		-- while GUI.taskTreeINT.Nodes[i] do ends
 end
 
 -- Function to return the iterator function to iterate over only visible taskTree Nodes
 function GUI.taskTreeINT.tvpairs(taskTree)
 	-- Note if GUI.taskTreeINT.update = false then the results of this iterator may not be in sync with what is seen on the GUI
-	return (
-		-- Iterator for all visible nodes, will give the effect of iterating over all the visible tasks in the taskGrid
-		function(node, index)
-			-- node is any node of the taskTreeINT, it is not used by the function
-			-- index is the index of the node whose next node this function returns
-			local i = index
-			-- Check if this node is has children and is expanded
-			if GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild and GUI.taskTreeINT.Nodes[i]._INT_TABLE.Expanded then
-				return GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild
+	return GUI.taskTreeINT.nextVisibleNode, taskTree, nil
+end
+
+function GUI.taskTreeINT.nextVisibleNode(node, index)
+	-- node is any node of the taskTreeINT, it is not used by the function
+	-- index is the index of the node whose next node this function returns
+	local i = index
+	if not i then
+		return GUI.taskTreeINT.Roots[1]._INT_TABLE.Key, GUI.taskTreeINT.Roots[1]
+	end
+	-- Check if this node is has children and is expanded
+	if GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild and GUI.taskTreeINT.Nodes[i]._INT_TABLE.Expanded then
+		return GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.FirstChild
+	end
+	-- No children visible so only way is next sibling or parents
+	while GUI.taskTreeINT.Nodes[i] do
+		if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next then
+			return GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next
+		else
+			-- No next siblings so go up a level and continue
+			if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent then
+				i = GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent._INT_TABLE.Key
+			else
+				i = nil
 			end
-			-- No children visible so only way is next sibling or parents
-			while GUI.taskTreeINT.Nodes[i] do
-				if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next then
-					return GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next._INT_TABLE.Key, GUI.taskTreeINT.Nodes[i]._INT_TABLE.Next
-				else
-					-- No next siblings so go up a level and continue
-					if GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent then
-						i = GUI.taskTreeINT.Nodes[i]._INT_TABLE.Parent._INT_TABLE.Key
-					else
-						i = nil
-					end
-				end
-			end		-- while GUI.taskTreeINT.Nodes[i] do ends					
 		end
-	), taskTree, GUI.taskTreeINT.Roots[1]._INT_TABLE.Key
+	end		-- while GUI.taskTreeINT.Nodes[i] do ends					
 end
 
 function GUI.taskTreeINT.AddNode(nodeInfo)
@@ -272,19 +397,25 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 			GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
 			if GUI.taskTreeINT.update then
 				GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],0)
+				GUI.dispGantt(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key])
 			else
 				-- Add to actionQ
 				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
 					nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],0)"
+				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispGantt(GUI.taskTreeINT.Nodes['"..
+					nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'])"				
 			end
 		else
 			GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = 1
 			if GUI.taskTreeINT.update then
 				GUI.dispTask(1,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],0)
+				GUI.dispGantt(1,true,GUI.taskTreeINT.Nodes[nodeInfo.Key])
 			else
 				-- Add to actionQ
 				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(1,true,GUI.taskTreeINT.Nodes['"..
 					nodeInfo.Key.."'],0)"
+				GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispGantt(1,true,GUI.taskTreeINT.Nodes['"..
+					nodeInfo.Key.."'])"
 			end
 		end
 		-- return the node
@@ -325,10 +456,13 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				end				
 				if GUI.taskTreeINT.update then
 					GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],hierLevel)
+					GUI.dispGantt(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key])
 				else
 					-- Add to actionQ
 					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
 						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
+					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'])"
 				end
 			end			
 			-- return the node
@@ -370,10 +504,13 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
 				if GUI.taskTreeINT.update then
 					GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],hierLevel)
+					GUI.dispGantt(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key])
 				else
 					-- Add to actionQ
 					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
 						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
+					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'])"
 				end
 			end			
 			-- return the node
@@ -415,10 +552,13 @@ function GUI.taskTreeINT.AddNode(nodeInfo)
 				GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row = GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Prev._INT_TABLE.Row+1
 				if GUI.taskTreeINT.update then
 					GUI.dispTask(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key],hierLevel)
+					GUI.dispGantt(GUI.taskTreeINT.Nodes[nodeInfo.Key]._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes[nodeInfo.Key])
 				else
 					-- Add to actionQ
 					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
 						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
+					GUI.taskTreeINT.actionQ[#GUI.taskTreeINT.actionQ+1] = "GUI.dispTask(GUI.taskTreeINT.Nodes['"..
+						nodeInfo.Key.."']._INT_TABLE.Row,true,GUI.taskTreeINT.Nodes['"..nodeInfo.Key.."'])"
 				end
 			end			
 			-- return the node
@@ -492,14 +632,35 @@ function GUI.dispTask(row, createRow, taskNode, hierLevel)
 	end
 	if createRow then
 		GUI.treeGrid:InsertRows(row-1)
+		-- Now shift the row labels
+		for i = GUI.treeGrid:GetNumberRows(),row,-1 do
+			GUI.treeGrid:SetRowLabelValue(i,GUI.treeGrid:GetRowLabelValue(i-1))
+		end
 	end
-	GUI.treeGrid:SetCellValue(row-1,0,string.rep(" ",hierLevel*4)..taskNode.Title)
+	if taskNode.Children > 0 then
+		if taskNode.Expanded then
+			GUI.treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
+		else
+			GUI.treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
+		end
+		GUI.treeGrid:SetRowLabelValue(row-1,"+")
+	else
+		GUI.treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
+		GUI.treeGrid:SetRowLabelValue(row-1," ")
+	end
+	if taskNode.Task and string.upper(taskNode.Task.Status) == "DONE" then
+		GUI.treeGrid:SetCellValue(row-1,0,"1")
+	else
+		GUI.treeGrid:SetCellValue(row-1,0,"0")
+	end
+	GUI.treeGrid:SetReadOnly(row-1,0)
+	GUI.treeGrid:SetReadOnly(row-1,1)
 	-- Set the back ground color
 	if taskNode.BackColor then
-		GUI.treeGrid.SetCellBackgroundColour(row-1,0,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
+		GUI.treeGrid.SetCellBackgroundColour(row-1,1,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
 	end
 	if taskNode.ForeColor then
-		GUI.treeGrid:SetCellTextColour(row-1,0,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
+		GUI.treeGrid:SetCellTextColour(row-1,1,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
 	end
 end
 
@@ -511,7 +672,11 @@ function GUI.dispGantt(row,createRow,taskNode)
 		return nil
 	end
 	if createRow then
-		GUI.ganttGrid:InsertRows(row)
+		GUI.ganttGrid:InsertRows(row-1)
+		-- Now shift the row labels
+		for i = GUI.ganttGrid:GetNumberRows(),row,-1 do
+			GUI.ganttGrid:SetRowLabelValue(i,GUI.ganttGrid:GetRowLabelValue(i-1))
+		end
 	end
 	-- Now update the ganttGrid to include the schedule
 	local startDay = toXMLDate(GUI.dateStartPick:GetValue():Format("%m/%d/%Y"))
@@ -592,6 +757,7 @@ function GUI.dispGantt(row,createRow,taskNode)
 					end
 					GUI.ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(GUI.ScheduleColor.Red,
 						GUI.ScheduleColor.Green,GUI.ScheduleColor.Blue))
+					GUI.ganttGrid:SetReadOnly(row-1,col)
 				else
 					if dateList[i]<startDay then
 						before = true
@@ -611,6 +777,30 @@ function GUI.dispGantt(row,createRow,taskNode)
 			GUI.ganttGrid:SetRowLabelValue(row-1,map[dateList.typeSchedule]..tostring(dateList.index)..str)
 		end		-- if not dateList then ends
 	end	
+end
+
+function GUI.labelClick(event)
+	-- Find the row of the click
+	local row = event:GetRow()
+	if row>-1 then
+		local taskNode
+		-- Find the task associated with the row
+		for i,v in GUI.taskTree.tvpairs(GUI.taskTree.Nodes) do
+			if v.Row == row+1 then
+				taskNode = v
+				break
+			end
+		end		-- Looping through all the nodes ends
+		-- Check if the taskNode has children
+		if taskNode.Children > 0 then
+			if taskNode.Expanded then
+				taskNode.Expanded = nil
+			else
+				taskNode.Expanded = true
+			end
+		end
+	end		
+	--event:Skip()
 end
 
 --****f* Karm/fillTaskTree
@@ -675,9 +865,12 @@ function fillTaskTree()
 	                	local cond1 = currNode.Key ~= Globals.ROOTKEY.."_"..tostring(count)
 	                	local cond2 = #taskList[intVar].TaskID > #currNode.Key
 	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                    	while cond1 and not cond2 and cond3 do
+                    	while cond1 and not (cond2 and cond3) do
                         	-- Go up the hierarchy
                         	currNode = currNode.Parent
+		                	cond1 = currNode.Key ~= Globals.ROOTKEY.."_"..tostring(count)
+		                	cond2 = #taskList[intVar].TaskID > #currNode.Key
+		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                         end
                     	-- Now currNode has the node which is the right parent
 	                    currNode = GUI.taskTree.AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
@@ -689,7 +882,7 @@ function fillTaskTree()
 -- Repeat for all spores
         end		-- for k,v in pairs(SporeData) do ends
     end  -- if SporeData[0] > 0 then ends
-    
+    local selected
     if restorePrev then
 -- Update the tree status to before the refresh
         for k,currNode in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
@@ -698,109 +891,22 @@ function fillTaskTree()
 			end
             if currNode.Key == prevSelect then
                 currNode.Selected = true
+                selected = currNode.Task
             end
         end
     else
-        GUI.taskTree.Nodes[Globals.ROOTKEY].Expanded = true
+ 		GUI.taskTree.Nodes[Globals.ROOTKEY].Expanded = true
     end
-	GUI.taskTree.update = true		-- Resume the tasktree update        
-    --Call TaskTree_Click
+	GUI.taskTree.update = true		-- Resume the tasktree update    
+	-- Update the Filter summary
+	if Filter then
+		GUI.taskFilter:SetValue(textSummary(Filter))
+	else
+	    GUI.taskFilter:SetValue("No Filter")
+	end
+    GUI.taskDetails:SetValue(getTaskSummary(selected))
 end
 --@@END@@
-
---'****f* Karm/Control_Panel/TaskTree_Click
---' FUNCTION
---' Function to handle the click ever on the task tree
---' The function checks which task is selected and updates the task information in the task details panel
---'
---' SOURCE
---Private Sub TaskTree_Click()
---'@@END@@
---    Dim currNode As Node
---    Dim taskElem As IXMLDOMElement
---    Dim strVar As String
---    Dim intVar As Integer
---    Dim intVar1 As Integer
---    Dim intVar2 As Integer
---    Dim comment As String
---    
---    'Get the selected node
---    For Each currNode In TaskTree.Nodes
---        If currNode.selected Then
---            Exit For
---        End If
---    Next
---    If Not (currNode Is Nothing) Then
---        'Check here if the currNode is the root node or a spore node
---        If Left(currNode.Key, Len(Globals.ROOTKEY)) = Globals.ROOTKEY Then
---            If currNode.Key = Globals.ROOTKEY Then
---                strVar = "The Tree Root Node. All the Task Spore files are listed under this node."
---            Else
---                strVar = "Task Spore node with name corresponding to the spore file it represents."
---            End If  'If currNode.Key = Globals.ROOTKEY
---        Else
---            Set taskElem = XML.GetElemFromKey(currNode.Key)
---            'Parse the task Element to get the task Information
---            For intVar = 0 To taskElem.ChildNodes.Length - 1
---                If taskElem.ChildNodes(intVar).NodeType = NODE_ELEMENT Then
---                    If UCase(taskElem.ChildNodes(intVar).nodeName) = "TASKID" Then
---                        strVar = strVar & vbCrLf & "Task ID: " & taskElem.ChildNodes(intVar).Text
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "DATE_DUE" Then
---                        strVar = strVar & vbCrLf & "Due Date: " & taskElem.ChildNodes(intVar).Text
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "COMMENTS" Then
---                        comment = "Comments: " & taskElem.ChildNodes(intVar).Text
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "STATUS" Then
---                        For intVar1 = 0 To taskElem.ChildNodes(intVar).ChildNodes.Length - 1
---                            If taskElem.ChildNodes(intVar).ChildNodes(intVar1).NodeType = NODE_ELEMENT Then
---                                If UCase(taskElem.ChildNodes(intVar).ChildNodes(intVar1).nodeName) = "STATUS" Then
---                                    strVar = strVar & vbCrLf & "Status: " & taskElem.ChildNodes(intVar).ChildNodes(intVar1).Text
---                                    Exit For
---                                End If
---                            End If
---                        Next intVar1
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "WHO" Then
---                        strVar = strVar & vbCrLf & "People: "
---                        For intVar1 = 0 To taskElem.ChildNodes(intVar).ChildNodes.Length - 1
---                            If taskElem.ChildNodes(intVar).ChildNodes(intVar1).NodeType = NODE_ELEMENT Then
---                                For intVar2 = 0 To taskElem.ChildNodes(intVar).ChildNodes(intVar1).ChildNodes.Length - 1
---                                    If taskElem.ChildNodes(intVar).ChildNodes(intVar1).ChildNodes(intVar2).NodeType = NODE_ELEMENT Then
---                                        If UCase(taskElem.ChildNodes(intVar).ChildNodes(intVar1).ChildNodes(intVar2).nodeName) = "ID" Then
---                                            strVar = strVar & taskElem.ChildNodes(intVar).ChildNodes(intVar1).ChildNodes(intVar2).Text & ", "
---                                        End If
---                                    End If
---                                Next intVar2
---                            End If  'If whoElem.ChildNodes(intVar).NodeType = NODE_ELEMENT ends here
---                        Next intVar1
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "PRIORITY" Then
---                        strVar = strVar & vbCrLf & "Priority: " & taskElem.ChildNodes(intVar).Text
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "SCHEDULE" Then
---                        strVar = strVar & vbCrLf & "Schedule: Planned"
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "CATEGORY" Then
---                        strVar = strVar & vbCrLf & "Category: " & taskElem.ChildNodes(intVar).Text
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "SUB-CATEGORY" Then
---                        strVar = strVar & vbCrLf & "Sub-Category: " & taskElem.ChildNodes(intVar).Text
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "TAGS" Then
---                        strVar = strVar & vbCrLf & "Tags: "
---                        For intVar1 = 0 To taskElem.ChildNodes(intVar).ChildNodes.Length - 1
---                            If taskElem.ChildNodes(intVar).ChildNodes(intVar1).NodeType = NODE_ELEMENT Then
---                                If UCase(taskElem.ChildNodes(intVar).ChildNodes(intVar1).nodeName) = "TAG" Then
---                                    strVar = strVar & taskElem.ChildNodes(intVar).ChildNodes(intVar1).Text & ","
---                                End If
---                            End If
---                        Next intVar1
---                    ElseIf UCase(taskElem.ChildNodes(intVar).nodeName) = "SUBTASKS" Then
---                    End If
---                End If  'If taskElem.ChildNodes(intVar).NodeType = NODE_ELEMENT
---            Next intVar
---        End If  'If Left(currNode.Key, Len(Globals.ROOTKEY)) = Globals.ROOTKEY
---        strVar = strVar & vbCrLf & comment
---    Else
---        strVar = "Nothing selected in the tree."
---    End If  'If Not (currNode Is Nothing)
---    TaskInfoLabel.Text = strVar
---End Sub
-
-
 
 function GUI.onScrollTree(event)
 	GUI.ganttGrid:Scroll(GUI.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), GUI.treeGrid:GetScrollPos(wx.wxVERTICAL))
@@ -813,8 +919,56 @@ function GUI.onScrollGantt(event)
 end
 
 function GUI.horSashAdjust(event)
-	GUI.treeGrid:SetColMinimalWidth(0,GUI.horSplitWin:GetSashPosition())
-	GUI.treeGrid:AutoSizeColumn(0,false)
+	local info = "Sash: "..tostring(GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(GUI.treeGrid:GetColSize(1))
+	GUI.treeGrid:SetColMinimalWidth(1,GUI.horSplitWin:GetSashPosition()-GUI.treeGrid:GetColSize(0)-GUI.treeGrid:GetRowLabelSize(0))
+	GUI.treeGrid:AutoSizeColumn(1,false)
+	info = info.."\nCol 1 After: "..tostring(GUI.treeGrid:GetColSize(1))
+	GUI.taskDetails:SetValue(info)	
+	event:Skip()
+end
+
+function GUI.frameResize(event)
+	local winSize = event:GetSize()
+	local wid = 0.3*winSize:GetWidth()
+	if wid > 400 then
+		wid = 400
+	end
+	local hei = 0.6*winSize:GetHeight()
+	if winSize:GetHeight() - hei > 400 then
+		hei = winSize:GetHeight() - 400
+	end
+	-- GUI.taskDetails:SetValue("Hei="..tostring(hei).." Wid="..tostring(wid).."\n window Height="..tostring(winSize:GetHeight()).." window Width="..tostring(winSize:GetWidth()))
+	GUI.horSplitWin:SetSashPosition(wid)
+	GUI.treeGrid:SetColMinimalWidth(1,GUI.horSplitWin:GetSashPosition()-GUI.treeGrid:GetColSize(0)-GUI.treeGrid:GetRowLabelSize(0))
+	GUI.treeGrid:AutoSizeColumn(1,false)
+	
+	GUI.vertSplitWin:SetSashPosition(hei)
+	event:Skip()
+end
+
+function GUI.loadXML(event)
+	filterFormActivate(GUI.frame)
+end
+
+function GUI.cellClick(event)
+	local row = event:GetRow()
+	local col = event:GetCol()
+	if row>-1 then
+		if col == 1 then
+			local taskNode
+			-- Find the task associated with the row
+			for i,v in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
+				v.Selected = false	-- Make everything else unselected
+				if v.Row == row+1 then
+					taskNode = v
+					break
+				end
+			end		-- Looping through all the nodes ends
+			-- print("Clicked row "..tostring(row))
+			taskNode.Selected = true
+			GUI.taskDetails:SetValue(getTaskSummary(taskNode.Task))
+		end
+	end		
 	event:Skip()
 end
 
@@ -836,9 +990,13 @@ function main()
 	GUI.ID_MOVE_BELOW = wx.wxID_ANY
 	GUI.ID_REPORT = wx.wxID_ANY
 	
+	local bM = wx.wxImage("LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
+	
 	local toolBar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
 	local toolBmpSize = toolBar:GetToolBitmapSize()
-	toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxBitmap(bM), "Load Spore from Disk")
+	--toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
 	toolBar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
 	toolBar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
 	toolBar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
@@ -888,9 +1046,11 @@ function main()
 	
 	GUI.treeGrid = wx.wxGrid(GUI.horSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
 					wx.wxDefaultSize, 0, "Task Tree Grid")
-    GUI.treeGrid:CreateGrid(1,1)
-    GUI.treeGrid:SetRowLabelSize(0)
-    GUI.treeGrid:SetColLabelValue(0,"Tasks")
+    GUI.treeGrid:CreateGrid(1,2)
+    GUI.treeGrid:SetColFormatBool(0)
+    GUI.treeGrid:SetRowLabelSize(15)
+    GUI.treeGrid:SetColLabelValue(0," ")
+    GUI.treeGrid:SetColLabelValue(1,"Tasks")
 
 	GUI.ganttGrid = wx.wxGrid(GUI.horSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
 						wx.wxDefaultSize, 0, "Gantt Chart Grid")
@@ -960,12 +1120,28 @@ function main()
 	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, GUI.onScrollGantt)
 	GUI.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, GUI.onScrollGantt)
 	
+	-- The TreeGrid label click event
+	GUI.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,GUI.labelClick)
+	--GUI.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,GUI.taskDblClick)
+	
+	-- TreeGrid left click on cell event
+	GUI.treeGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,GUI.cellClick)
+	
 	-- Sash position changing event
 	GUI.horSplitWin:Connect(wx.wxEVT_COMMAND_SPLITTER_SASH_POS_CHANGED, GUI.horSashAdjust)
 	
 	-- Date Picker Events
 	GUI.dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,GUI.dateRangeChangeEvent)
 	GUI.dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,GUI.dateRangeChangeEvent)
+	
+	-- Frame resize event
+	GUI.frame:Connect(wx.wxEVT_SIZE, GUI.frameResize)
+	
+	-- Task Details click event
+	GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print("clicked") end)
+	
+	-- Toolbar button events
+	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,GUI.loadXML)
 
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
@@ -988,7 +1164,8 @@ function main()
     GUI.frame:Layout() -- help sizing the windows before being shown
     GUI.dateRangeChange()	-- To create the colums for the current date range in the GanttGrid
 
-    GUI.treeGrid:SetColSize(0,GUI.horSplitWin:GetSashPosition())
+	GUI.treeGrid:AutoSizeColumn(0)
+    GUI.treeGrid:SetColSize(1,GUI.horSplitWin:GetSashPosition()-GUI.treeGrid:GetColSize(0)-GUI.treeGrid:GetRowLabelSize(0))
     
     -- Fill the task tree now
     fillTaskTree()
@@ -1003,7 +1180,9 @@ Initialize()
 
 main()
 
-refreshTree()
+
+
+-- refreshTree()
 -- fillDummyData()
 
 -- updateTree(SporeData)

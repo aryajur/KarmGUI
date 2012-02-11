@@ -1,6 +1,55 @@
 -- Table to store all the Spores data 
 SporeData = {}
 
+function getTaskSummary(task)
+	if task then
+		local taskSummary
+		taskSummary = "ID: "..task.TaskID.."\nSTART DATE: "..task.Start
+		if task.Fin then
+			taskSummary = taskSummary.."\nFINISH DATE: "..task.Fin
+		end
+		taskSummary = taskSummary.."\nSTATUS: "..task.Status
+		-- Responsible People
+		taskSummary = taskSummary.."\nPEOPLE: "
+		local ACT = ""
+		local INACT = ""
+		for i=1,task.Who.count do
+			if string.upper(task.Who[i].Status) == "ACTIVE" then
+				ACT = ACT..","..task.Who[i].ID
+			else
+				INACT = INACT..","..task.Who[i].ID
+			end
+		end
+		if #ACT > 0 then
+			taskSummary = taskSummary.."\n   ACTIVE: "..string.sub(ACT,2,-1)
+		end
+		if #INACT > 0 then
+			taskSummary = taskSummary.."\n   INACTIVE: "..string.sub(INACT,2,-1)
+		end
+		taskSummary = taskSummary.."\nLOCKED: "..task.Locked.Status
+		if string.upper(task.Locked.Status) == "YES" and task.Locked.Access then
+			local RA = ""
+			local RWA = ""
+			for i = 1,task.Locked.Access.count do
+				if string.upper(task.Locked.Access[i].Status) == "READ ONLY" then
+					RA = RA..","..task.Locked.Access[i].ID
+				else
+					RWA = RWA..","..task.Locked.Access[i].ID
+				end
+			end
+			if #RA > 0 then
+				taskSummary = taskSummary.."\n   READ ACCESS PEOPLE: "..string.sub(RA,2,-1)
+			end
+			if #RWA > 0 then
+				taskSummary = taskSummary.."\n   READ/WRITE ACCESS PEOPLE: "..string.sub(RWA,2,-1)
+			end
+		end
+		return taskSummary
+	else
+		return "No Task Selected"
+	end
+end
+
 function getLatestScheduleDates(task)
 	local typeSchedule, index
 	local dateList = {}
@@ -125,13 +174,15 @@ function XML2Data(SporeXML)
 						dataStruct[dataStruct.tasks].Who = WhoTable
 					elseif task[count][0] == "Locked" then
 						local locked = {[0]="Locked", Status = task[count][1][1]}
-						if task[count][2] == "Access" then
-							local AccessTable = {[0]="Access", count = #task[count][2]}
-							-- Loop through all the items in the Locked element Access List
-							for i = 1,#task[count][2] do
-								AccessTable[i] = {ID = task[count][2][i][1][1], Status = task[count][2][i][2][1]}
+						if string.upper(locked.Status) == "YES" then
+							if type(task[count][2]) == "table" and task[count][2][0] == "Access" then
+								local AccessTable = {[0]="Access", count = #task[count][2]}
+								-- Loop through all the items in the Locked element Access List
+								for i = 1,#task[count][2] do
+									AccessTable[i] = {ID = task[count][2][i][1][1], Status = task[count][2][i][2][1]}
+								end
+								locked.Access = AccessTable
 							end
-							locked.Access = AccessTable
 						end
 						necessary = necessary + 1
 						dataStruct[dataStruct.tasks].Locked = locked

@@ -1,6 +1,33 @@
 -- Data structure to store the Global Filter Criteria
 Filter = {}
 
+-- Function to create a text summary of the Filter
+function textSummary(filter)
+	local filterSummary = ""
+	-- Tasks
+	if filter.Tasks then
+		-- Get the task name
+		local taskList
+		for k,v in pairs(SporeData) do
+			if k~=0 then
+				taskList = applyFilterHier({Tasks = {TaskID = filter.Tasks.TaskID}}, v)
+				if taskList.count>0 then break end
+			end
+		end
+			
+		filterSummary = filterSummary.."TASKS: "..taskList[1].Title
+		if filter.Tasks.Children then
+			filterSummary = filterSummary.." and Children"
+		end
+	end
+	-- Who
+	if filter.Who then
+		filterSummary = filterSummary.."\n"
+		filterSummary = filterSummary.."PEOPLE: "..filter.Who
+	end
+	return filterSummary
+end
+
 -- Function to filter out tasks from the task hierarchy
 function applyFilterHier(filter, taskHier)
 	local hier = taskHier
@@ -61,7 +88,7 @@ end
 11. Tags - Boolean expression of Tags - "'Technical' or 'Electronics'" - Tags allow alphanumeric characters spaces and underscores
 12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges
 		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
-		Boolean expression different schedule criterias together
+		Boolean expression different schedule criterias together 
 		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),00/00/0000'"
 		00/00/0000 signifies no schedule for the type of schedule the type of matching is ignored in this case
 ]]
@@ -84,7 +111,7 @@ function validateTask(filter, task)
 	end
 	-- Check if Who passes
 	if filter.Who then
-		local pattern = "%'([%w%.%_%,])+%'"
+		local pattern = "%'([%w%.%_%,]+)%'"
 		local whoStr = filter.Who
 		for id in string.gmatch(filter.Who,pattern) do
 			-- Check if the Status is given
@@ -93,7 +120,7 @@ function validateTask(filter, task)
 			local stat
 			if st then
 				-- Status exists, extract it here
-				stat = string.sub(idc,st,-1)
+				stat = string.sub(idc,st+1,-1)
 				idc = string.sub(idc,1,st-1)
 			else
 				stat = "A"
@@ -197,7 +224,7 @@ function validateTask(filter, task)
 
 	-- Check if Access IDs pass
 	if filter.Access then
-		local pattern = "%'([%w%.%_%,])+%'"
+		local pattern = "%'([%w%.%_%,]+)%'"
 		local accStr = filter.Access
 		for id in string.gmatch(filter.Access,pattern) do
 			-- Extract the permission character
@@ -205,7 +232,7 @@ function validateTask(filter, task)
 			local st = string.find(idc,",")
 			local perm
 
-			perm = string.sub(idc,st,-1)
+			perm = string.sub(idc,st+1,-1)
 			idc = string.sub(idc,1,st-1)
 			
 			-- Check if the id exists in the task
@@ -370,7 +397,7 @@ function validateTask(filter, task)
 
 	-- Check if Tags pass
 	if filter.Tags then
-		local pattern = "%'([%w%s%_])+%'"	-- Tags are allowed alphanumeric characters spaces and underscores
+		local pattern = "%'([%w%s%_]+)%'"	-- Tags are allowed alphanumeric characters spaces and underscores
 		local tagStr = filter.Tags
 		for tag in string.gmatch(filter.Tags,pattern) do
 			-- Check if the tag exists in the task
