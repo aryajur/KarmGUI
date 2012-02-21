@@ -30,8 +30,14 @@ setfenv(1,_G)
 -- Global Declarations
 Globals = {
 	ROOTKEY = "T0",
-	PriorityList = {'1','2','3','4','5','6','7','8','9','10'},
-	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'}
+	PriorityList = {'1','2','3','4','5','6','7','8','9'},
+	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
+	NoDateStr = "__NO_DATE__",
+	NoTagStr = "__NO_TAG__",
+	NoAccessIDStr = "__NO_ACCESS__",
+	NoCatStr = "__NO_CAT__",
+	NoSubCatStr = "__NO_SUBCAT__",
+	NoPriStr = "__NO_PRI__"
 }
 
 -- Generate a unique new wxWindowID
@@ -44,7 +50,7 @@ end
 -- Karm files
 require("Filter")
 require("DataHandler")
-require("FilterForm")		-- Containing all Filter Form GUI code
+GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
 
 require("TestFuncs")		-- Containing all testing functions not used in final deployment
 
@@ -582,7 +588,7 @@ function Initialize()
 	-- print(Spores[count])
 	if Spores then
 		while Spores[count] do
-			SporeData[Spores[count]] = XML2Data(xml.load(Spores[count]))
+			SporeData[Spores[count]] = XML2Data(xml.load(Spores[count]), Spores[count])
 			count = count + 1
 		end
 	end
@@ -840,6 +846,7 @@ function fillTaskTree()
         	if k~=0 then
             -- Get the tasks in the spore
 -- Add the spore to the TaskTree
+				-- Find the name of the file
 				local strVar
         		local intVar1 = -1
 				count = count + 1
@@ -852,6 +859,7 @@ function fillTaskTree()
                     	break
                 	end
             	end
+            	-- Add the spore node
 	            GUI.taskTree.AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY.."_"..tostring(count), Text=strVar}
 	            GUI.taskTree.Nodes[Globals.ROOTKEY.."_"..tostring(count)].ForeColor = GUI.nodeForeColor
 				local taskList = applyFilterHier(Filter, v)
@@ -947,7 +955,7 @@ function GUI.frameResize(event)
 end
 
 function GUI.loadXML(event)
-	filterFormActivate(GUI.frame)
+	GUI.FilterForm.filterFormActivate(GUI.frame)
 end
 
 function GUI.cellClick(event)

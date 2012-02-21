@@ -129,7 +129,7 @@ function toXMLDate(displayDate)
 end
 
 -- Function to convert XML data from a single spore to internal data structure
-function XML2Data(SporeXML)
+function XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
 	local dataStruct = {tasks = 0, [0] = "Task_Spore"}	-- to create the data structure
@@ -150,6 +150,7 @@ function XML2Data(SporeXML)
 				local necessary = 0
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
+				dataStruct[dataStruct.tasks].SporeFile = SporeFile
 				-- Extract all task information here
 				local count = 1
 				while(task[count]) do

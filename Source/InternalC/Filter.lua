@@ -75,39 +75,49 @@ end
 
 --[[ The Task Filter should filter the following:
 
-1. Tasks - Particular task with out without its children - Specified Task ID, with 'children' flag
+1. Tasks - Particular task with out without its children - Specified Task ID, with 'children' flag. If TaskID = Globals.ROOTKEY..(Spore File name)
 2. Who - People responsible for the task (Boolean) - Boolean string with people IDs with their status in single quotes "'milind.gupta,A' or 'aryajur,A' and not('milind_gupta,A' or 'milind0x,I')" - if status not present then taken to be A (Active) 
 3. Date_Started - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by ,
-4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , 00/00/0000 means no date also passes
-5. AccessIDs - Boolean expression of IDs and their access permission - "'milind.gupta,R' or 'aryajur,W' and not('milind_gupta,W' or 'milind0x,W')"
+4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Globals.NoDateStr means no date also passes
+5. AccessIDs - Boolean expression of IDs and their access permission - "'milind.gupta,R' or 'aryajur,W' and not('milind_gupta,W' or 'milind0x,W')", Globals.NoAccessIDStr means tasks without an Access ID list also pass
 6. Status - Member of given list of status types - List of status types separated by commas
-7. Priority - Member of given list of priority types - List of priority numbers separated by commas -"1,2,3"
-8. Date_Due - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , 00/00/0000 means no date also passes
-9. Category - Member of given list of Categories - List of categories separated by commas
-10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas
-11. Tags - Boolean expression of Tags - "'Technical' or 'Electronics'" - Tags allow alphanumeric characters spaces and underscores
+7. Priority - Member of given list of priority types - List of priority numbers separated by commas -"1,2,3", Globals.NoPriStr means no priority also passes
+8. Date_Due - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Globals.NoDateStr means no date also passes
+9. Category - Member of given list of Categories - List of categories separated by commas, Globals.NoCatStr means tasks without any category also pass
+10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas, Globals.NoSubCatStr means tasks without any sub-category also pass
+11. Tags - Boolean expression of Tags - "'Technical' or 'Electronics'" - Tags allow alphanumeric characters spaces and underscores - For no TAG the tag would be Globals.NoDateStr
 12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges
 		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
 		Boolean expression different schedule criterias together 
-		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),00/00/0000'"
-		00/00/0000 signifies no schedule for the type of schedule the type of matching is ignored in this case
+		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Globals.NoDateStr"
+		Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
 ]]
 
 -- Function to validate a given task
 function validateTask(filter, task)
 	-- Check if task ID passes
 	if filter.Tasks then
-		-- Check if the task ID matches
-		if filter.Tasks.Children then
-			-- Children are allowed
-			if filter.Tasks.TaskID ~= string.sub(task.TaskID,1,#filter.Tasks.TaskID) then
+		if string.sub(filter.Tasks.TaskID,1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			-- A whole spore is marked check if this task belongs to that spore
+			if not filter.Tasks.Children then
 				return false
 			end
-		else
-			if filter.Tasks.TaskID ~= task.TaskID then
+			if string.sub(filter.Tasks.TaskID,#Globals.ROOTKEY + 1,-1) ~= task.SporeFile then
 				return false
 			end
-		end
+		else  
+			-- Check if the task ID matches
+			if filter.Tasks.Children then
+				-- Children are allowed
+				if filter.Tasks.TaskID ~= string.sub(task.TaskID,1,#filter.Tasks.TaskID) then
+					return false
+				end
+			else
+				if filter.Tasks.TaskID ~= task.TaskID then
+					return false
+				end
+			end
+		end		-- if filter.Tasks.TaskID == Globals.ROOTKEY.."S" then ends
 	end
 	-- Check if Who passes
 	if filter.Who then
@@ -195,6 +205,11 @@ function validateTask(filter, task)
 		end
 		local matched = false
 		for range in string.gmatch(finStr,",(.-),") do
+			-- Check if this is Globals.NoDateStr
+			if range == Globals.NoDateStr and not task.Fin then
+				matched = true
+				break
+			end
 			-- See if this is a range or a single date
 			local strt,stp = string.match(range,"(.-)%-(.*)")
 			if not strt then
@@ -209,12 +224,6 @@ function validateTask(filter, task)
 					matched = true
 					break
 				end
-			else
-				-- No finished date on the task check if strt or stp is 0000-00-00
-				if strt == "0000-00-00" or stp == "0000-00-00" then
-					matched = true
-					break
-				end 
 			end
 		end
 		if not matched then
@@ -227,30 +236,47 @@ function validateTask(filter, task)
 		local pattern = "%'([%w%.%_%,]+)%'"
 		local accStr = filter.Access
 		for id in string.gmatch(filter.Access,pattern) do
-			-- Extract the permission character
-			local idc = id
-			local st = string.find(idc,",")
-			local perm
-
-			perm = string.sub(idc,st+1,-1)
-			idc = string.sub(idc,1,st-1)
-			
-			-- Check if the id exists in the task
 			local result = false
-			for i = 1,#task.Locked.Access do
-				if task.Locked.Access[i].ID == idc then
-					if string.upper(perm) == "R" and string.upper(task.Locked.Access[i].Status) == "Read Only" then
-						result = true
+			if id == Globals.NoAccessIDStr and not task.Locked.Access then
+				result = true
+			else
+				-- Extract the permission character
+				local idc = id
+				local st = string.find(idc,",")
+				local perm
+	
+				perm = string.sub(idc,st+1,-1)
+				idc = string.sub(idc,1,st-1)
+				
+				-- Check if the id exists in the task
+				for i = 1,#task.Locked.Access do
+					if task.Locked.Access[i].ID == idc then
+						if string.upper(perm) == "R" and string.upper(task.Locked.Access[i].Status) == "Read Only" then
+							result = true
+							break
+						end
+						if string.upper(perm) =="W" and string.upper(task.Locked.Access[i].Status) =="Read/Write" then
+							result = true
+							break
+						end
+						result = false
 						break
-					end
-					if string.upper(perm) =="W" and string.upper(task.Locked.Access[i].Status) =="Read/Write" then
-						result = true
-						break
-					end
-					result = false
-					break
-				end		-- if task.Who[i].ID == idc then ends
-			end		-- for i = 1,#task.Who ends
+					end		-- if task.Locked.Access[i].ID == idc then ends
+				end		-- for i = 1,#task.Locked.Access do ends
+				if not result then
+					-- Check for Read/Write access does the ID exist in the Who table
+					if string.upper(perm) == "W" then
+						for i = 1,#task.Who do
+							if task.Who[i].ID == idc then
+								if string.upper(task.Who[i].Status) == "ACTIVE" then
+									result = true
+								end
+								break
+							end
+						end		-- for i = 1,#task.Who do ends
+					end		-- if string.upper(perm) == "W" then ends
+				end		-- if not result then ends
+			end		-- if id == Globals.NoAccessIDStr and not task.Locked.Access then ends
 			accStr = string.gsub(accStr,"'"..id.."'",tostring(result))
 		end		-- for id in string.gmatch(filter.Who,pattern) do ends
 		-- Check if the boolean passes
@@ -296,6 +322,10 @@ function validateTask(filter, task)
 		end
 		local matched = false
 		for pri in string.gmatch(priStr,",(.-),") do
+			if pri == Globals.NoPriStr and not task.Priority then
+				matched = true
+				break
+			end
 			-- Check if this priority matches with what we have in the task
 			if task.Priority == pri then
 				matched = true
@@ -320,6 +350,11 @@ function validateTask(filter, task)
 		end
 		local matched = false
 		for range in string.gmatch(dueStr,",(.-),") do
+			-- Check if this is Globals.NoDateStr
+			if range == Globals.NoDateStr and not task.Fin then
+				matched = true
+				break
+			end
 			-- See if this is a range or a single date
 			local strt,stp = string.match(range,"(.-)%-(.*)")
 			if not strt then
@@ -334,12 +369,6 @@ function validateTask(filter, task)
 					matched = true
 					break
 				end
-			else
-				-- No Due date on the task check if strt or stp is 0000-00-00
-				if strt == "0000-00-00" or stp == "0000-00-00" then
-					matched = true
-					break
-				end 
 			end
 		end
 		if not matched then
@@ -360,6 +389,11 @@ function validateTask(filter, task)
 		end
 		local matched = false
 		for cat in string.gmatch(catStr,",(.-),") do
+			-- Check if it matches Globals.NoCatStr
+			if cat == Globals.NoCatStr and not task.Cat then
+				matched = true
+				break
+			end
 			-- Check if this status matches with what we have in the task
 			if task.Cat == cat then
 				matched = true
@@ -384,6 +418,11 @@ function validateTask(filter, task)
 		end
 		local matched = false
 		for subCat in string.gmatch(subCatStr,",(.-),") do
+			-- Check if it matches Globals.NoSubCatStr
+			if subCat == Globals.NoSubCatStr and not task.SubCat then
+				matched = true
+				break
+			end
 			-- Check if this status matches with what we have in the task
 			if task.SubCat == subCat then
 				matched = true
@@ -402,13 +441,17 @@ function validateTask(filter, task)
 		for tag in string.gmatch(filter.Tags,pattern) do
 			-- Check if the tag exists in the task
 			local result = false
-			for i = 1,#task.Tags do
-				if task.Tags[i] == tag then
-					-- Found the tag in the task
-					result = true
-					break
-				end		-- if task.Tags[i] == tag then ends
-			end		-- for i = 1,#task.Tags ends
+			if tag == Globals.NoTagStr and not task.Tags then
+				result = true
+			else			
+				for i = 1,#task.Tags do
+					if task.Tags[i] == tag then
+						-- Found the tag in the task
+						result = true
+						break
+					end		-- if task.Tags[i] == tag then ends
+				end		-- for i = 1,#task.Tags ends
+			end
 			tagStr = string.gsub(tagStr,"'"..tag.."'",tostring(result))
 		end		-- for id in string.gmatch(filter.Tags,pattern) do ends
 		-- Check if the boolean passes
@@ -487,13 +530,10 @@ function validateTask(filter, task)
 					index = task.Schedules.Estimate.count
 				else
 					-- typeSchedule is latest but non of the schedule types exist
-					-- Check if the range is 00/00/0000, if not this sch is false
+					-- Check if the range is Globals.NoDateStr, if not this sch is false
 					local result = false
-					for i = 1,#ranges do
-						if ranges[i] == "00/00/0000" then
-							result = true
-							break
-						end
+					if ranges[0] == Globals.NoDateStr then
+						result = true
 					end
 					schStr = string.gsub(schStr,"'"..sch.."'",tostring(result))
 				end
@@ -506,12 +546,9 @@ function validateTask(filter, task)
 				-- We have a typeSchedule and index
 				-- Now loop through the schedule of typeSchedule and index
 				local result = false
-				-- First check if any range is 00/00/0000 then this schedule should not exist for filter to pass
-				for j = 1,#ranges do
-					if ranges[j] == "00/00/0000" and not task.Schedules[typeSchedule][index] then
-						result = true
-						break
-					end
+				-- First check if range is Globals.NoDateStr then this schedule should not exist for filter to pass
+				if range[0] == Globals.NoDateStr and not task.Schedules[typeSchedule][index] then
+					result = true
 				end
 				if not result and task.Schedules[typeSchedule][index] then
 					for i = 1,#task.Schedules[typeSchedule][index].Period do
