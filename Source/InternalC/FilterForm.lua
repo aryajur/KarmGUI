@@ -201,7 +201,7 @@ function filterFormActivate(parent)
 					SubCategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, "Select Sub-Categories", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					TandCSizer:Add(SubCategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 					-- Sub Category Listboxes and Buttons
-					SubCatCtrl = MultiSelectCtrl.new(TandC,"SubCat",true,{"item 1","item 2","item 3"},{"item 1","item 2","item 3"})
+					SubCatCtrl = MultiSelectCtrl.new(TandC,"SubCat",true,{"item 1"},{"item 1","item 2","item 3"})
 					TandCSizer:Add(SubCatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				
 				TandC:SetSizer(TandCSizer)
@@ -234,9 +234,9 @@ function filterFormActivate(parent)
 						bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER,wx.wxLC_SINGLE_SEL))
 					-- Populate the tag list here
 					local tagList = {'tag 1','tag 2','tag 3','tag 9','tag 8','tag 7','tag 6','tag 5','tag 4'}
-					local col = wx.wxListItem()
-					col:SetId(0)
-					TagList:InsertColumn(0,col)
+					--local col = wx.wxListItem()
+					--col:SetId(0)
+					TagList:InsertColumn(0,"Tags")
 					for i=1,#tagList do
 						MultiSelectCtrl.InsertItem(TagList,tagList[i])
 					end
@@ -678,7 +678,7 @@ BooleanTreeCtrl = {
 		print(BooleanTreeCtrl.BooleanExpression(ob.object.SelTree))	
 	end,
 	
-	TreeSelChanged = function(event)
+--[[	TreeSelChanged = function(event)
 		setfenv(1,package.loaded[modname])
 		local o = BooleanTreeCtrl[event:GetId()]
         
@@ -790,6 +790,61 @@ BooleanTreeCtrl = {
 		
 		--event:Skip()
 		--print(o.SelTree:GetItemText(item))
+	end,]]
+	
+	TreeSelChanged = function(event)
+		setfenv(1,package.loaded[modname])
+		local o = BooleanTreeCtrl[event:GetId()]
+        
+        -- Update the Delete Button status
+        local Sel = o.SelTree:GetSelections(Sel)
+        if #Sel == 0 then
+        	o.prevSel = {}
+        	o.DeleteButton:Disable()
+        	return nil
+        end
+        o.DeleteButton:Enable(true)
+		-- Check if parent of all selections is the same	
+		if #Sel > 1 then
+        	local parent = o.SelTree:GetItemParent(Sel[1])
+        	for i = 2,#Sel do
+        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then
+        			-- Deselect everything
+        			for j = 1,#Sel do
+        				o.SelTree:SelectItem(Sel[j],false)
+        			end
+        			-- Select the items with the largest parent
+        			local parents = {}	-- To store parents and their numbers
+        			for j =1,#Sel do
+        				local found = nil
+        				for k = 1,#parents do
+        					if o.SelTree:GetItemParent(Sel[j]):GetValue() == parents[k].ID:GetValue() then
+        						parents[k].count = parents[k].count + 1
+        						found = true
+        						break
+        					end
+        				end
+        				if not found then
+        					parents[#parents + 1] = {ID = o.SelTree:GetItemParent(Sel[j]), count = 1}
+        				end
+        			end
+        			-- Find parent with largest number of children
+        			local index = 1
+        			for j = 2,#parents do
+        				if parents[j].count > parents[index].count then
+        					index = j
+        				end
+        			end
+        			-- Select all items with parents[index].ID as parent
+        			for j = 1,#Sel do
+        				if o.SelTree:GetItemParent(Sel[j]):GetValue() == parents[index].ID:GetValue() then
+        					o.SelTree:SelectItem(Sel[j],true)
+        				end
+        			end		-- for j = 1,#Sel do ends
+        		end		-- if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then ends
+        	end		-- for i = 2,#Sel do ends
+        end		-- if #Sel > 1 then ends
+        event:Skip()
 	end,
 	
 	new = function(parent,sizer,getInfoFunc, filterIndex)
@@ -905,7 +960,9 @@ MultiSelectCtrl = {
 		local newItem = wx.wxListItem()
 		newItem:SetId(itemNum)
 		newItem:SetText(Item)
+		newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
 		ListBox:InsertItem(newItem)
+		ListBox:SetItem(itemNum,0,Item)
 		return true
 	end,
 	
@@ -992,11 +1049,11 @@ MultiSelectCtrl = {
 		-- Create the GUI elements here
 		o.Sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
 			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
-			o.List = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER))
+			o.List = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT)
 			-- Add Items
-			local col = wx.wxListItem()
-			col:SetId(0)
-			o.List:InsertColumn(0,col)
+			--local col = wx.wxListItem()
+			--col:SetId(0)
+			o.List:InsertColumn(0,"Options")
 			for i=1,#LItems do
 				MultiSelectCtrl.InsertItem(o.List,LItems[i])
 			end
@@ -1019,11 +1076,11 @@ MultiSelectCtrl = {
 				ButtonSizer:Add(o.RemoveButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				MultiSelectCtrl[ID] = o
 			o.Sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-			o.SelList = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER))
+			o.SelList = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT)
 			-- Add Items
-			col = wx.wxListItem()
-			col:SetId(0)
-			o.SelList:InsertColumn(0,col)
+			--col = wx.wxListItem()
+			--col:SetId(0)
+			o.SelList:InsertColumn(0,"Selections")
 			for i=1,#RItems do
 				MultiSelectCtrl.InsertItem(o.SelList,RItems[i])
 			end
