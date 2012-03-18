@@ -37,7 +37,8 @@ Globals = {
 	NoAccessIDStr = "__NO_ACCESS__",
 	NoCatStr = "__NO_CAT__",
 	NoSubCatStr = "__NO_SUBCAT__",
-	NoPriStr = "__NO_PRI__"
+	NoPriStr = "__NO_PRI__",
+	__DEBUG = true		-- For debug mode
 }
 
 -- Generate a unique new wxWindowID
@@ -712,20 +713,6 @@ function GUI.dispGantt(row,createRow,taskNode)
 			end
 		else
 			local map = {Estimate="E",Commit = "C", Revs = "R", Actual = "A"}
-			local map1 = {
-			[1] = wx.wxDateTime.Jan,
-			[2] = wx.wxDateTime.Feb,
-			[3] = wx.wxDateTime.Mar,
-			[4] = wx.wxDateTime.Apr,
-			[5] = wx.wxDateTime.May,
-			[6] = wx.wxDateTime.Jun,
-			[7] = wx.wxDateTime.Jul,
-			[8] = wx.wxDateTime.Aug,
-			[9] = wx.wxDateTime.Sep,
-			[10] = wx.wxDateTime.Oct,
-			[11] = wx.wxDateTime.Nov,
-			[12] = wx.wxDateTime.Dec
-			}
 			-- Erase the previous schedule on the row
 			for i=1,days do
 				GUI.ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.emptyDayColor.Red,
@@ -735,7 +722,7 @@ function GUI.dispGantt(row,createRow,taskNode)
 			for i=1,#dateList do
 				if dateList[i]>=startDay and dateList[i]<=finDay then
 					-- This date is in range find the column which needs to be highlighted
-					local currDate = wx.wxDateTimeFromDMY(tonumber(string.sub(dateList[i],-2,-1)),map1[tonumber(string.sub(dateList[i],6,7))],tonumber(string.sub(dateList[i],1,4)))
+					local currDate = XMLDate2wxDateTime(dateList[i])
 --					local range = days
 --					local stepDate = GUI.dateStartPick:GetValue()
 --					stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
@@ -927,11 +914,11 @@ function GUI.onScrollGantt(event)
 end
 
 function GUI.horSashAdjust(event)
-	local info = "Sash: "..tostring(GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(GUI.treeGrid:GetColSize(1))
+	--local info = "Sash: "..tostring(GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(GUI.treeGrid:GetColSize(1))
 	GUI.treeGrid:SetColMinimalWidth(1,GUI.horSplitWin:GetSashPosition()-GUI.treeGrid:GetColSize(0)-GUI.treeGrid:GetRowLabelSize(0))
 	GUI.treeGrid:AutoSizeColumn(1,false)
-	info = info.."\nCol 1 After: "..tostring(GUI.treeGrid:GetColSize(1))
-	GUI.taskDetails:SetValue(info)	
+	--info = info.."\nCol 1 After: "..tostring(GUI.treeGrid:GetColSize(1))
+	--GUI.taskDetails:SetValue(info)	
 	event:Skip()
 end
 
@@ -977,7 +964,8 @@ function GUI.cellClick(event)
 			GUI.taskDetails:SetValue(getTaskSummary(taskNode.Task))
 		end
 	end		
-	event:Skip()
+	GUI.treeGrid:SelectBlock(row,col,row,col)
+	--event:Skip()
 end
 
 function main()
@@ -998,7 +986,7 @@ function main()
 	GUI.ID_MOVE_BELOW = wx.wxID_ANY
 	GUI.ID_REPORT = wx.wxID_ANY
 	
-	local bM = wx.wxImage("LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
+	local bM = wx.wxImage("images/LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
 	
 	local toolBar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
 	local toolBmpSize = toolBar:GetToolBitmapSize()
@@ -1059,10 +1047,13 @@ function main()
     GUI.treeGrid:SetRowLabelSize(15)
     GUI.treeGrid:SetColLabelValue(0," ")
     GUI.treeGrid:SetColLabelValue(1,"Tasks")
+    --GUI.treeGrid:SetCellHighlightPenWidth(0)
+    GUI.treeGrid:EnableGridLines(false)
 
 	GUI.ganttGrid = wx.wxGrid(GUI.horSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
 						wx.wxDefaultSize, 0, "Gantt Chart Grid")
     GUI.ganttGrid:CreateGrid(1,1)
+    GUI.ganttGrid:EnableGridLines(false)
     -- GUI.ganttGrid:SetRowLabelSize(0)
 
 	GUI.horSplitWin:SplitVertically(GUI.treeGrid, GUI.ganttGrid)

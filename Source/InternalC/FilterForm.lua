@@ -4,26 +4,42 @@
 -- Author:      Milind Gupta
 -- Created:     2/09/2012
 -----------------------------------------------------------------------------
-
---local print = print
---local wx = wx
---local bit = bit
---local GUI = GUI
---local tostring = tostring
---local Globals = Globals
---local setmetatable = setmetatable
---local NewID = NewID
---local type = type
---local math = math
---local error = error
---module(...)
-
+local prin
+if Globals.__DEBUG then
+	prin = print
+end
+local print = prin 
+local wx = wx
+local io = io
+local wxaui = wxaui
+local bit = bit
+local GUI = GUI
+local tostring = tostring
+local loadfile = loadfile
+local setfenv = setfenv
+local string = string
+local Globals = Globals
+local setmetatable = setmetatable
+local NewID = NewID
+local type = type
+local math = math
+local error = error
 local modname = ...
+local MainFilter = Filter
+local compareDateRanges = compareDateRanges
+local combineDateRanges = combineDateRanges
+local addItemToArray = addItemToArray
+local tableToString = tableToString
+local pairs = pairs
+local SporeData = SporeData
+module(modname)
 
-M = {}
-package.loaded[modname] = M
-setmetatable(M,{["__index"]=_G})
-setfenv(1,M)
+--local modname = ...
+
+--M = {}
+--package.loaded[modname] = M
+--setmetatable(M,{["__index"]=_G})
+--setfenv(1,M)
 
 -- Local filter table to store the filter criteria
 filter = {}
@@ -31,7 +47,12 @@ filter = {}
 noStr = {
 	Cat = Globals.NoCatStr,
 	SubCat = Globals.NoSubCatStr,
-	Priority = Globals.NoPriStr
+	Priority = Globals.NoPriStr,
+	Due = Globals.NoDateStr,
+	Fin = Globals.NoDateStr,
+	ScheduleRange = Globals.NoDateStr,
+	Tags = Globals.NoTagStr,
+	Access = Globals.NoAccessIDStr
 }
 
 local function SelTaskPress(event)
@@ -157,54 +178,151 @@ local function SelTaskPress(event)
 	MainSizer:SetSizeHints(frame)
 	frame:Layout()
 	frame:Show(true)
-end
+end		-- local function SelTaskPress(event) ends
 
-function getTagUnit()
-	-- Return the selected item in Tag List
-	local item = TagList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
-	if item == -1 then
-		return nil
-	else 
-		return TagList:GetItemText(item)		
+local function loadFilter(event)
+	setfenv(1,package.loaded[modname])
+	local ValidFilter = function(file)
+		local safeenv = {}
+		local f,message = loadfile(file)
+		if not f then
+			return nil,message
+		end
+		setfenv(f,safeenv)
+		f()
+		if safeenv.filter and type(safeenv.filter) == "table" then
+			return safeenv.filter
+		else
+			return nil,"Cannot find a valid filter in the file."
+		end
 	end
+    local fileDialog = wx.wxFileDialog(frame, "Open file",
+                                       "",
+                                       "",
+                                       "Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*",
+                                       wx.wxOPEN + wx.wxFILE_MUST_EXIST)
+    if fileDialog:ShowModal() == wx.wxID_OK then
+    	local result,message = ValidFilter(fileDialog:GetPath())
+        if not result then
+            wx.wxMessageBox("Unable to load file '"..fileDialog:GetPath().."'.\n "..message,
+                            "File Load Error",
+                            wx.wxOK + wx.wxCENTRE, frame)
+        else
+        	SetFilter(result)
+        end
+    end
+    fileDialog:Destroy()
 end
 
-function UpdateLists()
+local function saveFilter(event)
+	setfenv(1,package.loaded[modname])
+    local fileDialog = wx.wxFileDialog(frame, "Save File",
+                                       "",
+                                       "",
+                                       "Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*",
+                                       wx.wxFD_SAVE)
+    if fileDialog:ShowModal() == wx.wxID_OK then
+    	local file,err = io.open(fileDialog:GetPath(),"w+")
+    	if not file then
+            wx.wxMessageBox("Unable to save as file '"..fileDialog:GetPath().."'.\n "..err,
+                            "File Save Error",
+                            wx.wxOK + wx.wxCENTRE, frame)
+        else
+        	file:write(tableToString(filter))
+        	file:close()
+        end
+    end
+    fileDialog:Destroy()
 
+end
+
+local function initializeFilterForm(filterData)
+	-- Clear Task Selection
+	FilterTask:SetLabel("No Task Selected")
+	-- Clear Category
+	CatCtrl:ResetCtrl()
+	-- Clear Sub-Category
+	SubCatCtrl:ResetCtrl()
+	-- Clear Priority
+	PriCtrl:ResetCtrl()
+	-- Clear Status
+	StatCtrl:ResetCtrl()
+	-- Clear Tags List
+	TagList:DeleteAllItems()
+	TagBoolCtrl:ResetCtrl()
+	-- Clear Dates
+	dateStarted:ResetCtrl()
+	dateFinished:ResetCtrl()
+	dateDue:ResetCtrl()
+	-- Who and Access
+	whoCtrl:ResetCtrl()
+	WhoBoolCtrl:ResetCtrl()
+	accCtrl:ResetCtrl()
+	accBoolCtrl:ResetCtrl()
+	-- Schedules
+	schDateRanges:ResetCtrl()
+	SchBoolCtrl:ResetCtrl()
+	filter = {}		-- Clear the filter
 end
 
 function filterFormActivate(parent)
+	-- Accumulate Filter Data across all spores
+	local filterData = {}
+	-- Loop through all the spores
+	for k,v in pairs(SporeData) do
+		if k~=0 then
+			for ki,val in pairs(v.filterData) do
+				-- Collect Data
+				filterData[ki] = {}
+				for i = 1,#v.filterData[ki] do
+					addItemToArray(v.filterData[ki][i],filterData[ki]) 
+				end
+			end
+		end		-- if k~=0 then ends
+	end		-- for k,v in pairs(SporeData) do ends
+	
 	frame = wx.wxFrame(parent, wx.wxID_ANY, "Filter Form", wx.wxDefaultPosition,
 		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)
-	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
-		MainBook = wx.wxNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP)
-			-- Task, Categories and Sub-Categories Page
-			TandC = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
-				local TandCSizer = wx.wxBoxSizer(wx.wxVERTICAL)
-					local TaskSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
-					SelTaskButton = wx.wxButton(TandC, wx.wxID_ANY, "Select Task", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-					TaskSizer:Add(SelTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					FilterTask = wx.wxStaticText(TandC, wx.wxID_ANY, "No Task Selected", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
-					TaskSizer:Add(FilterTask, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					ClearTaskButton = wx.wxButton(TandC, wx.wxID_ANY, "Clear Task", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-					TaskSizer:Add(ClearTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					TandCSizer:Add(TaskSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	-- Create tool bar
+	ID_LOAD = NewID()
+	ID_SAVE = NewID()
+	local toolBar = frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
+	local toolBmpSize = toolBar:GetToolBitmapSize()
 
-					CategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, "Select Categories", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
-					TandCSizer:Add(CategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					
-					-- Category List boxes and buttons
-					CatCtrl = MultiSelectCtrl.new(TandC,"Cat",true,{"item 1","item 3","item 2", "item 1"})
-					--CatCtrl.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,MultiSelectCtrl.AddPress)
-					TandCSizer:Add(CatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					
-					SubCategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, "Select Sub-Categories", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
-					TandCSizer:Add(SubCategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					-- Sub Category Listboxes and Buttons
-					SubCatCtrl = MultiSelectCtrl.new(TandC,"SubCat",true,{"item 1"},{"item 1","item 2","item 3"})
-					TandCSizer:Add(SubCatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	toolBar:AddTool(ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Filter Criteria")
+	toolBar:AddTool(ID_SAVE, "Save", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save Filter Criteria")
+	toolBar:Realize()
+	
+	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+		MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)
+
+		-- Task, Categories and Sub-Categories Page
+		TandC = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local TandCSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+				local TaskSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+				SelTaskButton = wx.wxButton(TandC, wx.wxID_ANY, "Select Task", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				TaskSizer:Add(SelTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				FilterTask = wx.wxStaticText(TandC, wx.wxID_ANY, "No Task Selected", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+				TaskSizer:Add(FilterTask, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				ClearTaskButton = wx.wxButton(TandC, wx.wxID_ANY, "Clear Task", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				TaskSizer:Add(ClearTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				TandCSizer:Add(TaskSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+
+				CategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, "Select Categories", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+				TandCSizer:Add(CategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				
-				TandC:SetSizer(TandCSizer)
+				-- Category List boxes and buttons
+				CatCtrl = MultiSelectCtrl.new(TandC,"Cat",true,filterData.Cat)
+				--CatCtrl.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,MultiSelectCtrl.AddPress)
+				TandCSizer:Add(CatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				
+				SubCategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, "Select Sub-Categories", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+				TandCSizer:Add(SubCategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				-- Sub Category Listboxes and Buttons
+				SubCatCtrl = MultiSelectCtrl.new(TandC,"SubCat",true,filterData.SubCat)
+				TandCSizer:Add(SubCatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			
+			TandC:SetSizer(TandCSizer)
 			TandCSizer:SetSizeHints(TandC)
 		MainBook:AddPage(TandC, "Task and Category")
 		
@@ -215,7 +333,7 @@ function filterFormActivate(parent)
 				PSandTagSizer:Add(PriorityLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				
 				-- Priority List boxes and buttons
-				PriCtrl = MultiSelectCtrl.new(PSandTag,"Priority",true,Globals.PriorityList)
+				PriCtrl = MultiSelectCtrl.new(PSandTag,"Priority",true,filterData.Priority)
 				PSandTagSizer:Add(PriCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
 				StatusLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, "Select Status", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
@@ -233,21 +351,156 @@ function filterFormActivate(parent)
 					TagList = wx.wxListCtrl(PSandTag, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxSize(0.1*GUI.initFrameW, 0.1*GUI.initFrameH),
 						bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER,wx.wxLC_SINGLE_SEL))
 					-- Populate the tag list here
-					local tagList = {'tag 1','tag 2','tag 3','tag 9','tag 8','tag 7','tag 6','tag 5','tag 4'}
 					--local col = wx.wxListItem()
 					--col:SetId(0)
 					TagList:InsertColumn(0,"Tags")
-					for i=1,#tagList do
-						MultiSelectCtrl.InsertItem(TagList,tagList[i])
+					if filterData.Tags then
+						for i=1,#filterData.Tags do
+							MultiSelectCtrl.InsertItem(TagList,filterData.Tags[i])
+						end
 					end
 					
 					TagSizer:Add(TagList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-					TagBoolCtrl = BooleanTreeCtrl.new(PSandTag,TagSizer,getTagUnit, "Tags")
+					TagBoolCtrl = BooleanTreeCtrl.new(PSandTag,TagSizer,
+						function()
+							-- Return the selected item in Tag List
+							local item = TagList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
+							if item == -1 then
+								return nil
+							else 
+								return TagList:GetItemText(item)		
+							end
+						end, 
+					"Tags")
 				PSandTagSizer:Add(TagSizer, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
 			PSandTag:SetSizer(PSandTagSizer)
 			PSandTagSizer:SetSizeHints(PSandTag)
 		MainBook:AddPage(PSandTag, "Priorities,Status and Tags")
+		
+		-- Date Started, Date Finished and Due Date Page
+		DatesPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local DatesPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) 
+			
+			-- Date Started Control
+			dateStarted = DateRangeCtrl.new(DatesPanel,"Start",false,"Date Started")
+			DatesPanelSizer:Add(dateStarted.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			-- Date Finished Control
+			dateFinished = DateRangeCtrl.new(DatesPanel,"Fin",true,"Date Finished")
+			DatesPanelSizer:Add(dateFinished.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			-- Due Date Control
+			dateDue = DateRangeCtrl.new(DatesPanel,"Due",true,"Due Date")
+			DatesPanelSizer:Add(dateDue.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			
+
+			DatesPanel:SetSizer(DatesPanelSizer)
+			DatesPanelSizer:SetSizeHints(DatesPanel)
+		MainBook:AddPage(DatesPanel, "Dates:Due,Started,Finished")
+
+		-- Who and Access IDs page
+		AccessPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local AccessPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+			
+			local whoSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+			local accSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) 
+			
+			local whoLabel = wx.wxStaticText(AccessPanel, wx.wxID_ANY, "Select Responsible People (Check means Inactive)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			AccessPanelSizer:Add(whoLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			
+			whoCtrl = CheckListCtrl.new(AccessPanel,false,"I","A")
+			-- Populate the IDs
+			for i = 1,#filterData.Who do
+				whoCtrl.InsertItem(whoCtrl.List,filterData.Who[i], false)
+			end
+			whoSizer:Add(whoCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			WhoBoolCtrl = BooleanTreeCtrl.new(AccessPanel,whoSizer,whoCtrl:getSelectionFunc(), "Who")
+			AccessPanelSizer:Add(whoSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			
+			local accLabel = wx.wxStaticText(AccessPanel, wx.wxID_ANY, "Select People for access (Check means Read/Write Access)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			AccessPanelSizer:Add(accLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+
+			accCtrl = CheckListCtrl.new(AccessPanel,false,"W","R")
+			-- Populate the IDs
+			if filterData.Access then
+				for i = 1,#filterData.Access do
+					accCtrl.InsertItem(accCtrl.List,filterData.Access[i], false)
+				end
+			end
+			accSizer:Add(accCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			accBoolCtrl = BooleanTreeCtrl.new(AccessPanel,accSizer,accCtrl:getSelectionFunc(), "Access")
+			AccessPanelSizer:Add(accSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+
+			AccessPanel:SetSizer(AccessPanelSizer)
+			AccessPanelSizer:SetSizeHints(AccessPanel)
+		MainBook:AddPage(AccessPanel, "Access")
+		
+		-- Schedules Page
+		SchPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local SchPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) 
+			local duSizer = wx.wxBoxSizer(wx.wxVERTICAL)	-- Sizer for Date unit elements
+			
+			local typeMatchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Type of Matching", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			duSizer:Add(typeMatchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+
+			TypeMatch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{"Full","Overlap"})
+			duSizer:Add(TypeMatch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			TypeMatch:SetSelection(1)
+			
+			local typeSchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Type of Schedule", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			duSizer:Add(typeSchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+
+			TypeSch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{"Estimate","Committed","Revisions","Actual"})
+			duSizer:Add(TypeSch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			TypeSch:SetSelection(2)
+						
+			local SchRevLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Revision", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			duSizer:Add(SchRevLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+
+			SchRev = wx.wxComboBox(SchPanel, wx.wxID_ANY,"Latest",wx.wxDefaultPosition, wx.wxDefaultSize,{"Latest"})
+			duSizer:Add(SchRev,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+
+			-- Event connect to enable disable SchRev
+			TypeSch:Connect(wx.wxEVT_COMMAND_CHOICE_SELECTED,function(event) 
+				setfenv(1,package.loaded[modname])
+				if TypeSch:GetString(TypeSch:GetSelection()) == "Estimate" or TypeSch:GetString(TypeSch:GetSelection()) == "Revisions" then
+					SchRev:Enable(true)
+				else
+					SchRev:Enable(false)
+				end
+			end 
+			)
+
+			local DateRangeLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Date Ranges", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			duSizer:Add(DateRangeLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			-- Date Ranges Control
+			schDateRanges = DateRangeCtrl.new(SchPanel,"ScheduleRange",true,"Date Ranges") 
+			duSizer:Add(schDateRanges.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			
+			SchPanelSizer:Add(duSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+
+			-- Now add the Boolean Control
+			local getSchUnit = function()
+				-- Get the full schedule boolean unit
+				local unit = TypeMatch:GetString(TypeMatch:GetSelection())..","..TypeSch:GetString(TypeSch:GetSelection())
+				if SchRev:IsEnabled() then
+					if SchRev:GetValue() == "Latest" then
+						unit = unit.."(L)"
+					else
+						unit = unit.."("..tostring(SchRev:GetValue())..")"
+					end
+				end
+				unit = unit..","..filter.ScheduleRange
+				return unit
+			end 
+
+			SchBoolCtrl = BooleanTreeCtrl.new(SchPanel,SchPanelSizer,getSchUnit, "Schedules")
+
+			
+
+			SchPanel:SetSizer(SchPanelSizer)
+			SchPanelSizer:SetSizeHints(SchPanel)
+		MainBook:AddPage(SchPanel, "Schedules")
+
 	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	local ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
 	ToBaseButton = wx.wxButton(frame, wx.wxID_ANY, "Current to Base", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
@@ -258,7 +511,7 @@ function filterFormActivate(parent)
 	ButtonSizer:Add(ApplyButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	MainSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	frame:SetSizer(MainSizer)
-	MainSizer:SetSizeHints(frame)
+	--MainSizer:SetSizeHints(frame)
 	
 	-- Connect event handlers to the buttons
 	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
@@ -268,6 +521,14 @@ function filterFormActivate(parent)
 		end
 	)
 	
+	ApplyButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+			setfenv(1,package.loaded[modname])
+			print(tableToString(filter))
+			MainFilter = filter
+			frame:Close()
+		end		
+	)
 
 --	Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&CriteriaFrame::OnClose);
 
@@ -280,15 +541,479 @@ function filterFormActivate(parent)
 			FilterTask:SetLabel("No Task Selected")
 		end
 	)
+
+	-- Toolbar button events
+	frame:Connect(ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadFilter)
+	frame:Connect(ID_SAVE,wx.wxEVT_COMMAND_MENU_SELECTED,saveFilter)
 	
-
     frame:Layout() -- help sizing the windows before being shown
-
     frame:Show(true)
-end
+    initializeFilterForm(filterData)
+end		-- function filterFormActivate(parent) ends
 
--- Boolean Tree and Boolean button
+
+-- Object to generate and manage a check list 
+CheckListCtrl = {
+	getSelectionFunc = function(obj)
+		-- Return the selected item in List
+		local o = obj		-- Declare an upvalue
+		return function()
+			local itemNum = o.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
+			if itemNum == -1 then
+				return nil
+			else 
+				local str
+				local item = wx.wxListItem()
+				item:SetId(itemNum)
+				item:SetMask(wx.wxLIST_MASK_IMAGE)
+				o.List:GetItem(item)
+				if item:GetImage() == 0 then
+					-- Item checked
+					str = o.checkedText
+				else
+					-- Item Unchecked
+					str = o.uncheckedText
+				end
+				item:SetId(itemNum)
+				item:SetColumn(1)
+				item:SetMask(wx.wxLIST_MASK_TEXT)
+				o.List:GetItem(item)
+				str = item:GetText()..","..str
+				return str	
+			end
+		end
+	end,
+	
+	InsertItem = function(ListBox,Item,checked)
+		-- Check if the Item exists in the list control
+		local itemNum = -1
+		-- print(ListBox:GetNextItem(itemNum))
+		while ListBox:GetNextItem(itemNum) ~= -1 do
+			local prevItemNum = itemNum
+			itemNum = ListBox:GetNextItem(itemNum)
+			local obj = wx.wxListItem()
+			obj:SetId(itemNum)
+			obj:SetColumn(1)
+			obj:SetMask(wx.wxLIST_MASK_TEXT)
+			ListBox:GetItem(obj)
+			local itemText = obj:GetText()
+			if itemText == Item then
+				-- Get checked status and update
+				if checked then
+					itemNum:SetImage(0)
+				else
+					itemNum:SetImage(1)
+				end				
+				return true
+			end
+			if itemText > Item then
+				itemNum = prevItemNum
+				break
+			end 
+		end
+		-- itemNum contains the item after which to place item
+		if itemNum == -1 then
+			itemNum = 0
+		else 
+			itemNum = itemNum + 1
+		end
+		local newItem = wx.wxListItem()
+		local img
+		newItem:SetId(itemNum)
+		--newItem:SetText(Item)
+		if checked then
+			newItem:SetImage(0)
+		else
+			newItem:SetImage(1)
+		end				
+		--newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
+		ListBox:InsertItem(newItem)
+		ListBox:SetItem(itemNum,1,Item)
+		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)		
+		ListBox:SetColumnWidth(1,wx.wxLIST_AUTOSIZE)		
+		return true
+	end,
+
+	new = function(parent,noneSelection,checkedText,uncheckedText)
+		if not parent then
+			return nil
+		end
+		local o = {}	-- new object
+		setmetatable(o,CheckListCtrl)
+		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)
+		o.checkedText = checkedText
+		o.uncheckedText = uncheckedText
+		local ID
+		ID = NewID()		
+		o.List = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_SINGLE_SEL+wx.wxLC_NO_HEADER)
+		CheckListCtrl[ID] = o
+		-- Create the imagelist and add check and uncheck icons
+		local imageList = wx.wxImageList(16,16,true,0)
+		local icon = wx.wxIcon()
+		icon:LoadFile("images/checked.xpm",wx.wxBITMAP_TYPE_XPM)
+		imageList:Add(icon)
+		icon:LoadFile("images/unchecked.xpm",wx.wxBITMAP_TYPE_XPM)
+		imageList:Add(icon)
+		o.List:SetImageList(imageList,wx.wxIMAGE_LIST_SMALL)
+		-- Add Items
+		o.List:InsertColumn(0,"Check")
+		o.List:InsertColumn(1,"Options")
+		--[[CheckListCtrl.InsertItem(o.List,"A", true)
+		CheckListCtrl.InsertItem(o.List,"C", false)
+		CheckListCtrl.InsertItem(o.List,"B", true)]]
+		o.Sizer:Add(o.List, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		o.List:Connect(wx.wxEVT_COMMAND_LIST_ITEM_RIGHT_CLICK, CheckListCtrl.RightClick)
+		return o
+	end,
+	
+	ResetCtrl = function(o)
+		o.List:DeleteAllItems()
+	end,
+
+	RightClick = function(event)
+		setfenv(1,package.loaded[modname])
+		local o = CheckListCtrl[event:GetId()]
+		--o.List:SetImageList(o.mageList,wx.wxIMAGE_LIST_SMALL)
+		local item = wx.wxListItem()
+		local itemNum = event:GetIndex()
+		item:SetId(itemNum)
+		item:SetMask(wx.wxLIST_MASK_IMAGE)
+		o.List:GetItem(item)
+		if item:GetImage() == 0 then
+			--item:SetImage(1)
+			o.List:SetItemColumnImage(item:GetId(),0,1)
+		else
+			--item:SetImage(0)
+			o.List:SetItemColumnImage(item:GetId(),0,0)
+		end
+		event:Skip()
+	end
+}	-- CheckListCtrl ends
+CheckListCtrl.__index = CheckListCtrl
+
+-- Control to select date Range
+
+SelectDateRangeCtrl = {
+	display = function(parent,numInstances,returnFunc)
+		if not SelectDateRangeCtrl[parent] then
+			SelectDateRangeCtrl[parent] = 1
+		elseif SelectDateRangeCtrl[parent] >= numInstances then
+			return false
+		else
+			SelectDateRangeCtrl[parent] = SelectDateRangeCtrl[parent] + 1
+		end
+		local drFrame = wx.wxFrame(parent, wx.wxID_ANY, "Date Range Selection", wx.wxDefaultPosition,
+			wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxMINIMIZE_BOX + wx.wxSYSTEM_MENU + wx.wxCAPTION
+			+ wx.wxCLOSE_BOX + wx.wxCLIP_CHILDREN)
+		local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+		local calSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+		local fromSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+		local label = wx.wxStaticText(drFrame, wx.wxID_ANY, "From:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+		fromSizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		local fromDate = wx.wxCalendarCtrl(drFrame,wx.wxID_ANY)
+		fromSizer:Add(fromDate, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+
+		local toSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+		label = wx.wxStaticText(drFrame, wx.wxID_ANY, "To:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+		toSizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		local toDate = wx.wxCalendarCtrl(drFrame,wx.wxID_ANY)
+		toSizer:Add(toDate, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		
+		calSizer:Add(fromSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		calSizer:Add(toSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		
+		-- Add Buttons
+		local buttonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+		local selButton = wx.wxButton(drFrame, wx.wxID_ANY, "Select", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+		buttonSizer:Add(selButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+		local CancelButton = wx.wxButton(drFrame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+		buttonSizer:Add(CancelButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+		
+		
+		MainSizer:Add(calSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		MainSizer:Add(buttonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		drFrame:SetSizer(MainSizer)
+		MainSizer:SetSizeHints(drFrame)
+	    drFrame:Layout() -- help sizing the windows before being shown
+	    drFrame:Show(true)
+	    
+		selButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,function(event)
+			setfenv(1,package.loaded[modname])
+			returnFunc(fromDate:GetDate():Format("%m/%d/%Y").."-"..toDate:GetDate():Format("%m/%d/%Y"))
+			drFrame:Close()
+			SelectDateRangeCtrl[parent] = SelectDateRangeCtrl[parent] - 1
+		end	
+		)
+		CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,function(event)
+			setfenv(1,package.loaded[modname])
+			drFrame:Close() 
+			SelectDateRangeCtrl[parent] = SelectDateRangeCtrl[parent] - 1
+		end
+		)	    	
+	end		-- display = function(parent,numInstances,returnFunc) ends
+}		-- SelectDateRangeCtrl ends
+
+-- Date Range Selection Control
+DateRangeCtrl = {
+	new = function(parent, filterIndex, noneSelection, heading)
+		-- parent is a wxPanel
+		if not parent then
+			return nil
+		end
+		local o = {}	-- new object
+		setmetatable(o,DateRangeCtrl)
+		o.filterIndex = filterIndex
+		o.parent = parent
+		-- Create the GUI elements here
+		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)
+		
+		-- Heading
+		local label = wx.wxStaticText(parent, wx.wxID_ANY, heading, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+		o.Sizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		
+		-- List Control
+		local ID
+		ID = NewID()
+		o.list = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)
+		o.list:InsertColumn(0,"Ranges")
+		DateRangeCtrl[ID] = o 
+		o.list:InsertColumn(0,heading)
+		o.Sizer:Add(o.list, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		
+		-- none Selection check box
+		if noneSelection then
+			ID = NewID()
+			o.CheckBox = wx.wxCheckBox(parent, ID, "None Also passes", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			DateRangeCtrl[ID] = o 
+			o.Sizer:Add(o.CheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		end
+		
+		-- Add Date Range Button
+		ID = NewID()
+		o.AddButton = wx.wxButton(parent, ID, "Add Range", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+		o.Sizer:Add(o.AddButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+		DateRangeCtrl[ID] = o 
+
+		-- Remove Date Range Button
+		ID = NewID()
+		o.RemoveButton = wx.wxButton(parent, ID, "Remove Range", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+		o.Sizer:Add(o.RemoveButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+		DateRangeCtrl[ID] = o 
+		o.RemoveButton:Disable()
+		
+		-- Clear Date Ranges Button
+		ID = NewID()
+		o.ClearButton = wx.wxButton(parent, ID, "Clear Ranges", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+		o.Sizer:Add(o.ClearButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+		DateRangeCtrl[ID] = o 
+		
+		-- Associate Events
+		o.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,DateRangeCtrl.AddPress)
+		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,DateRangeCtrl.RemovePress)
+		o.ClearButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,DateRangeCtrl.ClearPress)
+
+		o.list:Connect(wx.wxEVT_COMMAND_LIST_ITEM_SELECTED,DateRangeCtrl.ListSel)
+		o.list:Connect(wx.wxEVT_COMMAND_LIST_ITEM_DESELECTED,DateRangeCtrl.ListSel)
+		
+		if noneSelection then
+			o.CheckBox:Connect(wx. wxEVT_COMMAND_CHECKBOX_CLICKED,DateRangeCtrl.CheckBoxClicked)
+		end
+
+		return o
+	end,
+	
+	CheckBoxClicked = function(event)
+		setfenv(1,package.loaded[modname])
+		DateRangeCtrl.UpdateFilter(DateRangeCtrl[event:GetId()])
+	end,
+	
+	UpdateFilter = function(o)
+		-- Update the filter
+		local itemNum = -1
+		local filterText = ""
+		while o.list:GetNextItem(itemNum) ~= -1 do
+			itemNum = o.list:GetNextItem(itemNum)
+			filterText = filterText..o.list:GetItemText(itemNum)..","
+		end
+		-- Finally Check if none selection box exists
+		if o.CheckBox and o.CheckBox:GetValue() then
+			filterText = filterText..noStr[o.filterIndex]
+		end
+		if filterText ~= "" and string.sub(filterText,-1,-1) == "," then
+			filter[o.filterIndex]=string.sub(filterText,1,-2)
+		elseif filterText == "" then
+			filter[o.filterIndex]=nil
+		else
+			filter[o.filterIndex]=filterText
+		end
+	end,
+	
+	AddPress = function(event)
+		setfenv(1,package.loaded[modname])
+		local o = DateRangeCtrl[event:GetId()]
+	    
+	    local addRange = function(range)
+			-- Check if the Item exists in the list control
+			local itemNum = -1
+			local conditionList = false
+			while o.list:GetNextItem(itemNum) ~= -1 do
+				local prevItemNum = itemNum
+				itemNum = o.list:GetNextItem(itemNum)
+				local itemText = o.list:GetItemText(itemNum)
+				-- Now compare the dateRanges
+				local comp = compareDateRanges(range,itemText)
+				if comp == 1 then
+					-- Ranges are same, do nothing
+					drFrame:Close()
+					return true
+				elseif comp==2 then
+					-- range1 lies entirely before range2
+					itemNum = prevItemNum
+					break
+				elseif comp==3 then
+					-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2
+					range = combineDateRanges(range,itemText)
+					-- Delete the current item
+					o.list:DeleteItem(itemNum)
+					itemNum = prevItemNum
+					break
+				elseif comp==4 then
+					-- comp=4 range1 lies entirely inside range2
+					-- range given is subset, do nothing
+					return true
+				elseif comp==5 or comp==7 then
+					-- comp=5 range1 post overlaps range2
+					-- comp=7 range2 lies entirely inside range1
+					range = combineDateRanges(range,itemText)
+					-- Delete the current item
+					o.list:DeleteItem(itemNum)
+					itemNum = prevItemNum
+					conditionList = true	-- To condition the list to merge any overlapping ranges
+					break
+				elseif comp==6 then
+					-- range1 lies entirely after range2
+					-- Do nothing look at next item
+				else
+					return nil
+				end
+				--print(range..">"..tostring(comp))
+			end
+			-- itemNum contains the item after which to place item
+			if itemNum == -1 then
+				itemNum = 0
+			else 
+				itemNum = itemNum + 1
+			end
+			local newItem = wx.wxListItem()
+			newItem:SetId(itemNum)
+			newItem:SetText(range)
+			o.list:InsertItem(newItem)
+			o.list:SetItem(itemNum,0,range)
+			
+			-- Condition the list here if required
+			while conditionList and o.list:GetNextItem(itemNum) ~= -1 do
+				local prevItemNum = itemNum
+				itemNum = o.list:GetNextItem(itemNum)
+				local itemText = o.list:GetItemText(itemNum)
+				-- Now compare the dateRanges
+				local comp = compareDateRanges(range,itemText)
+				if comp == 1 then
+					-- Ranges are same, delete this itemText range
+					o.list:DeleteItem(itemNum)
+					itemNum = prevItemNum
+				elseif comp==2 then
+					 -- range1 lies entirely before range2
+					 conditionList = nil
+				elseif comp==3 then
+					-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2
+					range = combineDateRanges(range,itemText)
+					-- Delete the current item
+					o.list:DeleteItem(itemNum)
+					itemNum = prevItemNum
+					o.list:SetItemText(itemNum,range)
+					conditionList = nil
+				elseif comp==4 then
+					-- comp=4 range1 lies entirely inside range2
+					error("Code Error: This condition should never occur!",1)
+				elseif comp==5 or comp==7 then
+					-- comp=5 range1 post overlaps range2
+					-- comp=7 range2 lies entirely inside range1
+					range = combineDateRanges(range,itemText)
+					-- Delete the current item
+					o.list:DeleteItem(itemNum)
+					itemNum = prevItemNum
+					o.list:SetItemText(itemNum,range)
+				elseif comp==6 then
+					-- range1 lies entirely after range2
+					error("Code Error: This condition should never occur!",1)
+				else
+					error("Code Error: This condition should never occur!",1)
+				end				
+			end		-- while conditionList and o.list:GetNextItem(itemNum) ~= -1 ends
+			o.list:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)
+			DateRangeCtrl.UpdateFilter(o)
+	    end		-- local addRange = function(range) ends
+	    
+		-- Create the frame to accept date range
+		SelectDateRangeCtrl.display(o.parent,1,addRange)
+
+	end,
+	
+	RemovePress = function(event)
+		setfenv(1,package.loaded[modname])
+		local o = DateRangeCtrl[event:GetId()]
+		item = o.list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
+		local selItems = {}
+		while item ~= -1 do
+			selItems[#selItems + 1] = item	
+			item = o.list:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	
+		end
+		for i=#selItems,1,-1 do
+			o.list:DeleteItem(selItems[i])
+		end
+		DateRangeCtrl.UpdateFilter(o)
+	end,
+	
+	ClearPress = function(event)
+		setfenv(1,package.loaded[modname])
+		local o = DateRangeCtrl[event:GetId()]
+		o.list:DeleteAllItems()	
+		DateRangeCtrl.UpdateFilter(o)
+	end,
+	
+	ResetCtrl = function(o)
+		o.list:DeleteAllItems()
+		if o.CheckBox then
+			o.CheckBox:SetValue(false)
+		end
+		o:UpdateFilter()
+	end,
+	
+	ListSel = function(event)
+		setfenv(1,package.loaded[modname])
+		local o = DateRangeCtrl[event:GetId()]
+        if o.list:GetSelectedItemCount() == 0 then
+			o.RemoveButton:Disable()
+        	return nil
+        end
+		o.RemoveButton:Enable(true)
+	end
+}		-- DateRangeCtrl ends
+DateRangeCtrl.__index = DateRangeCtrl
+
+
+
+-- Boolean Tree and Boolean buttons
 BooleanTreeCtrl = {
+
+	UpdateFilter = function(o)
+		local filterText = BooleanTreeCtrl.BooleanExpression(o.SelTree)
+		if filterText == "" then
+			filter[o.filterIndex]=nil
+		else
+			filter[o.filterIndex]=filterText
+		end
+	end,
 	
 	BooleanExpression = function(tree)
 		local currNode = tree:GetFirstChild(tree:GetRootItem())
@@ -300,9 +1025,9 @@ BooleanTreeCtrl = {
 		local itemText = tree:GetItemText(node) 
 		if itemText == "(AND)" or itemText == "(OR)" or itemText == "NOT(OR)" or itemText == "NOT(AND)" then
 			local retText = "(" 
-			local logic = " "..string.match(itemText,"%((.-)%)").." "
+			local logic = string.lower(" "..string.match(itemText,"%((.-)%)").." ")
 			if string.sub(itemText,1,3) == "NOT" then
-				retText = "NOT("
+				retText = "not("
 			end
 			local currNode = tree:GetFirstChild(node)
 			retText = retText..BooleanTreeCtrl.treeRecurse(tree,currNode)
@@ -313,9 +1038,9 @@ BooleanTreeCtrl = {
 			end
 			return retText..")"
 		elseif itemText == "NOT()" then
-			return "NOT("..BooleanTreeCtrl.treeRecurse(tree,tree:GetFirstChild(node))..")"
+			return "not("..BooleanTreeCtrl.treeRecurse(tree,tree:GetFirstChild(node))..")"
 		else
-			return itemText
+			return "'"..itemText.."'"
 		end
 	end,
 	
@@ -397,6 +1122,13 @@ BooleanTreeCtrl = {
 		tree:Delete(currNode)		
 	end,
 	
+	ResetCtrl = function(o)
+		if o.SelTree:GetFirstChild(o.SelTree:GetRootItem()):IsOk() then
+			o:DelTree(o.SelTree:GetFirstChild(o.SelTree:GetRootItem()))
+			o:UpdateFilter()
+		end
+	end,
+	
 	DeletePress = function(event)
 		setfenv(1,package.loaded[modname])
 		local ob = BooleanTreeCtrl[event:GetId()]
@@ -407,8 +1139,14 @@ BooleanTreeCtrl = {
 		end
 		-- Delete all selected
 		for i=1,#Sel do
-			ob.object:DelTree(Sel[i])
+			if Sel[i]:GetValue() ~= ob.object.SelTree:GetRootItem():GetValue() then
+				ob.object:DelTree(Sel[i])
+			end
 		end
+		if ob.object.SelTree:GetChildrenCount(ob.object.SelTree:GetRootItem()) == 1 then
+			ob.object.DeleteButton:Disable()
+		end
+		ob.object:UpdateFilter()
 	end,
 	
 	NegatePress = function(event)
@@ -420,26 +1158,29 @@ BooleanTreeCtrl = {
 			return nil
 		end
 		local parent = ob.object.SelTree:GetItemParent(Sel[1])
-		if #Sel == 1 then
-			-- Single Selection
-			local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
-			ob.object:CopyTree(Sel[1],currNode)
-			ob.object:DelTree(Sel[1])
-		else
-			-- Multiple Selection
-			-- First move the selections to a correct new node
-			local parentText = ob.object.SelTree:GetItemText(parent)
-			if parentText == "(OR)" or parentText == "NOT(OR)" then
-				parentText = "NOT(OR)"
-			elseif parentText == "(AND)" or parentText == "NOT(AND)" then
-				parentText = "NOT(AND)" 
+		if parent:IsOk() then
+			if #Sel == 1 then
+				-- Single Selection
+				local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
+				ob.object:CopyTree(Sel[1],currNode)
+				ob.object:DelTree(Sel[1])
+			else
+				-- Multiple Selection
+				-- First move the selections to a correct new node
+				local parentText = ob.object.SelTree:GetItemText(parent)
+				if parentText == "(OR)" or parentText == "NOT(OR)" then
+					parentText = "NOT(OR)"
+				elseif parentText == "(AND)" or parentText == "NOT(AND)" then
+					parentText = "NOT(AND)" 
+				end
+				parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)
+				for i = 1,#Sel do
+					ob.object:CopyTree(Sel[i],parent)
+					ob.object:DelTree(Sel[i])
+				end
 			end
-			parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)
-			for i = 1,#Sel do
-				ob.object:CopyTree(Sel[i],parent)
-				ob.object:DelTree(Sel[i])
-			end
-		end
+			ob.object:UpdateFilter()
+		end	-- if parent:IsOk() then
 	end,
 	
 	LogicPress = function(event)
@@ -464,6 +1205,19 @@ BooleanTreeCtrl = {
 		if #Sel == 0 then
 			return nil
 		end
+		
+		-- Check if parent of all selections is the same	
+		if #Sel > 1 then
+        	local parent = ob.object.SelTree:GetItemParent(Sel[1])
+        	for i = 2,#Sel do
+        		if ob.object.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then
+        			-- Parent is not common. 
+        			wx.wxMessageBox("All selected items not siblings!","Error applying operation", wx.wxICON_ERROR)
+        			return nil
+        		end
+        	end
+        end
+		
 		-- Check if root node selected
 		if #Sel == 1 and ob.object.SelTree:GetRootItem():GetValue() == Sel[1]:GetValue() then
 			-- Root item selected clear Sel and fill up with all children of root
@@ -675,7 +1429,8 @@ BooleanTreeCtrl = {
 			end		-- if selText == "(OR)" and (ob.button == "OR" or ob.button == "NOR") then ends
 		end	-- if not added then ends
 		--print(ob.object,ob.button)
-		print(BooleanTreeCtrl.BooleanExpression(ob.object.SelTree))	
+		--print(BooleanTreeCtrl.BooleanExpression(ob.object.SelTree))	
+		ob.object:UpdateFilter()
 	end,
 	
 --[[	TreeSelChanged = function(event)
@@ -801,9 +1556,11 @@ BooleanTreeCtrl = {
         if #Sel == 0 then
         	o.prevSel = {}
         	o.DeleteButton:Disable()
+        	o.NegateButton:Disable()
         	return nil
         end
         o.DeleteButton:Enable(true)
+       	o.NegateButton:Enable(true)
 		-- Check if parent of all selections is the same	
 		if #Sel > 1 then
         	local parent = o.SelTree:GetItemParent(Sel[1])
@@ -870,7 +1627,7 @@ BooleanTreeCtrl = {
 			BooleanTreeCtrl[ID] = {object=o,button="NAND"}
 			ButtonSizer:Add(o.NANDButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 			ID = NewID()
-			o.NORButton = wx.wxButton(parent, ID, "NOT () OR", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			o.NORButton = wx.wxButton(parent, ID, "NOT() OR", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 			BooleanTreeCtrl[ID] = {object=o,button="NOR"}
 			ButtonSizer:Add(o.NORButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 			ID = NewID()
@@ -909,6 +1666,7 @@ BooleanTreeCtrl = {
 					o.NegateButton = wx.wxButton(parent, ID, "Negate", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 					BooleanTreeCtrl[ID] = {object=o,button="Negate"}
 				ButtonSizer:Add(o.NegateButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				o.NegateButton:Disable()
 			treeSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)		
 		sizer:Add(treeSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	
@@ -926,7 +1684,6 @@ BooleanTreeCtrl = {
 		
 		-- Connect the tree to the left click event
 		o.SelTree:Connect(wx.wxEVT_COMMAND_TREE_SEL_CHANGED, BooleanTreeCtrl.TreeSelChanged)
-		
 		return o
 	end
 }		-- BooleanTreeCtrl ends
@@ -951,7 +1708,7 @@ MultiSelectCtrl = {
 				break
 			end 
 		end
-		-- itemNum contains the item before which to place item
+		-- itemNum contains the item after which to place item
 		if itemNum == -1 then
 			itemNum = 0
 		else 
@@ -963,6 +1720,7 @@ MultiSelectCtrl = {
 		newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
 		ListBox:InsertItem(newItem)
 		ListBox:SetItem(itemNum,0,Item)
+		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)
 		return true
 	end,
 	
@@ -1016,6 +1774,15 @@ MultiSelectCtrl = {
 		MultiSelectCtrl.UpdateFilter(o)
 	end,
 	
+	ResetCtrl = function(o)
+		o.SelList:DeleteAllItems()
+		o.List:DeleteAllItems()
+		if o.CheckBox then
+			o.CheckBox:SetValue(false)
+		end
+		o:UpdateFilter()
+	end,
+	
 	RemovePress = function(event)
 		setfenv(1,package.loaded[modname])
 		-- Transfer all selected items from SelList to List
@@ -1049,7 +1816,7 @@ MultiSelectCtrl = {
 		-- Create the GUI elements here
 		o.Sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
 			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
-			o.List = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT)
+			o.List = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)
 			-- Add Items
 			--local col = wx.wxListItem()
 			--col:SetId(0)
@@ -1076,7 +1843,7 @@ MultiSelectCtrl = {
 				ButtonSizer:Add(o.RemoveButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				MultiSelectCtrl[ID] = o
 			o.Sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-			o.SelList = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT)
+			o.SelList = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)
 			-- Add Items
 			--col = wx.wxListItem()
 			--col:SetId(0)

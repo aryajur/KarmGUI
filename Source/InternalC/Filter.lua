@@ -41,6 +41,10 @@ function applyFilterHier(filter, taskHier)
 	hierCount[hier] = 0
 	while hierCount[hier] < #hier or hier.parent do
 		if not(hierCount[hier] < #hier) then
+			if hier == taskHier then
+				-- Do not go above the passed task
+				break
+			end 
 			hier = hier.parent
 		else
 			-- Increment the counter

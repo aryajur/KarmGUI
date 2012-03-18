@@ -1,6 +1,65 @@
 -- Table to store all the Spores data 
 SporeData = {}
 
+-- Function to convert a boolean string to a Table
+-- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones 
+-- on which this operation is performed.
+function convertBoolStr2Tab(str)
+	local currLevel = 1
+	local strLevel = {[currLevel] = str}
+	local subMap = {}
+	
+	local bracketReplace = function(str,subMap)
+		-- Make sure the brackets are consistent
+		local _,stBrack = string.gsub(str,"(")
+		local _,enBrack = string.gsub(str,")")
+		if stBrack ~= enBrack then
+			error("String does not have cosistent opening and closing brackets",2)
+		end
+		-- Function to replace brackets with substitutions and fill up the subMap (substitution map)
+		local brack = string.find(str,"(")
+		while brack do
+			local init = brack + 1
+			local fin
+			-- find the ending bracket for this one
+			local count = 0	-- to track additional bracket openings
+			for i = init,str:len() do
+				if string.sub(str,i,i) == "(" then
+					count = count + 1
+				elseif string.sub(str,i,i) == ")" then
+					if count == 0 then
+						-- this is the matching bracket
+						fin = i-1
+						break
+					else
+						count = count - 1
+					end
+				end
+			end		-- for i = init,str:len() do ends
+			if not subMap.latest then
+				subMap.latest = 1
+			else
+				subMap.latest = subMap.latest + 1
+			end
+			local pre = ""
+			local post = ""
+			if init > 2 then
+				pre = string.sub(str,1,init-2)
+			end
+			if fin < str:len() - 2 then
+				post = string.sub(str,fin + 2,str:len())
+			end
+			subMap["A"..toString(subMap.latest)] = string.sub(str,init,fin)
+			str = pre.."A"..tostring(subMap.latest)..post
+			-- Now find the next
+			local brack = string.find(str,"(")
+		end		-- while brack do ends
+	end		-- function(str,subMap) ends
+	
+end		-- function convertBoolStr2Tab(str) ends
+
+
+
 function getTaskSummary(task)
 	if task then
 		local taskSummary
@@ -82,6 +141,215 @@ function getLatestScheduleDates(task)
 		return nil
 	end
 end
+
+-- Function to convert a table to a string
+-- Metatables not followed
+-- Unless key is a number it will be taken and converted to a string
+function tableToString(t)
+	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)
+	rL[rL.cL] = {}
+	do
+		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)
+		rL[rL.cL].str = "{"
+		rL[rL.cL].t = t
+		while true do
+			local k,v = rL[rL.cL]._f(rL[rL.cL]._s,rL[rL.cL]._var)
+			rL[rL.cL]._var = k
+			if not k and rL.cL == 1 then
+				break
+			elseif not k then
+				-- go up in recursion level
+				if string.sub(rL[rL.cL].str,-1,-1) == "," then
+					rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)
+				end
+				--print("GOING UP:     "..rL[rL.cL].str.."}")
+				rL[rL.cL-1].str = rL[rL.cL-1].str..rL[rL.cL].str.."}"
+				rL.cL = rL.cL - 1
+				rL[rL.cL+1] = nil
+				rL[rL.cL].str = rL[rL.cL].str..","
+			else
+				-- Handle the key and value here
+				if type(k) == "number" then
+					rL[rL.cL].str = rL[rL.cL].str.."["..tostring(k).."]="
+				else
+					rL[rL.cL].str = rL[rL.cL].str..tostring(k).."="
+				end
+				if type(v) == "table" then
+					-- Check if this is not a recursive table
+					local goDown = true
+					for i = 1, rL.cL do
+						if v==rL[i].t then
+							-- This is recursive do not go down
+							goDown = false
+							break
+						end
+					end
+					if goDown then
+						-- Go deeper in recursion
+						rL.cL = rL.cL + 1
+						rL[rL.cL] = {}
+						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(v)
+						rL[rL.cL].str = "{"
+						rL[rL.cL].t = v
+						--print("GOING DOWN:",k)
+					else
+						rL[rL.cL].str = rL[rL.cL].str.."\""..tostring(v).."\""
+						rL[rL.cL].str = rL[rL.cL].str..","
+						--print(k,"=",v)
+					end
+				elseif type(v) == "number" then
+					rL[rL.cL].str = rL[rL.cL].str..tostring(v)
+					rL[rL.cL].str = rL[rL.cL].str..","
+					--print(k,"=",v)
+				else
+					rL[rL.cL].str = rL[rL.cL].str.."\""..tostring(v).."\""
+					rL[rL.cL].str = rL[rL.cL].str..","
+					--print(k,"=",v)
+				end		-- if type(v) == "table" then ends
+			end		-- if not rL[rL.cL]._var and rL.cL == 1 then ends
+		end		-- while true ends here
+	end		-- do ends
+	if string.sub(rL[rL.cL].str,-1,-1) == "," then
+		rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)
+	end
+	rL[rL.cL].str = rL[rL.cL].str.."}"
+	return rL[rL.cL].str
+end
+
+function combineDateRanges(range1,range2)
+	local comp = compareDateRanges(range1,range2)
+
+	local strt1,fin1 = string.match(range1,"(.-)%-(.*)")
+	local strt2,fin2 = string.match(range2,"(.-)%-(.*)")
+	
+	strt1 = toXMLDate(strt1)
+	local idate = XMLDate2wxDateTime(strt1)
+	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))
+	local strt1m1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	
+	fin1 = toXMLDate(fin1)
+	idate = XMLDate2wxDateTime(fin1)
+	idate = idate:Add(wx.wxDateSpan(0,0,0,1))
+	local fin1p1 = toXMLDate(idate:Format("%m/%d/%Y"))
+
+	strt2 = toXMLDate(strt2)
+
+	fin2 = toXMLDate(fin2)
+
+	if comp == 1 then
+		return range1
+	elseif comp==2 then
+		-- range1 lies entirely before range2
+		error("Disjoint ranges",2)
+	elseif comp==3 then
+		-- range1 pre-overlaps range2
+		return string.sub(strt1,6,7).."/"..string.sub(strt1,-2,-1).."/"..string.sub(strt1,1,4).."-"..
+			string.sub(fin2,6,7).."/"..string.sub(fin2,-2,-1).."/"..string.sub(fin2,1,4)
+	elseif comp==4 then
+		-- range1 lies entirely inside range2
+		return range2
+	elseif comp==5 then
+		-- range1 post overlaps range2
+		return string.sub(strt2,6,7).."/"..string.sub(strt2,-2,-1).."/"..string.sub(strt2,1,4).."-"..
+			string.sub(fin1,6,7).."/"..string.sub(fin1,-2,-1).."/"..string.sub(fin1,1,4)
+	elseif comp==6 then
+		-- range1 lies entirely after range2
+		error("Disjoint ranges",2)
+	elseif comp==7 then
+		-- range2 lies entirely inside range1
+			return range1
+	end		
+end
+
+function XMLDate2wxDateTime(XMLdate)
+	local map = {
+		[1] = wx.wxDateTime.Jan,
+		[2] = wx.wxDateTime.Feb,
+		[3] = wx.wxDateTime.Mar,
+		[4] = wx.wxDateTime.Apr,
+		[5] = wx.wxDateTime.May,
+		[6] = wx.wxDateTime.Jun,
+		[7] = wx.wxDateTime.Jul,
+		[8] = wx.wxDateTime.Aug,
+		[9] = wx.wxDateTime.Sep,
+		[10] = wx.wxDateTime.Oct,
+		[11] = wx.wxDateTime.Nov,
+		[12] = wx.wxDateTime.Dec
+	}
+	return wx.wxDateTimeFromDMY(tonumber(string.sub(XMLdate,-2,-1)),map[tonumber(string.sub(XMLdate,6,7))],tonumber(string.sub(XMLdate,1,4)))
+end
+
+--****f* Karm/compareDateRanges
+-- FUNCTION
+-- Function to compare 2 date ranges
+-- 
+-- INPUT
+-- o range1 -- Date Range 1 eg. 2/25/2012-2/27/2012
+-- o range2 -- Date Range 2 eg. 2/25/2012-3/27/2012
+-- 
+-- RETURNS
+-- o 1 -- If date ranges identical
+-- o 2 -- If range1 lies entirely before range2
+-- o 3 -- If range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2 and not condition 2
+-- o 4 -- If range1 lies entirely inside range2
+-- o 5 -- If range1 post overlaps range2 i.e. start date of range 1 >= start date of range 2 and start date of range 1 - 1 day <= end date of range 2 and not condition 4 
+-- o 6 -- If range1 lies entirely after range2
+-- o 7 -- If range2 lies entirely inside range1
+-- o nil -- for error
+--
+-- SOURCE
+function compareDateRanges(range1,range2)
+--@@END@@
+	if not(range1 and range2) or range1=="" or range2=="" then
+		error("Expected a valid date range.",2)
+	end
+	
+	if range1 == range2 then
+		--  date ranges identical
+		return 1
+	end
+	
+	local strt1,fin1 = string.match(range1,"(.-)%-(.*)")
+	local strt2,fin2 = string.match(range2,"(.-)%-(.*)")
+	
+	strt1 = toXMLDate(strt1)
+	local idate = XMLDate2wxDateTime(strt1)
+	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))
+	local strt1m1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	
+	fin1 = toXMLDate(fin1)
+	idate = XMLDate2wxDateTime(fin1)
+	idate = idate:Add(wx.wxDateSpan(0,0,0,1))
+	local fin1p1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	
+	strt2 = toXMLDate(strt2)
+	
+	fin2 = toXMLDate(fin2)
+	
+	if strt1>fin1 or strt2>fin2 then
+		error("Range given is not valid. Start date should be less than finish date.",2)
+	end
+	
+	if fin1p1<strt2 then
+		-- range1 lies entirely before range2
+		return 2
+	elseif fin1<=fin2 and strt1<strt2 then
+		-- range1 pre-overlaps range2
+		return 3
+	elseif strt1>strt2 and fin1<fin2 then
+		-- range1 lies entirely inside range2
+		return 4
+	elseif strt1m1<=fin2 and strt1>=strt2 then
+		-- range1 post overlaps range2
+		return 5
+	elseif strt1m1>fin2 then
+		-- range1 lies entirely after range2
+		return 6
+	elseif strt1<strt2 and fin1>fin2 then
+		-- range2 lies entirely inside range1
+		return 7
+	end
+end
 --****f* Karm/ToXMLDate
 -- FUNCTION
 -- Function to convert display format date to XML format date YYYY-MM-DD
@@ -128,11 +396,97 @@ function toXMLDate(displayDate)
     return exYear .. "-" .. exMonth .. "-" .. exDate
 end
 
+function addItemToArray(item,array)
+	local pos = 0
+	for i = 1,#array do
+		if array[i] == item  then
+			return array
+		end
+		if array[i]>item then
+			pos = i
+			break
+		end
+	end
+	if pos == 0 then
+		-- place item in the end
+		array[#array+1] = item
+		return array
+	end
+	local newarray = {}
+	for i = 1,pos-1 do
+		newarray[i] = array[i]
+	end
+	newarray[pos] = item
+	for i = pos,#array do
+		newarray[i+1] = array[i]
+	end
+	return newarray
+end
+
+-- Function to collect and return all data from the task heirarchy on the basis of which task filtration criteria can be selected
+function collectFilterData(filterData, taskHier)
+	local hier = taskHier
+	local hierCount = {}
+	-- Reset the hierarchy if not already done so
+	while hier.parent do
+		hier = hier.parent
+	end
+	-- Traverse the task hierarchy here
+	hierCount[hier] = 0
+	while hierCount[hier] < #hier or hier.parent do
+		if not(hierCount[hier] < #hier) then
+			if hier == taskHier then
+				-- Do not go above the passed task
+				break
+			end 
+			hier = hier.parent
+		else
+			-- Increment the counter
+			hierCount[hier] = hierCount[hier] + 1
+			-- Who data
+			for i = 1,#hier[hierCount[hier]].Who do
+				filterData.Who = addItemToArray(hier[hierCount[hier]].Who[i].ID,filterData.Who)
+			end
+			-- Access Data
+			if string.upper(hier[hierCount[hier]].Locked.Status) == "YES" and hier[hierCount[hier]].Locked.Access then
+				for i = 1,#hier[hierCount[hier]].Locked.Access do
+					filterData.Access = addItemToArray(hier[hierCount[hier]].Locked.Access[i].ID,filterData.Access)
+				end
+			end
+			-- Priority Data
+			if hier[hierCount[hier]].Priority then
+				filterData.Priority = addItemToArray(hier[hierCount[hier]].Priority,filterData.Priority)
+			end			
+			-- Category Data
+			if hier[hierCount[hier]].Cat then
+				filterData.Cat = addItemToArray(hier[hierCount[hier]].Cat,filterData.Cat)
+			end			
+			-- Sub-Category Data
+			if hier[hierCount[hier]].SubCat then
+				filterData.SubCat = addItemToArray(hier[hierCount[hier]].SubCat,filterData.SubCat)
+			end			
+			-- Tags Data
+			if hier[hierCount[hier]].Tags then
+				for i = 1,#hier[hierCount[hier]].Tags do
+					filterData.Tags = addItemToArray(hier[hierCount[hier]].Tags[i],filterData.Tags)
+				end
+			end
+			if hier[hierCount[hier]].SubTasks then
+				-- This task has children so go deeper in the hierarchy
+				hier = hier[hierCount[hier]].SubTasks
+				hierCount[hier] = 0
+			end
+		end
+	end		-- while hierCount[hier] < #hier or hier.parent do ends here
+end
+
+
 -- Function to convert XML data from a single spore to internal data structure
 function XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
-	local dataStruct = {tasks = 0, [0] = "Task_Spore"}	-- to create the data structure
+	local dataStruct = {tasks = 0, [0] = "Task_Spore",filterData = {Who={},Access={},Priority={},Cat={},SubCat={},Tags={}}}	-- to create the data structure
+	local filterData = dataStruct.filterData
 	if SporeXML[0]~="Task_Spore" then
 		return nil
 	end
@@ -170,6 +524,7 @@ function XML2Data(SporeXML, SporeFile)
 						-- Loop through all the items in the Who element
 						for i = 1,#task[count] do
 							WhoTable[i] = {ID = task[count][i][1][1], Status = task[count][i][2][1]}
+							filterData.Who = addItemToArray(WhoTable[i].ID,filterData.Who)
 						end
 						necessary = necessary + 1
 						dataStruct[dataStruct.tasks].Who = WhoTable
@@ -181,6 +536,7 @@ function XML2Data(SporeXML, SporeFile)
 								-- Loop through all the items in the Locked element Access List
 								for i = 1,#task[count][2] do
 									AccessTable[i] = {ID = task[count][2][i][1][1], Status = task[count][2][i][2][1]}
+									filterData.Access = addItemToArray(AccessTable[i].ID,filterData.Access)
 								end
 								locked.Access = AccessTable
 							end
@@ -192,19 +548,23 @@ function XML2Data(SporeXML, SporeFile)
 						necessary = necessary + 1
 					elseif task[count][0] == "Priority" then
 						dataStruct[dataStruct.tasks].Priority = task[count][1]
+						filterData.Priority = addItemToArray(task[count][1],filterData.Priority)
 					elseif task[count][0] == "Due" then
 						dataStruct[dataStruct.tasks].Due = task[count][1]
 					elseif task[count][0] == "Comments" then
 						dataStruct[dataStruct.tasks].Comments = task[count][1]
 					elseif task[count][0] == "Category" then
 						dataStruct[dataStruct.tasks].Cat = task[count][1]
+						filterData.Cat = addItemToArray(task[count][1],filterData.Cat)
 					elseif task[count][0] == "Sub-Category" then
 						dataStruct[dataStruct.tasks].SubCat = task[count][1]
+						filterData.SubCat = addItemToArray(task[count][1],filterData.SubCat)
 					elseif task[count][0] == "Tags" then
 						local tagTable = {[0]="Tags", count = #task[count]}
 						-- Loop through all the items in the Tags element
 						for i = 1,#task[count] do
-							tagTable[i] = task[count][i][0]
+							tagTable[i] = task[count][i][1]
+							filterData.Tags = addItemToArray(tagTable[i],filterData.Tags)
 						end
 						dataStruct[dataStruct.tasks].Tags = tagTable
 					elseif task[count][0] == "Schedules" then
