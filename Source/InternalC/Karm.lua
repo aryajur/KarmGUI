@@ -942,7 +942,7 @@ function GUI.frameResize(event)
 end
 
 function GUI.loadXML(event)
-	GUI.FilterForm.filterFormActivate(GUI.frame)
+	GUI.FilterForm.filterFormActivate(GUI.frame, Filter, SporeData)
 end
 
 function GUI.cellClick(event)

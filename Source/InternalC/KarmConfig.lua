@@ -2,8 +2,7 @@ Spores = {"Test/Tasks.xml"}
 -- Initial Filter
 Filter = {
 	Tasks = {
-		TaskID = "TechChores",		
-		Children = true
+		{TaskID = "TechChores",	Children = true, Title = "Technical Work"}
 	},
 	Who = "'milind.gupta,A' and not('aryajur,A')"
 }

@@ -7,17 +7,16 @@ function textSummary(filter)
 	-- Tasks
 	if filter.Tasks then
 		-- Get the task name
-		local taskList
-		for k,v in pairs(SporeData) do
-			if k~=0 then
-				taskList = applyFilterHier({Tasks = {TaskID = filter.Tasks.TaskID}}, v)
-				if taskList.count>0 then break end
+		for i=1,#filter.Tasks do
+			if i>1 then
+				filterSummary = filterSummary.."\n"
+			else
+				filterSummary = "TASKS: "
 			end
-		end
-			
-		filterSummary = filterSummary.."TASKS: "..taskList[1].Title
-		if filter.Tasks.Children then
-			filterSummary = filterSummary.." and Children"
+			filterSummary = filterSummary..filter.Tasks[i].Title
+			if filter.Tasks[i].Children then
+				filterSummary = filterSummary.." and Children"
+			end
 		end
 	end
 	-- Who
@@ -79,7 +78,7 @@ end
 
 --[[ The Task Filter should filter the following:
 
-1. Tasks - Particular task with out without its children - Specified Task ID, with 'children' flag. If TaskID = Globals.ROOTKEY..(Spore File name)
+1. Tasks - Particular tasks with or without its children - This is a table with each element (starting from 1) has a Specified Task ID, Task Title, with 'children' flag. If TaskID = Globals.ROOTKEY..(Spore File name)
 2. Who - People responsible for the task (Boolean) - Boolean string with people IDs with their status in single quotes "'milind.gupta,A' or 'aryajur,A' and not('milind_gupta,A' or 'milind0x,I')" - if status not present then taken to be A (Active) 
 3. Date_Started - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by ,
 4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Globals.NoDateStr means no date also passes
@@ -99,29 +98,43 @@ end
 
 -- Function to validate a given task
 function validateTask(filter, task)
+	if not filter then
+		return true
+	end
 	-- Check if task ID passes
 	if filter.Tasks then
-		if string.sub(filter.Tasks.TaskID,1,#Globals.ROOTKEY) == Globals.ROOTKEY then
-			-- A whole spore is marked check if this task belongs to that spore
-			if not filter.Tasks.Children then
-				return false
-			end
-			if string.sub(filter.Tasks.TaskID,#Globals.ROOTKEY + 1,-1) ~= task.SporeFile then
-				return false
-			end
-		else  
-			-- Check if the task ID matches
-			if filter.Tasks.Children then
-				-- Children are allowed
-				if filter.Tasks.TaskID ~= string.sub(task.TaskID,1,#filter.Tasks.TaskID) then
-					return false
+		local matched = false
+		for i = 1,#filter.Tasks do
+			if string.sub(filter.Tasks[i].TaskID,1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+				-- A whole spore is marked check if this task belongs to that spore
+				-- Check if this is the spore of the task
+				if string.sub(filter.Tasks[i].TaskID,#Globals.ROOTKEY,-1) == task.SporeFile then
+					if not filter.Tasks.Children then
+						return false
+					end
+					matched = true
+					break
 				end
-			else
-				if filter.Tasks.TaskID ~= task.TaskID then
-					return false
+			else  
+				-- Check if the task ID matches
+				if filter.Tasks[i].Children then
+					-- Children are allowed
+					if filter.Tasks[i].TaskID == task.TaskID and filter.Tasks[i].Title == task.Title or 
+					  filter.Tasks[i].TaskID == string.sub(task.TaskID,1,#filter.Tasks[i].TaskID) then
+						matched = true
+						break
+					end
+				else
+					if filter.Tasks[i].TaskID == task.TaskID and filter.Tasks[i].Title == task.Title then
+						matched = true
+						break
+					end
 				end
-			end
-		end		-- if filter.Tasks.TaskID == Globals.ROOTKEY.."S" then ends
+			end		-- if filter.Tasks.TaskID == Globals.ROOTKEY.."S" then ends
+		end	-- for 1,#filter.Tasks ends here
+		if not matched then
+			return false
+		end
 	end
 	-- Check if Who passes
 	if filter.Who then
@@ -167,15 +180,12 @@ function validateTask(filter, task)
 	if filter.Start then
 		-- Trim the string from leading and trailing spaces
 		local strtStr = string.match(filter.Start,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(strtStr,1,1) ~= "," then
-			strtStr = "," .. strtStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(strtStr,-1,-1)~="," then
 			strtStr = strtStr .. ","
 		end
 		local matched = false
-		for range in string.gmatch(strtStr,",(.-),") do
+		for range in string.gmatch(strtStr,"(.-),") do
 			-- See if this is a range or a single date
 			local strt,stp = string.match(range,"(.-)%-(.*)")
 			if not strt then
@@ -200,15 +210,12 @@ function validateTask(filter, task)
 	if filter.Fin then
 		-- Trim the string from leading and trailing spaces
 		local finStr = string.match(filter.Fin,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(finStr,1,1) ~= "," then
-			finStr = "," .. finStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(finStr,-1,-1)~="," then
 			finStr = finStr .. ","
 		end
 		local matched = false
-		for range in string.gmatch(finStr,",(.-),") do
+		for range in string.gmatch(finStr,"(.-),") do
 			-- Check if this is Globals.NoDateStr
 			if range == Globals.NoDateStr and not task.Fin then
 				matched = true
@@ -293,15 +300,12 @@ function validateTask(filter, task)
 	if filter.Status then
 		-- Trim the string from leading and trailing spaces
 		local statStr = string.match(filter.Status,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(statStr,1,1) ~= "," then
-			statStr = "," .. statStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(statStr,-1,-1)~="," then
 			statStr = statStr .. ","
 		end
 		local matched = false
-		for stat in string.gmatch(statStr,",(.-),") do
+		for stat in string.gmatch(statStr,"(.-),") do
 			-- Check if this status matches with what we have in the task
 			if task.Status == stat then
 				matched = true
@@ -317,15 +321,12 @@ function validateTask(filter, task)
 	if filter.Priority then
 		-- Trim the string from leading and trailing spaces
 		local priStr = string.match(filter.Priority,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(priStr,1,1) ~= "," then
-			priStr = "," .. priStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(priStr,-1,-1)~="," then
 			priStr = priStr .. ","
 		end
 		local matched = false
-		for pri in string.gmatch(priStr,",(.-),") do
+		for pri in string.gmatch(priStr,"(.-),") do
 			if pri == Globals.NoPriStr and not task.Priority then
 				matched = true
 				break
@@ -345,15 +346,12 @@ function validateTask(filter, task)
 	if filter.Due then
 		-- Trim the string from leading and trailing spaces
 		local dueStr = string.match(filter.Due,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(dueStr,1,1) ~= "," then
-			dueStr = "," .. dueStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(dueStr,-1,-1)~="," then
 			dueStr = dueStr .. ","
 		end
 		local matched = false
-		for range in string.gmatch(dueStr,",(.-),") do
+		for range in string.gmatch(dueStr,"(.-),") do
 			-- Check if this is Globals.NoDateStr
 			if range == Globals.NoDateStr and not task.Fin then
 				matched = true
@@ -384,15 +382,12 @@ function validateTask(filter, task)
 	if filter.Cat then
 		-- Trim the string from leading and trailing spaces
 		local catStr = string.match(filter.Cat,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(catStr,1,1) ~= "," then
-			catStr = "," .. catStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(catStr,-1,-1)~="," then
 			catStr = catStr .. ","
 		end
 		local matched = false
-		for cat in string.gmatch(catStr,",(.-),") do
+		for cat in string.gmatch(catStr,"(.-),") do
 			-- Check if it matches Globals.NoCatStr
 			if cat == Globals.NoCatStr and not task.Cat then
 				matched = true
@@ -413,15 +408,12 @@ function validateTask(filter, task)
 	if filter.SubCat then
 		-- Trim the string from leading and trailing spaces
 		local subCatStr = string.match(filter.SubCat,"^%s*(.-)%s*$")
-		-- Make sure the string has "," both at the beginning and end
-		if string.sub(subCatStr,1,1) ~= "," then
-			subCatStr = "," .. subCatStr
-		end
+		-- Make sure the string has "," at the end
 		if string.sub(subCatStr,-1,-1)~="," then
 			subCatStr = subCatStr .. ","
 		end
 		local matched = false
-		for subCat in string.gmatch(subCatStr,",(.-),") do
+		for subCat in string.gmatch(subCatStr,"(.-),") do
 			-- Check if it matches Globals.NoSubCatStr
 			if subCat == Globals.NoSubCatStr and not task.SubCat then
 				matched = true
@@ -477,15 +469,12 @@ function validateTask(filter, task)
 			typeSchedule = string.sub(sch,firstComma + 1,secondComma - 1)
 			ranges = {[0]=string.sub(sch,secondComma + 1, -1),count=0}
 			rangeStr = ranges[0]
-			-- Make sure the rangeStr string has "," both at the beginning and end
-			if string.sub(rangeStr,1,1) ~= "," then
-				rangeStr = "," .. rangeStr
-			end
+			-- Make sure the string has "," at the end
 			if string.sub(rangeStr,-1,-1)~="," then
 				rangeStr = rangeStr .. ","
 			end
 			-- Now separate individual date ranges
-			for range in string.gmatch(rangeStr,",(.-),") do
+			for range in string.gmatch(rangeStr,"(.-),") do
 				ranges.count = ranges.count + 1
 				ranges[count] = range
 			end

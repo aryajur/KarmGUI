@@ -4,20 +4,61 @@ SporeData = {}
 -- Function to convert a boolean string to a Table
 -- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones 
 -- on which this operation is performed.
+-- The table consist of a sequence of tables starting from index = 1
+-- each sub table has these keys:
+-- 1. Item - contains the item name
+-- 2. Parent - contains the parent table
+-- 3. Children - contains the table similar in hierarchy to the root table
 function convertBoolStr2Tab(str)
-	local currLevel = 1
-	local strLevel = {[currLevel] = str}
+	local boolTab = {Item="",Parent=nil,Children = {},currChild=nil}
+	local strLevel = {[boolTab] = str}
 	local subMap = {}
 	
+	local getUniqueSubst = function(str,subMap)
+		if not subMap.latest then
+			subMap.latest = 1
+		else 
+			subMap.latest = subMap.latest + 1
+		end
+		local uStr = "A"..tostring(subMap.latest)
+		local done = false
+		while not done do
+			-- Check if this exists in str
+			while string.find(str,"[%(%s]"..uStr.."[%)%s]") or 
+			  string.find(string.sub(str,1,string.len(uStr) + 1),uStr.."[%)%s]") or 
+			  string.find(string.sub(str,-(string.len(uStr) + 1),-1),"[%(%s]"..uStr) do
+				subMap.latest = subMap.latest + 1
+				uStr = "A"..tostring(subMap.latest)
+			end
+			done = true
+			-- Check if the str exists in subMap
+			for k,v in pairs(subMap) do
+				if k ~= "latest" then
+					while string.find(v,"[%(%s]"..uStr.."[%)%s]") or 
+					  string.find(string.sub(v,1,string.len(uStr) + 1),uStr.."[%)%s]") or 
+					  string.find(string.sub(v,-(string.len(uStr) + 1),-1),"[%(%s]"..uStr) do
+						done = false
+						subMap.latest = subMap.latest + 1
+						uStr = "A"..tostring(subMap.latest)
+					end
+					if done==false then 
+						break 
+					end
+				end
+			end		-- for k,v in pairs(subMap) do ends
+		end		-- while not done do ends
+		return uStr
+	end		-- function getUniqueSubst(str,subMap) ends
+	
 	local bracketReplace = function(str,subMap)
+		-- Function to replace brackets with substitutions and fill up the subMap (substitution map)
 		-- Make sure the brackets are consistent
-		local _,stBrack = string.gsub(str,"(")
-		local _,enBrack = string.gsub(str,")")
+		local _,stBrack = string.gsub(str,"%(","t")
+		local _,enBrack = string.gsub(str,"%)","t")
 		if stBrack ~= enBrack then
 			error("String does not have cosistent opening and closing brackets",2)
 		end
-		-- Function to replace brackets with substitutions and fill up the subMap (substitution map)
-		local brack = string.find(str,"(")
+		local brack = string.find(str,"%(")
 		while brack do
 			local init = brack + 1
 			local fin
@@ -36,11 +77,7 @@ function convertBoolStr2Tab(str)
 					end
 				end
 			end		-- for i = init,str:len() do ends
-			if not subMap.latest then
-				subMap.latest = 1
-			else
-				subMap.latest = subMap.latest + 1
-			end
+			local uStr = getUniqueSubst(str,subMap)
 			local pre = ""
 			local post = ""
 			if init > 2 then
@@ -49,13 +86,137 @@ function convertBoolStr2Tab(str)
 			if fin < str:len() - 2 then
 				post = string.sub(str,fin + 2,str:len())
 			end
-			subMap["A"..toString(subMap.latest)] = string.sub(str,init,fin)
-			str = pre.."A"..tostring(subMap.latest)..post
+			subMap[uStr] = string.sub(str,init,fin)
+			str = pre.." "..uStr.." "..post
 			-- Now find the next
 			local brack = string.find(str,"(")
 		end		-- while brack do ends
+		str = string.gsub(str,"%s+"," ")		-- Remove duplicate spaces
 	end		-- function(str,subMap) ends
 	
+	local OperSubst = function(str, subMap,op)
+		-- Function to make the str a simple OR expression
+		op = string.lower(string.match(op,"%s*([%w%W]+)%s*"))
+		if not(string.find(str," "..op.." ") or string.find(str," "..string.upper(op).." ")) then
+			return str
+		end
+		str = string.gsub(str," "..string.upper(op).." ", " "..op.." ")
+		-- Starting chunk
+		local strt,stp,subStr = string.find(str,"(.-) "..op.." ")
+		local uStr = getUniqueSubst(str,subMap)
+		local newStr = {count = 0} 
+		newStr.count = newStr.count + 1
+		newStr[newStr.count] = uStr
+		subMap[uStr] = subStr
+		-- Middle chunks
+		strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-4)
+		while strt do
+			uStr = getUniqueSubst(str,subMap)
+			newStr.count = newStr.count + 1
+			newStr[newStr.count] = uStr
+			subMap[uStr] = subStr			
+			strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-4)	
+		end
+		-- Last Chunk
+		if not stp then
+			strt,stp,subStr = string.find(str," "..op.." (.-)$")
+		else
+			strt,stp,subStr = string.find(str," "..op.." (.-)",stp-4)
+		end
+		uStr = getUniqueSubst(str,subMap)
+		newStr.count = newStr.count + 1
+		newStr[newStr.count] = uStr
+		subMap[uStr] = subStr
+		return newStr
+	end		-- local function ORsubst(str) ends
+	
+	-- Start recursive loop here
+	local currTab = boolTab
+	while currTab do
+		-- Remove all brackets
+		if not(strLevel[currTab]) then
+			print(currTab.Item)
+		end
+		strLevel[currTab] = string.gsub(strLevel[currTab],"%s+"," ")
+		bracketReplace(strLevel[currTab],subMap)
+		-- Check what type of element this is
+		if not(string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") 
+		  or string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") 
+		  or string.find(strLevel[currTab]," not ") or string.find(strLevel[currTab]," NOT ")
+		  or string.upper(string.sub(strLevel[currTab],1,4)) == "NOT "
+		  or subMap[strLevel[currTab]]) then
+			-- This is a simple element
+			if currTab.Item == "#NOT()#" then
+				currTab.Children[1] = {Item = strLevel[currTab],Parent=currTab}
+			else
+				currTab.Item = strLevel[currTab]
+				currTab.Children = nil
+			end
+			-- Return one level up
+			currTab = currTab.Parent
+			while currTab do
+				if currTab.currChild < #currTab.Children then
+					currTab.currChild = currTab.currChild + 1
+					currTab = currTab.Children[currTab.currChild]
+					break
+				else
+					currTab.currChild = nil
+					currTab = currTab.Parent
+				end
+			end
+		elseif not(string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") 
+		  or string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") 
+		  or string.find(strLevel[currTab]," not ") or string.find(strLevel[currTab]," NOT ")
+		  or string.upper(string.sub(strLevel[currTab],1,4)) == "NOT ")
+		  and subMap[strLevel[currTab]] then
+			-- This is a substitution as a whole
+			local temp = strLevel[currTab] 
+			strLevel[currTab] = subMap[temp]
+			subMap[temp] = nil
+		else
+			-- This is a normal expression
+			if string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") then
+				-- The expression has OR operators
+				-- Transform to a simple OR expression
+				local simpStr = OperSubst(strLevel[currTab],subMap,"OR")
+				if currTab.Item == "#NOT()#" then
+					currTab.Item = "#NOT(OR)#"
+				else
+					currTab.Item = "#OR#"
+				end
+				-- Now allchildren need to be added and we must evaluate each child
+				for i = 1,#simpStr do
+					currTab.Children[#currTab.Children + 1] = {Item="", Parent = currTab,Children={},currChild=nil}
+					strLevel[currTab.Children[#currTab.Children]] = simpStr[i]
+				end 
+				currTab.currChild = 1
+				currTab = currTab.Children[1]
+			elseif string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") then
+				-- The expression does not have OR operators but has AND operators
+				-- Transform to a simple AND expression
+				local simpStr = OperSubst(strLevel[currTab],subMap,"AND")
+				if currTab.Item == "#NOT()#" then
+					currTab.Item = "#NOT(AND)#"
+				else
+					currTab.Item = "#AND#"
+				end
+				-- Now allchildren need to be added and we must evaluate each child
+				for i = 1,#simpStr do
+					currTab.Children[#currTab.Children + 1] = {Item="", Parent = currTab,Children={},currChild=nil}
+					strLevel[currTab.Children[#currTab.Children]] = simpStr[i]
+				end 
+				currTab.currChild = 1
+				currTab = currTab.Children[1]
+			else
+				-- This is a NOT element
+				strLevel[currTab] = string.gsub(strLevel[currTab],"NOT", "not")
+				local elem = string.match(strLevel[currTab],"%s*not%s+([%w%W]+)%s*")
+				currTab.Item = "#NOT()#"
+				strLevel[currTab] = elem
+			end		-- if string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") then ends
+		end 
+	end		-- while currTab do ends
+	return boolTab
 end		-- function convertBoolStr2Tab(str) ends
 
 
@@ -479,7 +640,6 @@ function collectFilterData(filterData, taskHier)
 		end
 	end		-- while hierCount[hier] < #hier or hier.parent do ends here
 end
-
 
 -- Function to convert XML data from a single spore to internal data structure
 function XML2Data(SporeXML, SporeFile)
