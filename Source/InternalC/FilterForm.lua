@@ -83,7 +83,7 @@ local function SelTaskPress(event)
 	-- Add the root
 	local root = taskTree:AddRoot("Task Spores")
 	local treeData = {}
-	treeData[root] = {Key = Globals.ROOTKEY, Parent = nil, Title = "Task Spores"}
+	treeData[root:GetValue()] = {Key = Globals.ROOTKEY, Parent = nil, Title = "Task Spores"}
     if SporeData[0] > 0 then
 -- Populate the tree control view
 		local count = 0
@@ -107,7 +107,7 @@ local function SelTaskPress(event)
             	end
             	-- Add the spore node
 	            local currNode = taskTree:AppendItem(root,strVar)
-				treeData[currNode] = {Key = Globals.ROOTKEY..k, Parent = root, Title = strVar}
+				treeData[currNode:GetValue()] = {Key = Globals.ROOTKEY..k, Parent = root, Title = strVar}
 				if filter.Tasks and #filter.Tasks.TaskID > #Globals.ROOTKEY and 
 				  string.sub(filter.Tasks.TaskID,#Globals.ROOTKEY + 1, -1) == k then
 					taskTree:EnsureVisible(currNode)
@@ -119,22 +119,22 @@ local function SelTaskPress(event)
 	                -- Add the 1st element under the spore
 	                local parent = currNode
 		            currNode = taskTree:AppendItem(parent,taskList[1].Title)
-					treeData[currNode] = {Key = taskList[1].TaskID, Parent = parent, Title = taskList[1].Title}
+					treeData[currNode:GetValue()] = {Key = taskList[1].TaskID, Parent = parent, Title = taskList[1].Title}
 	                for intVar = 2,taskList.count do
-	                	local cond1 = treeData[currNode].Key ~= Globals.ROOTKEY..k
-	                	local cond2 = #taskList[intVar].TaskID > #treeData[currNode].Key
-	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode].Key + 1) == treeData[currNode].Key.."_"
+	                	local cond1 = treeData[currNode:GetValue()].Key ~= Globals.ROOTKEY..k
+	                	local cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key
+	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key.."_"
                     	while cond1 and not (cond2 and cond3) do
                         	-- Go up the hierarchy
-                        	currNode = treeData[currNode].Parent
-		                	cond1 = treeData[currNode].Key ~= Globals.ROOTKEY..k
-		                	cond2 = #taskList[intVar].TaskID > #treeData[currNode].Key
-		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode].Key + 1) == treeData[currNode].Key.."_"
+                        	currNode = treeData[currNode:GetValue()].Parent
+		                	cond1 = treeData[currNode:GetValue()].Key ~= Globals.ROOTKEY..k
+		                	cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key
+		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key.."_"
                         end
                     	-- Now currNode has the node which is the right parent
 		                parent = currNode
 			            currNode = taskTree:AppendItem(parent,taskList[intVar].Title)
-						treeData[currNode] = {Key = taskList[intVar].TaskID, Parent = parent, Title = taskList[intVar].Title}
+						treeData[currNode:GetValue()] = {Key = taskList[intVar].TaskID, Parent = parent, Title = taskList[intVar].Title}
                     end
 	            end  -- if taskList.count > 0 then ends
 			end		-- if k~=0 then ends
@@ -152,7 +152,7 @@ local function SelTaskPress(event)
 		local sel = taskTree:GetSelection()
 		-- Setup the filter
 		filter.TasksSet = {}
-		if treeData[sel].Key == Globals.ROOTKEY then
+		if treeData[sel:GetValue()].Key == Globals.ROOTKEY then
 			filter.TasksSet = nil
 		else
 			filter.TasksSet[1] = {}
@@ -160,12 +160,12 @@ local function SelTaskPress(event)
 			if CheckBox:GetValue() then
 				filter.TasksSet[1].Children = true
 			end
-			filter.TasksSet[1].TaskID = treeData[sel].Key
-			filter.TasksSet[1].Title =  treeData[sel].Title
+			filter.TasksSet[1].TaskID = treeData[sel:GetValue()].Key
+			filter.TasksSet[1].Title =  treeData[sel:GetValue()].Title
 		end
 		-- Setup the label properly
 		if filter.TasksSet then
-			if filter.TasksSet.Children then
+			if filter.TasksSet[1].Children then
 				FilterTask:SetLabel(taskTree:GetItemText(sel).." and Children")
 			else
 				FilterTask:SetLabel(taskTree:GetItemText(sel))
@@ -261,6 +261,8 @@ local function setfilter(f)
 		end
 		local items = {}
 		for cat in string.gmatch(catStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			cat = string.match(cat,"^%s*(.-)%s*$")			
 			-- Check if it matches Globals.NoCatStr
 			if cat == Globals.NoCatStr then
 				CatCtrl.CheckBox:SetValue(true)
@@ -281,6 +283,8 @@ local function setfilter(f)
 		end
 		local items = {}
 		for subCat in string.gmatch(subCatStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			subCat = string.match(subCat,"^%s*(.-)%s*$")			
 			-- Check if it matches Globals.NoSubCatStr
 			if subCat == Globals.NoSubCatStr then
 				SubCatCtrl.CheckBox:SetValue(true)
@@ -293,6 +297,118 @@ local function setfilter(f)
 	if f.Tags then
 		TagBoolCtrl:setExpression(f.Tags)
 	end		-- if f.Tags then ends
+	-- Set Priority data
+	if f.Priority then
+		-- Separate out the items in the comma
+		-- Trim the string from leading and trailing spaces
+		local priStr = string.match(f.Priority,"^%s*(.-)%s*$")
+		-- Make sure the string has "," at the end
+		if string.sub(priStr,-1,-1)~="," then
+			priStr = priStr .. ","
+		end
+		local items = {}
+		for pri in string.gmatch(priStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			pri = string.match(pri,"^%s*(.-)%s*$")			
+			-- Check if it matches Globals.NoPriStr
+			if pri == Globals.NoPriStr then
+				PriCtrl.CheckBox:SetValue(true)
+			else
+				items[#items + 1] = pri
+			end
+		end
+		PriCtrl:AddSelListData(items)
+	end		-- if f.Priority then ends
+	-- Set Status data
+	if f.Status then
+		-- Separate out the items in the comma
+		-- Trim the string from leading and trailing spaces
+		local statStr = string.match(f.Status,"^%s*(.-)%s*$")
+		-- Make sure the string has "," at the end
+		if string.sub(statStr,-1,-1)~="," then
+			statStr = statStr .. ","
+		end
+		local items = {}
+		for stat in string.gmatch(statStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			stat = string.match(stat,"^%s*(.-)%s*$")			
+			items[#items + 1] = stat
+		end
+		StatCtrl:AddSelListData(items)
+	end		-- if f.Status then ends
+	-- Who items
+	WhoBoolCtrl:setExpression(f.Who)
+	-- Access items
+	if f.Access then
+		accBoolCtrl:setExpression(f.Access)
+	end		-- if f.Tags then ends
+	-- Set Start Date data
+	do
+		-- Separate out the items in the comma
+		-- Trim the string from leading and trailing spaces
+		local strtStr = string.match(f.Start,"^%s*(.-)%s*$")
+		-- Make sure the string has "," at the end
+		if string.sub(strtStr,-1,-1)~="," then
+			strtStr = strtStr .. ","
+		end
+		local items = {}
+		for strt in string.gmatch(strtStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			strt = string.match(strt,"^%s*(.-)%s*$")
+			if strt ~= "" then			
+				items[#items + 1] = strt
+			end
+		end
+		dateStarted:setRanges(items)
+	end		-- do for f.Start	
+	-- Set Due Date data
+	if f.Due then
+		-- Separate out the items in the comma
+		-- Trim the string from leading and trailing spaces
+		local dueStr = string.match(f.Due,"^%s*(.-)%s*$")
+		-- Make sure the string has "," at the end
+		if string.sub(dueStr,-1,-1)~="," then
+			dueStr = dueStr .. ","
+		end
+		local items = {}
+		dateDue:setCheckBoxState(nil)
+		for due in string.gmatch(dueStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			due = string.match(due,"^%s*(.-)%s*$")
+			if due == noStr.Due then
+				dateDue:setCheckBoxState(true)
+			elseif due ~= "" then			
+				items[#items + 1] = due
+			end
+		end
+		dateDue:setRanges(items)
+	end		-- if f.Due ends here	
+	-- Set Finish Date data
+	if f.Fin then
+		-- Separate out the items in the comma
+		-- Trim the string from leading and trailing spaces
+		local finStr = string.match(f.Fin,"^%s*(.-)%s*$")
+		-- Make sure the string has "," at the end
+		if string.sub(finStr,-1,-1)~="," then
+			finStr = finStr .. ","
+		end
+		local items = {}
+		dateFinished:setCheckBoxState(nil)
+		for fin in string.gmatch(finStr,"(.-),") do
+			-- Trim leading and trailing spaces
+			fin = string.match(fin,"^%s*(.-)%s*$")
+			if fin == noStr.Fin then
+				dateFinished:setCheckBoxState(true)
+			elseif fin ~= "" then			
+				items[#items + 1] = fin
+			end
+		end
+		dateFinished:setRanges(items)
+	end		-- if f.Due ends here	
+	-- Set the Schedules Data
+	if f.Schedules then
+		SchBoolCtrl:setExpression(f.Schedules)
+	end		-- if f.Schedules ends here
 end
 
 local function synthesizeFilter()
@@ -313,6 +429,7 @@ local function synthesizeFilter()
 		f.Start = str:sub(1,-2)
 	end
 	-- Date Finished
+	str = ""
 	items = dateFinished:getSelectedItems()
 	for i = 1,#items do
 		str = str..items[i]..","
@@ -335,6 +452,7 @@ local function synthesizeFilter()
 		f.Status = str:sub(1,-2)
 	end
 	-- Priority
+	str = ""
 	items = PriCtrl:getSelectedItems()
 	for i = 1,#items do
 		str = str..items[i]..","
@@ -346,6 +464,7 @@ local function synthesizeFilter()
 		f.Priority = str:sub(1,-2)
 	end
 	-- Due Date
+	str = ""
 	items = dateDue:getSelectedItems()
 	for i = 1,#items do
 		str = str..items[i]..","
@@ -357,28 +476,36 @@ local function synthesizeFilter()
 		f.Due = str:sub(1,-2)
 	end
 	-- Category
-	items = dateDue:getSelectedItems()
+	str = ""
+	items = CatCtrl:getSelectedItems()
 	for i = 1,#items do
 		str = str..items[i]..","
 	end 
 	if items[0] then
-		str = str..Globals.NoDateStr..","
+		str = str..Globals.NoCatStr..","
 	end
 	if str ~= "" then
-		f.Due = str:sub(1,-2)
+		f.Cat = str:sub(1,-2)
 	end
-	-- Due Date
-	items = dateDue:getSelectedItems()
+	-- Sub-Category
+	str = ""
+	items = SubCatCtrl:getSelectedItems()
 	for i = 1,#items do
 		str = str..items[i]..","
 	end 
 	if items[0] then
-		str = str..Globals.NoDateStr..","
+		str = str..Globals.NoSubCatStr..","
 	end
 	if str ~= "" then
-		f.Due = str:sub(1,-2)
+		f.SubCat = str:sub(1,-2)
 	end
-
+	-- Tags
+	f.Tags = TagBoolCtrl:BooleanExpression()
+	if TagCheckBox:GetValue() then
+		f.Tags = "("..f.Tags..") or "..Globals.NoTagStr
+	end
+	-- Schedule
+	f.Schedules = SchBoolCtrl:BooleanExpression()
 	return f
 end
 
@@ -430,7 +557,7 @@ local function saveFilter(event)
                             "File Save Error",
                             wx.wxOK + wx.wxCENTRE, frame)
         else
-        	file:write(tableToString(synthesizeFilter()))
+        	file:write("filter="..tableToString(synthesizeFilter()))
         	file:close()
         end
     end
@@ -634,19 +761,23 @@ function filterFormActivate(parent, GlobalFilter, SData)
 				
 				-- Tag List box, buttons and tree
 				local TagSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
-					TagList = wx.wxListCtrl(PSandTag, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxSize(0.1*GUI.initFrameW, 0.1*GUI.initFrameH),
-						bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER,wx.wxLC_SINGLE_SEL))
-					-- Populate the tag list here
-					--local col = wx.wxListItem()
-					--col:SetId(0)
-					TagList:InsertColumn(0,"Tags")
-					if filterData.Tags then
-						for i=1,#filterData.Tags do
-							CW.InsertItem(TagList,filterData.Tags[i])
+					local TagListSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+						TagList = wx.wxListCtrl(PSandTag, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxSize(0.1*GUI.initFrameW, 0.1*GUI.initFrameH),
+							bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER,wx.wxLC_SINGLE_SEL))
+						-- Populate the tag list here
+						--local col = wx.wxListItem()
+						--col:SetId(0)
+						TagList:InsertColumn(0,"Tags")
+						if filterData.Tags then
+							for i=1,#filterData.Tags do
+								CW.InsertItem(TagList,filterData.Tags[i])
+							end
 						end
-					end
-					
-					TagSizer:Add(TagList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+						TagListSizer:Add(TagList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+						TagCheckBox = wx.wxCheckBox(PSandTag, wx.wxID_ANY, "None Also passes", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+						TagListSizer:Add(TagCheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+						
+					TagSizer:Add(TagListSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 					TagBoolCtrl = BooleanTreeCtrl(PSandTag,TagSizer,
 						function()
 							-- Return the selected item in Tag List

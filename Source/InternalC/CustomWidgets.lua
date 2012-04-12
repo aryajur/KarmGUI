@@ -9,10 +9,15 @@ local prin
 if Globals.__DEBUG then
 	prin = print
 end
+local error = error
 local print = prin 
 local wx = wx
 local bit = bit
 local type = type
+local string = string
+local tostring = tostring
+local tonumber = tonumber
+local pairs = pairs
 local getfenv = getfenv
 local setfenv = setfenv
 local compareDateRanges = compareDateRanges
@@ -356,11 +361,10 @@ do
 	-- Function to convert a boolean string to a Table
 	-- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones 
 	-- on which this operation is performed.
-	-- The table consist of a sequence of tables starting from index = 1
-	-- each sub table has these keys:
+	-- The table consist of:
 	-- 1. Item - contains the item name
 	-- 2. Parent - contains the parent table
-	-- 3. Children - contains the table similar in hierarchy to the root table
+	-- 3. Children - contains a sequence of tables starting from index = 1 similar to the root table
 	local function convertBoolStr2Tab(str)
 		local boolTab = {Item="",Parent=nil,Children = {},currChild=nil}
 		local strLevel = {[boolTab] = str}
@@ -441,9 +445,11 @@ do
 				subMap[uStr] = string.sub(str,init,fin)
 				str = pre.." "..uStr.." "..post
 				-- Now find the next
-				local brack = string.find(str,"(")
+				brack = string.find(str,"%(")
 			end		-- while brack do ends
 			str = string.gsub(str,"%s+"," ")		-- Remove duplicate spaces
+			str = string.match(str,"^%s*(.-)%s*$")
+			return str
 		end		-- function(str,subMap) ends
 		
 		local OperSubst = function(str, subMap,op)
@@ -461,20 +467,16 @@ do
 			newStr[newStr.count] = uStr
 			subMap[uStr] = subStr
 			-- Middle chunks
-			strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-4)
+			strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-op:len()-1)
 			while strt do
 				uStr = getUniqueSubst(str,subMap)
 				newStr.count = newStr.count + 1
 				newStr[newStr.count] = uStr
 				subMap[uStr] = subStr			
-				strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-4)	
+				strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-op:len()-1)	
 			end
 			-- Last Chunk
-			if not stp then
-				strt,stp,subStr = string.find(str," "..op.." (.-)$")
-			else
-				strt,stp,subStr = string.find(str," "..op.." (.-)",stp-4)
-			end
+			strt,stp,subStr = string.find(str,"^.+ "..op.." (.-)$")
 			uStr = getUniqueSubst(str,subMap)
 			newStr.count = newStr.count + 1
 			newStr[newStr.count] = uStr
@@ -486,11 +488,8 @@ do
 		local currTab = boolTab
 		while currTab do
 			-- Remove all brackets
-			if not(strLevel[currTab]) then
-				print(currTab.Item)
-			end
 			strLevel[currTab] = string.gsub(strLevel[currTab],"%s+"," ")
-			bracketReplace(strLevel[currTab],subMap)
+			strLevel[currTab] = bracketReplace(strLevel[currTab],subMap)
 			-- Check what type of element this is
 			if not(string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") 
 			  or string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") 
@@ -499,9 +498,9 @@ do
 			  or subMap[strLevel[currTab]]) then
 				-- This is a simple element
 				if currTab.Item == "#NOT()#" then
-					currTab.Children[1] = {Item = strLevel[currTab],Parent=currTab}
+					currTab.Children[1] = {Item = string.match(strLevel[currTab],"'(.-)'"),Parent=currTab}
 				else
-					currTab.Item = strLevel[currTab]
+					currTab.Item = string.match(strLevel[currTab],"'(.-)'")
 					currTab.Children = nil
 				end
 				-- Return one level up
@@ -576,34 +575,48 @@ do
 		local t = convertBoolStr2Tab(str)
 		local tIndex = {}
 		local tNode = {}
+		local itemText = function(itemStr)
+			-- To return the item text
+			if itemStr == "#AND#" then
+				return "(AND)"
+			elseif itemStr == "#OR#" then
+				return "(OR)"
+			elseif itemStr == "#NOT()#" then
+				return "NOT()"
+			elseif itemStr == "#NOT(AND)#" then
+				return "NOT(AND)"
+			elseif itemStr == "#NOT(OR)#" then
+				return "NOT(OR)"
+			else
+				return itemStr
+			end
+		end
 		-- Clear the control
 		o:ResetCtrl()
+		tNode[t] = o.SelTree:AppendItem(o.SelTree:GetRootItem(),itemText(t.Item))
 		-- Traverse the table to fill up the tree
 		tIndex[t] = 1
-		while tIndex[t] <= #t and t.Parent do
-			if tIndex[t] > #t then
+		while tIndex[t] <= #t.Children or t.Parent do
+			if tIndex[t] > #t.Children then
 				tIndex[t] = nil
 				t = t.Parent
 			else
 				-- Handle the current element
 				local parentNode 
-				if not t.Parent then
-					parentNode = o.SelTree:GetRootItem()
-				else
-					parentNode = tNode[t[tIndex[t]].Parent]
-				end
-				tNode[t[tIndex[t]]] = o.SelTree:AppendItem(parentNode,t[tIndex[t]].Item) 
+				parentNode = tNode[t]
+				tNode[t.Children[tIndex[t]]] = o.SelTree:AppendItem(parentNode,itemText(t.Children[tIndex[t]].Item)) 
 				tIndex[t] = tIndex[t] + 1
 				-- Check if this has children
-				if t[tIndex[t]].Children then
+				if t.Children[tIndex[t]-1].Children then
 					-- go deeper in the hierarchy
-					t = t[tIndex[t]].Children
+					t = t.Children[tIndex[t]-1]
 					tIndex[t] = 1
 				end
 			end		-- if tIndex[t] > #t then ends
 		end		-- while tIndex[t] <= #t and t.Parent do ends
 	end
 	
+	local treeRecRef
 	local treeRecurse = function(tree,node)
 		local itemText = tree:GetItemText(node) 
 		if itemText == "(AND)" or itemText == "(OR)" or itemText == "NOT(OR)" or itemText == "NOT(AND)" then
@@ -613,19 +626,20 @@ do
 				retText = "not("
 			end
 			local currNode = tree:GetFirstChild(node)
-			retText = retText..treeRecurse(tree,currNode)
+			retText = retText..treeRecRef(tree,currNode)
 			currNode = tree:GetNextSibling(currNode)
 			while currNode:IsOk() do
-				retText = retText..logic..treeRecurse(tree,currNode)
+				retText = retText..logic..treeRecRef(tree,currNode)
 				currNode = tree:GetNextSibling(currNode)
 			end
 			return retText..")"
 		elseif itemText == "NOT()" then
-			return "not("..treeRecurse(tree,tree:GetFirstChild(node))..")"
+			return "not("..treeRecRef(tree,tree:GetFirstChild(node))..")"
 		else
 			return "'"..itemText.."'"
 		end
 	end
+	treeRecRef = treeRecurse
 
 	local BooleanExpression = function(o)
 		local tree = o.SelTree
@@ -718,7 +732,7 @@ do
 	
 	local ResetCtrl = function(o)
 		if o.SelTree:GetFirstChild(o.SelTree:GetRootItem()):IsOk() then
-			DelTree(o.SelTree:GetFirstChild(o.SelTree:GetRootItem()))
+			DelTree(o,o.SelTree:GetFirstChild(o.SelTree:GetRootItem()))
 		end
 	end
 	
@@ -1198,7 +1212,7 @@ do
 		if not parent or not sizer or not getInfoFunc or type(getInfoFunc)~="function" then
 			return nil
 		end
-		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression}
+		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression, setExpression = setExpression}
 		o.getInfo = getInfoFunc
 		o.prevSel = {}
 		local ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)
@@ -1357,114 +1371,196 @@ do
 		end
 		return selItems
 	end
+
+    local addRange = function(o,range)
+		-- Check if the Item exists in the list control
+		local itemNum = -1
+		local conditionList = false
+		while o.list:GetNextItem(itemNum) ~= -1 do
+			local prevItemNum = itemNum
+			itemNum = o.list:GetNextItem(itemNum)
+			local itemText = o.list:GetItemText(itemNum)
+			-- Now compare the dateRanges
+			local comp = compareDateRanges(range,itemText)
+			if comp == 1 then
+				-- Ranges are same, do nothing
+				drFrame:Close()
+				return true
+			elseif comp==2 then
+				-- range1 lies entirely before range2
+				itemNum = prevItemNum
+				break
+			elseif comp==3 then
+				-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2
+				range = combineDateRanges(range,itemText)
+				-- Delete the current item
+				o.list:DeleteItem(itemNum)
+				itemNum = prevItemNum
+				break
+			elseif comp==4 then
+				-- comp=4 range1 lies entirely inside range2
+				-- range given is subset, do nothing
+				return true
+			elseif comp==5 or comp==7 then
+				-- comp=5 range1 post overlaps range2
+				-- comp=7 range2 lies entirely inside range1
+				range = combineDateRanges(range,itemText)
+				-- Delete the current item
+				o.list:DeleteItem(itemNum)
+				itemNum = prevItemNum
+				conditionList = true	-- To condition the list to merge any overlapping ranges
+				break
+			elseif comp==6 then
+				-- range1 lies entirely after range2
+				-- Do nothing look at next item
+			else
+				return nil
+			end
+			--print(range..">"..tostring(comp))
+		end
+		-- itemNum contains the item after which to place item
+		if itemNum == -1 then
+			itemNum = 0
+		else 
+			itemNum = itemNum + 1
+		end
+		local newItem = wx.wxListItem()
+		newItem:SetId(itemNum)
+		newItem:SetText(range)
+		o.list:InsertItem(newItem)
+		o.list:SetItem(itemNum,0,range)
+		
+		-- Condition the list here if required
+		while conditionList and o.list:GetNextItem(itemNum) ~= -1 do
+			local prevItemNum = itemNum
+			itemNum = o.list:GetNextItem(itemNum)
+			local itemText = o.list:GetItemText(itemNum)
+			-- Now compare the dateRanges
+			local comp = compareDateRanges(range,itemText)
+			if comp == 1 then
+				-- Ranges are same, delete this itemText range
+				o.list:DeleteItem(itemNum)
+				itemNum = prevItemNum
+			elseif comp==2 then
+				 -- range1 lies entirely before range2
+				 conditionList = nil
+			elseif comp==3 then
+				-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2
+				range = combineDateRanges(range,itemText)
+				-- Delete the current item
+				o.list:DeleteItem(itemNum)
+				itemNum = prevItemNum
+				o.list:SetItemText(itemNum,range)
+				conditionList = nil
+			elseif comp==4 then
+				-- comp=4 range1 lies entirely inside range2
+				error("Code Error: This condition should never occur!",1)
+			elseif comp==5 or comp==7 then
+				-- comp=5 range1 post overlaps range2
+				-- comp=7 range2 lies entirely inside range1
+				range = combineDateRanges(range,itemText)
+				-- Delete the current item
+				o.list:DeleteItem(itemNum)
+				itemNum = prevItemNum
+				o.list:SetItemText(itemNum,range)
+			elseif comp==6 then
+				-- range1 lies entirely after range2
+				error("Code Error: This condition should never occur!",1)
+			else
+				error("Code Error: This condition should never occur!",1)
+			end				
+		end		-- while conditionList and o.list:GetNextItem(itemNum) ~= -1 ends
+		o.list:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)
+    end		-- local addRange = function(range) ends
+	
+	local validateRange = function(range)
+		-- Check if the given date range is valid
+		-- Expected format is MM/DD/YYYY-MM/DD/YYYY here M and D can be single digits as well
+		_, _, im, id, iy, fm, fd, fy = string.find(range, "(%d+)/(%d+)/(%d%d%d%d+)%s*-%s*(%d+)/(%d+)/(%d%d%d%d+)")
+		id = tonumber(id)
+		im = tonumber(im)
+		iy = tonumber(iy)
+		fd = tonumber(fd)
+		fm = tonumber(fm)
+		fy = tonumber(fy)
+		local ileap, fleap
+		if not(id or im or iy or fd or fm or fy) then
+			return false
+		elseif not(id > 0 and id < 32 and fd > 0 and fd < 32 and im > 0 and im < 13 and fm > 0 and fm < 13 and iy > 0 and fy > 0) then
+			return false
+		end
+		if fy < iy then
+			return false
+		end
+		if iy == fy then
+			if fm < im then
+				return false
+			end
+			if im == fm then
+				if fd < id then
+					return false
+				end
+			end
+		end 
+		if iy%100 == 0 and iy%400==0 then
+			-- iy is leap year century
+			ileap = true
+		elseif iy%4 == 0 then
+			-- iy is leap year
+			ileap = true
+		end
+		if fy%100 == 0 and fy%400==0 then
+			-- fy is leap year century
+			fleap = true
+		elseif fy%4 == 0 then
+			-- fy is leap year
+			fleap = true
+		end 
+		--print(id,im,iy,fd,fm,fy,ileap,fleap)
+		local validDate = function(leap,date,month)
+			local limits = {31,28,31,30,31,30,31,31,30,31,30,31}
+			if leap then
+				limits[2] = limits[2] + 1
+			end
+			if limits[month] < date then
+				return false
+			else
+				return true
+			end
+		end
+		if not validDate(ileap,id,im) then
+			return false
+		end
+		if not validDate(fleap,fd,fm) then
+			return false
+		end
+		return true
+	end
+	
+	local setRanges = function(o,ranges)
+		for i = 1,#ranges do
+			if validateRange(ranges[i]) then
+				addRange(o,ranges[i])
+			else
+				error("Invalid Date Range given", 2)
+			end
+		end
+	end
+	
+	local setCheckBoxState = function(o,state)
+		o.CheckBox:SetValue(state)
+	end
 	
 	local AddPress = function(event)
 		setfenv(1,package.loaded[modname])
 		local o = objMap[event:GetId()]
-	    
-	    local addRange = function(range)
-			-- Check if the Item exists in the list control
-			local itemNum = -1
-			local conditionList = false
-			while o.list:GetNextItem(itemNum) ~= -1 do
-				local prevItemNum = itemNum
-				itemNum = o.list:GetNextItem(itemNum)
-				local itemText = o.list:GetItemText(itemNum)
-				-- Now compare the dateRanges
-				local comp = compareDateRanges(range,itemText)
-				if comp == 1 then
-					-- Ranges are same, do nothing
-					drFrame:Close()
-					return true
-				elseif comp==2 then
-					-- range1 lies entirely before range2
-					itemNum = prevItemNum
-					break
-				elseif comp==3 then
-					-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2
-					range = combineDateRanges(range,itemText)
-					-- Delete the current item
-					o.list:DeleteItem(itemNum)
-					itemNum = prevItemNum
-					break
-				elseif comp==4 then
-					-- comp=4 range1 lies entirely inside range2
-					-- range given is subset, do nothing
-					return true
-				elseif comp==5 or comp==7 then
-					-- comp=5 range1 post overlaps range2
-					-- comp=7 range2 lies entirely inside range1
-					range = combineDateRanges(range,itemText)
-					-- Delete the current item
-					o.list:DeleteItem(itemNum)
-					itemNum = prevItemNum
-					conditionList = true	-- To condition the list to merge any overlapping ranges
-					break
-				elseif comp==6 then
-					-- range1 lies entirely after range2
-					-- Do nothing look at next item
-				else
-					return nil
-				end
-				--print(range..">"..tostring(comp))
-			end
-			-- itemNum contains the item after which to place item
-			if itemNum == -1 then
-				itemNum = 0
-			else 
-				itemNum = itemNum + 1
-			end
-			local newItem = wx.wxListItem()
-			newItem:SetId(itemNum)
-			newItem:SetText(range)
-			o.list:InsertItem(newItem)
-			o.list:SetItem(itemNum,0,range)
-			
-			-- Condition the list here if required
-			while conditionList and o.list:GetNextItem(itemNum) ~= -1 do
-				local prevItemNum = itemNum
-				itemNum = o.list:GetNextItem(itemNum)
-				local itemText = o.list:GetItemText(itemNum)
-				-- Now compare the dateRanges
-				local comp = compareDateRanges(range,itemText)
-				if comp == 1 then
-					-- Ranges are same, delete this itemText range
-					o.list:DeleteItem(itemNum)
-					itemNum = prevItemNum
-				elseif comp==2 then
-					 -- range1 lies entirely before range2
-					 conditionList = nil
-				elseif comp==3 then
-					-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2
-					range = combineDateRanges(range,itemText)
-					-- Delete the current item
-					o.list:DeleteItem(itemNum)
-					itemNum = prevItemNum
-					o.list:SetItemText(itemNum,range)
-					conditionList = nil
-				elseif comp==4 then
-					-- comp=4 range1 lies entirely inside range2
-					error("Code Error: This condition should never occur!",1)
-				elseif comp==5 or comp==7 then
-					-- comp=5 range1 post overlaps range2
-					-- comp=7 range2 lies entirely inside range1
-					range = combineDateRanges(range,itemText)
-					-- Delete the current item
-					o.list:DeleteItem(itemNum)
-					itemNum = prevItemNum
-					o.list:SetItemText(itemNum,range)
-				elseif comp==6 then
-					-- range1 lies entirely after range2
-					error("Code Error: This condition should never occur!",1)
-				else
-					error("Code Error: This condition should never occur!",1)
-				end				
-			end		-- while conditionList and o.list:GetNextItem(itemNum) ~= -1 ends
-			o.list:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)
-	    end		-- local addRange = function(range) ends
-	    
+		
+		local addNewRange = function(range)
+			addRange(o,range)
+		end
+		
 		-- Create the frame to accept date range
-		SelectDateRangeCtrl(o.parent,1,addRange)
+		SelectDateRangeCtrl(o.parent,1,addNewRange)
 	end
 	
 	local RemovePress = function(event)
@@ -1509,7 +1605,7 @@ do
 		if not parent then
 			return nil
 		end
-		local o = {ResetCtrl = ResetCtrl, getSelectedItems = getSelectedItems}	-- new object
+		local o = {ResetCtrl = ResetCtrl, getSelectedItems = getSelectedItems, setRanges = setRanges}	-- new object
 		o.parent = parent
 		-- Create the GUI elements here
 		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)
@@ -1529,6 +1625,7 @@ do
 		
 		-- none Selection check box
 		if noneSelection then
+			o.setCheckBoxState = setCheckBoxState
 			ID = NewID()
 			o.CheckBox = wx.wxCheckBox(parent, ID, "None Also passes", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 			objMap[ID] = o 
