@@ -52,6 +52,7 @@ end
 require("Filter")
 require("DataHandler")
 GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
+GUI.TaskForm = require("TaskForm")		-- Containing all Task Form GUI code
 
 require("TestFuncs")		-- Containing all testing functions not used in final deployment
 
@@ -941,10 +942,6 @@ function GUI.frameResize(event)
 	event:Skip()
 end
 
-function GUI.loadXML(event)
-	GUI.FilterForm.filterFormActivate(GUI.frame, Filter, SporeData)
-end
-
 function GUI.cellClick(event)
 	local row = event:GetRow()
 	local col = event:GetCol()
@@ -968,23 +965,56 @@ function GUI.cellClick(event)
 	--event:Skip()
 end
 
+function SetFilterCallBack(filter)
+	GUI.FilterWindowOpen = false
+	if filter then
+		Filter = filter
+		fillTaskTree()
+	end
+end
+
+function SetFilter(event)
+	if not GUI.FilterWindowOpen then
+		GUI.FilterForm.filterFormActivate(GUI.frame, Filter, SporeData,SetFilterCallBack)
+		GUI.FilterWindowOpen = true
+	else
+		GUI.FilterForm.frame:SetFocus()
+	end
+end
+
+function NewTaskCallBack(task)
+	GUI.TaskWindowOpen = false
+end
+
+function NewTask(event)
+	if not GUI.TaskWindowOpen then
+		GUI.TaskForm.taskFormActivate(GUI.frame, nil, NewTaskCallBack)
+		GUI.TaskWindowOpen = true
+	else
+		GUI.TaskForm.frame:SetFocus()
+	end	
+end
+
+function loadXML(event)
+end
+
 function main()
     GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE )
 
-	GUI.ID_LOAD = wx.wxID_ANY
-	GUI.ID_UNLOAD = wx.wxID_ANY
-	GUI.ID_SAVEALL = wx.wxID_ANY
-	GUI.ID_SAVECURR = wx.wxID_ANY
-	GUI.ID_SET_FILTER = wx.wxID_ANY
-	GUI.ID_NEW_SUB_TASK = wx.wxID_ANY
-	GUI.ID_EDIT_TASK = wx.wxID_ANY
-	GUI.ID_DEL_TASK = wx.wxID_ANY
-	GUI.ID_MOVE_UNDER = wx.wxID_ANY
-	GUI.ID_MOVE_ABOVE = wx.wxID_ANY
-	GUI.ID_MOVE_BELOW = wx.wxID_ANY
-	GUI.ID_REPORT = wx.wxID_ANY
+	GUI.ID_LOAD = NewID()
+	GUI.ID_UNLOAD = NewID()
+	GUI.ID_SAVEALL = NewID()
+	GUI.ID_SAVECURR = NewID()
+	GUI.ID_SET_FILTER = NewID()
+	GUI.ID_NEW_SUB_TASK = NewID()
+	GUI.ID_EDIT_TASK = NewID()
+	GUI.ID_DEL_TASK = NewID()
+	GUI.ID_MOVE_UNDER = NewID()
+	GUI.ID_MOVE_ABOVE = NewID()
+	GUI.ID_MOVE_BELOW = NewID()
+	GUI.ID_REPORT = NewID()
 	
 	local bM = wx.wxImage("images/LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
 	
@@ -1140,7 +1170,9 @@ function main()
 	GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print("clicked") end)
 	
 	-- Toolbar button events
-	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,GUI.loadXML)
+	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadXML)
+	GUI.frame:Connect(GUI.ID_SET_FILTER,wx.wxEVT_COMMAND_MENU_SELECTED,SetFilter)
+	GUI.frame:Connect(GUI.ID_NEW_SUB_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,NewTask)
 
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an

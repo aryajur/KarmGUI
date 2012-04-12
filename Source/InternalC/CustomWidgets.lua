@@ -614,7 +614,8 @@ do
 				end
 			end		-- if tIndex[t] > #t then ends
 		end		-- while tIndex[t] <= #t and t.Parent do ends
-	end
+		o.SelTree:Expand(o.SelTree:GetRootItem())
+	end		-- local function setExpression(o,str) ends
 	
 	local treeRecRef
 	local treeRecurse = function(tree,node)

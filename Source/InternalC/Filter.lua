@@ -439,7 +439,7 @@ function validateTask(filter, task)
 			local result = false
 			if tag == Globals.NoTagStr and not task.Tags then
 				result = true
-			else			
+			elseif task.Tags then			
 				for i = 1,#task.Tags do
 					if task.Tags[i] == tag then
 						-- Found the tag in the task

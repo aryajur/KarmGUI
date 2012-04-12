@@ -678,7 +678,7 @@ do
 
 end
 
-function filterFormActivate(parent, GlobalFilter, SData)
+function filterFormActivate(parent, GlobalFilter, SData, callBack)
 	MainFilter = GlobalFilter
 	SporeData = SData
 	-- Accumulate Filter Data across all spores
@@ -936,15 +936,25 @@ function filterFormActivate(parent, GlobalFilter, SData)
 		function (event)
 			setfenv(1,package.loaded[modname])		
 			frame:Close()
+			callBack(nil)
 		end
 	)
 	
+	frame:Connect(wx.wxEVT_CLOSE_WINDOW,
+		function (event)
+			setfenv(1,package.loaded[modname])		
+			event:Skip()
+			callBack(nil)
+		end
+	)
+
 	ApplyButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		function(event)
 			setfenv(1,package.loaded[modname])
-			print(tableToString(filter))
-			MainFilter = filter
+			local f = synthesizeFilter()
+			--print(tableToString(f))
 			frame:Close()
+			callBack(f)
 		end		
 	)
 
