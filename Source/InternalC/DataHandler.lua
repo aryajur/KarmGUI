@@ -246,15 +246,15 @@ function getTaskSummary(task)
 		if #INACT > 0 then
 			taskSummary = taskSummary.."\n   INACTIVE: "..string.sub(INACT,2,-1)
 		end
-		taskSummary = taskSummary.."\nLOCKED: "..task.Locked.Status
-		if string.upper(task.Locked.Status) == "YES" and task.Locked.Access then
+		if task.Locked then
+			taskSummary = taskSummary.."\nLOCKED: YES"
 			local RA = ""
 			local RWA = ""
-			for i = 1,task.Locked.Access.count do
-				if string.upper(task.Locked.Access[i].Status) == "READ ONLY" then
-					RA = RA..","..task.Locked.Access[i].ID
+			for i = 1,task.Locked.count do
+				if string.upper(task.Locked[i].Status) == "READ ONLY" then
+					RA = RA..","..task.Locked[i].ID
 				else
-					RWA = RWA..","..task.Locked.Access[i].ID
+					RWA = RWA..","..task.Locked[i].ID
 				end
 			end
 			if #RA > 0 then
@@ -645,7 +645,7 @@ end
 function XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
-	local dataStruct = {tasks = 0, [0] = "Task_Spore",filterData = {Who={},Access={},Priority={},Cat={},SubCat={},Tags={}}}	-- to create the data structure
+	local dataStruct = {tasks = 0, [0] = "Task_Spore",filterData = {Who={},Assignee={},Access={},Priority={},Cat={},SubCat={},Tags={}}}	-- to create the data structure
 	local filterData = dataStruct.filterData
 	if SporeXML[0]~="Task_Spore" then
 		return nil
@@ -679,30 +679,42 @@ function XML2Data(SporeXML, SporeFile)
 						necessary = necessary + 1
 					elseif task[count][0] == "Fin" then
 						dataStruct[dataStruct.tasks].Fin = task[count][1]
-					elseif task[count][0] == "Who" then
-						local WhoTable = {[0]="Who", count = #task[count]}
-						-- Loop through all the items in the Who element
-						for i = 1,#task[count] do
-							WhoTable[i] = {ID = task[count][i][1][1], Status = task[count][i][2][1]}
-							filterData.Who = addItemToArray(WhoTable[i].ID,filterData.Who)
+					elseif task[count][0] == "Private" then
+						if task[count][1] == "Private" then
+							dataStruct[dataStruct.tasks].Private = true
+						else
+							dataStruct[dataStruct.tasks].Private = false
 						end
 						necessary = necessary + 1
-						dataStruct[dataStruct.tasks].Who = WhoTable
-					elseif task[count][0] == "Locked" then
-						local locked = {[0]="Locked", Status = task[count][1][1]}
-						if string.upper(locked.Status) == "YES" then
-							if type(task[count][2]) == "table" and task[count][2][0] == "Access" then
-								local AccessTable = {[0]="Access", count = #task[count][2]}
-								-- Loop through all the items in the Locked element Access List
-								for i = 1,#task[count][2] do
-									AccessTable[i] = {ID = task[count][2][i][1][1], Status = task[count][2][i][2][1]}
-									filterData.Access = addItemToArray(AccessTable[i].ID,filterData.Access)
+					elseif task[count][0] == "People" then
+						for j = 1,#task[count] do
+							if task[count][j][0] == "Who" then
+								local WhoTable = {[0]="Who", count = #task[count][j]}
+								-- Loop through all the items in the Who element
+								for i = 1,#task[count][j] do
+									WhoTable[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}
+									filterData.Who = addItemToArray(WhoTable[i].ID,filterData.Who)
 								end
-								locked.Access = AccessTable
-							end
-						end
-						necessary = necessary + 1
-						dataStruct[dataStruct.tasks].Locked = locked
+								necessary = necessary + 1
+								dataStruct[dataStruct.tasks].Who = WhoTable
+							elseif task[count][j][0] == "Locked" then
+								local locked = {[0]="Locked", count = #task[count][j]}
+								-- Loop through all the items in the Locked element Access List
+								for i = 1,#task[count][j] do
+									locked[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}
+									filterData.Access = addItemToArray(locked[i].ID,filterData.Access)
+								end
+								dataStruct[dataStruct.tasks].Locked = locked
+							elseif task[count][j][0] == "Assignee" then
+								local assignee = {[0]="Assignee", count = #task[count][j]}
+								-- Loop through all the items in the Assignee element
+								for i = 1,#task[count][j] do
+									assignee[i] = {ID = task[count][j][i][1]}
+									filterData.Assignee = addItemToArray(assignee[i].ID,filterData.Assignee)
+								end				
+								dataStruct[dataStruct.tasks].Assignee = assignee					
+							end		-- if task[count][j][0] == "Who" then ends here				
+						end		-- for j = 1,#task[count] do ends here				
 					elseif task[count][0] == "Status" then
 						dataStruct[dataStruct.tasks].Status = task[count][1]
 						necessary = necessary + 1

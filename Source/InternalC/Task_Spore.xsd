@@ -61,66 +61,38 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
       <xs:element name="People">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="Assigned">
-              <xs:complexType>
-                <xs:sequence>
-                  <xs:element default="No" name="Status">
-                    <xs:simpleType>
-                      <xs:restriction base="xs:string">
-                        <xs:enumeration value="Yes" />
-                        <xs:enumeration value="No" />
-                      </xs:restriction>
-                    </xs:simpleType>
-                  </xs:element>
-                  <xs:element minOccurs="0" name="By">
-                    <xs:complexType>
-                      <xs:sequence>
-                        <xs:element maxOccurs="unbounded" name="ID" type="xs:string" />
-                      </xs:sequence>
-                    </xs:complexType>
-                  </xs:element>
-                </xs:sequence>
-              </xs:complexType>
-            </xs:element>
             <xs:element name="Who" type="ID_list">
               <xs:annotation>
                 <xs:documentation>People incharge of the task</xs:documentation>
               </xs:annotation>
             </xs:element>
-            <xs:element name="Locked">
+            <xs:element minOccurs="0" name="Assignee">
+              <xs:complexType>
+                <xs:sequence>
+                  <xs:element maxOccurs="unbounded" name="ID" type="xs:string" />
+                </xs:sequence>
+              </xs:complexType>
+            </xs:element>
+            <xs:element minOccurs="0" name="Locked">
               <xs:annotation>
                 <xs:documentation>To indicate if the node access is locked. If Status="Yes" then the Access List contains the IDs of the people who can access this node. Apart from the Access List the Who list can always access the node. The difference between the Access List and the Who list is as follows: The Who list are the responsible people for the task and if a person is in the Who list he can read/write the task and all its sub-tasks. If a person is in the Access List however at a minimum he can read that task and its full hierarchy. If the person mentioned in the Access List is given Read/Write permission then the person can only edit this task not its children in the hierarchy.</xs:documentation>
               </xs:annotation>
               <xs:complexType>
                 <xs:sequence>
-                  <xs:element default="No" name="Status">
-                    <xs:simpleType>
-                      <xs:restriction base="xs:string">
-                        <xs:enumeration value="Yes" />
-                        <xs:enumeration value="No" />
-                      </xs:restriction>
-                    </xs:simpleType>
-                  </xs:element>
-                  <xs:element minOccurs="0" name="Access">
+                  <xs:element minOccurs="1" maxOccurs="unbounded" name="Item">
+                    <xs:annotation>
+                      <xs:documentation>Must Contain the Company Login ID</xs:documentation>
+                    </xs:annotation>
                     <xs:complexType>
                       <xs:sequence>
-                        <xs:element minOccurs="1" maxOccurs="unbounded" name="Item">
-                          <xs:annotation>
-                            <xs:documentation>Must Contain the Company Login ID</xs:documentation>
-                          </xs:annotation>
-                          <xs:complexType>
-                            <xs:sequence>
-                              <xs:element name="ID" type="xs:string" />
-                              <xs:element default="Read Only" name="Status">
-                                <xs:simpleType>
-                                  <xs:restriction base="xs:string">
-                                    <xs:enumeration value="Read Only" />
-                                    <xs:enumeration value="Read/Write" />
-                                  </xs:restriction>
-                                </xs:simpleType>
-                              </xs:element>
-                            </xs:sequence>
-                          </xs:complexType>
+                        <xs:element name="ID" type="xs:string" />
+                        <xs:element default="Read Only" name="Status">
+                          <xs:simpleType>
+                            <xs:restriction base="xs:string">
+                              <xs:enumeration value="Read Only" />
+                              <xs:enumeration value="Read/Write" />
+                            </xs:restriction>
+                          </xs:simpleType>
                         </xs:element>
                       </xs:sequence>
                     </xs:complexType>
