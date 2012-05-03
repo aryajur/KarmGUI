@@ -248,7 +248,7 @@ function validateTask(filter, task)
 		local accStr = filter.Access
 		for id in string.gmatch(filter.Access,pattern) do
 			local result = false
-			if id == Globals.NoAccessIDStr and not task.Locked.Access then
+			if id == Globals.NoAccessIDStr and not task.Access then
 				result = true
 			else
 				-- Extract the permission character
@@ -260,20 +260,20 @@ function validateTask(filter, task)
 				idc = string.sub(idc,1,st-1)
 				
 				-- Check if the id exists in the task
-				for i = 1,#task.Locked.Access do
-					if task.Locked.Access[i].ID == idc then
-						if string.upper(perm) == "R" and string.upper(task.Locked.Access[i].Status) == "Read Only" then
+				for i = 1,#task.Access do
+					if task.Access[i].ID == idc then
+						if string.upper(perm) == "R" and string.upper(task.Access[i].Status) == "Read Only" then
 							result = true
 							break
 						end
-						if string.upper(perm) =="W" and string.upper(task.Locked.Access[i].Status) =="Read/Write" then
+						if string.upper(perm) =="W" and string.upper(task.Access[i].Status) =="Read/Write" then
 							result = true
 							break
 						end
 						result = false
 						break
-					end		-- if task.Locked.Access[i].ID == idc then ends
-				end		-- for i = 1,#task.Locked.Access do ends
+					end		-- if task.Access[i].ID == idc then ends
+				end		-- for i = 1,#task.Access do ends
 				if not result then
 					-- Check for Read/Write access does the ID exist in the Who table
 					if string.upper(perm) == "W" then
@@ -287,7 +287,7 @@ function validateTask(filter, task)
 						end		-- for i = 1,#task.Who do ends
 					end		-- if string.upper(perm) == "W" then ends
 				end		-- if not result then ends
-			end		-- if id == Globals.NoAccessIDStr and not task.Locked.Access then ends
+			end		-- if id == Globals.NoAccessIDStr and not task.Access then ends
 			accStr = string.gsub(accStr,"'"..id.."'",tostring(result))
 		end		-- for id in string.gmatch(filter.Who,pattern) do ends
 		-- Check if the boolean passes

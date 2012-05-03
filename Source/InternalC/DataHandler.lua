@@ -246,15 +246,15 @@ function getTaskSummary(task)
 		if #INACT > 0 then
 			taskSummary = taskSummary.."\n   INACTIVE: "..string.sub(INACT,2,-1)
 		end
-		if task.Locked then
+		if task.Access then
 			taskSummary = taskSummary.."\nLOCKED: YES"
 			local RA = ""
 			local RWA = ""
-			for i = 1,task.Locked.count do
-				if string.upper(task.Locked[i].Status) == "READ ONLY" then
-					RA = RA..","..task.Locked[i].ID
+			for i = 1,task.Access.count do
+				if string.upper(task.Access[i].Status) == "READ ONLY" then
+					RA = RA..","..task.Access[i].ID
 				else
-					RWA = RWA..","..task.Locked[i].ID
+					RWA = RWA..","..task.Access[i].ID
 				end
 			end
 			if #RA > 0 then
@@ -609,9 +609,9 @@ function collectFilterData(filterData, taskHier)
 				filterData.Who = addItemToArray(hier[hierCount[hier]].Who[i].ID,filterData.Who)
 			end
 			-- Access Data
-			if string.upper(hier[hierCount[hier]].Locked.Status) == "YES" and hier[hierCount[hier]].Locked.Access then
-				for i = 1,#hier[hierCount[hier]].Locked.Access do
-					filterData.Access = addItemToArray(hier[hierCount[hier]].Locked.Access[i].ID,filterData.Access)
+			if string.upper(hier[hierCount[hier]].Access.Status) == "YES" and hier[hierCount[hier]].Access.Access then
+				for i = 1,#hier[hierCount[hier]].Access.Access do
+					filterData.Access = addItemToArray(hier[hierCount[hier]].Access.Access[i].ID,filterData.Access)
 				end
 			end
 			-- Priority Data
@@ -698,13 +698,13 @@ function XML2Data(SporeXML, SporeFile)
 								necessary = necessary + 1
 								dataStruct[dataStruct.tasks].Who = WhoTable
 							elseif task[count][j][0] == "Locked" then
-								local locked = {[0]="Locked", count = #task[count][j]}
+								local locked = {[0]="Access", count = #task[count][j]}
 								-- Loop through all the items in the Locked element Access List
 								for i = 1,#task[count][j] do
 									locked[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}
 									filterData.Access = addItemToArray(locked[i].ID,filterData.Access)
 								end
-								dataStruct[dataStruct.tasks].Locked = locked
+								dataStruct[dataStruct.tasks].Access = locked
 							elseif task[count][j][0] == "Assignee" then
 								local assignee = {[0]="Assignee", count = #task[count][j]}
 								-- Loop through all the items in the Assignee element

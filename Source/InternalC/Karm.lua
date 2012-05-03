@@ -64,6 +64,7 @@ do
 	
 	-- Function References
 	local onScrollTree, onScrollGantt, labelClick, cellClick, horSashAdjust, widgetResize, refreshGantt, dispTask, dispGantt
+	local cellClickCallBack
 
 	-- Function to return the iterator function to iterate over all taskTree Nodes 
 	-- This the function to be used in a Generic for
@@ -137,6 +138,14 @@ do
 			end
 		end		-- while oTree.Nodes[i] do ends					
 	end
+	
+	local function associateEventFunc(taskTree,funcTable)
+		if funcTable.cellClickCallBack == 0 then
+			taskTreeINT[taskTree].cellClickCallBack = nil
+		else
+			taskTreeINT[taskTree].cellClickCallBack = funcTable.cellClickCallBack
+		end
+	end
 
 	local function dateRangeChange(o,startDate,finDate)
 		-- Clear the GanttGrid
@@ -144,11 +153,22 @@ do
 		taskTreeINT[o].ganttGrid:DeleteCols(0,o.ganttGrid:GetNumberCols())
 		local currDate = startDate
 		local count = 0
+		local corner = taskTreeINT[o].ganttGrid:GetGridCornerLabelWindow()
+		-- Add the Month and year in the corner
+		local sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+		local textLabel = wx.wxStaticText(corner, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+		textLabel:SetLabel(startDate:Format("%b %Y"))
+		--textLabel:SetBackgroundColour(wx.wxColour(0,0,0))
+		sizer:Add(textLabel, 1, wx.wxLEFT+wx.wxRIGHT+wx.wxALIGN_CENTRE_VERTICAL, 3)
+		--corner:SetBackgroundColour(wx.wxColour(0,0,0))	
+		corner:SetSizer(sizer)
+		corner:Layout()	
 		while not currDate:IsLaterThan(finDate) do
 			taskTreeINT[o].ganttGrid:InsertCols(count)
 			-- set the column labels
 			taskTreeINT[o].ganttGrid:SetColLabelValue(count,string.sub(toXMLDate(currDate:Format("%m/%d/%Y")),-2,-1))
 			taskTreeINT[o].ganttGrid:AutoSizeColumn(count)
+			--taskTreeINT[o].ganttGrid:SetColLabelValue(count,string.sub(toXMLDate(currDate:Format("%m/%d/%Y")),-5,-1))
 			currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 			count = count + 1
 		end
@@ -166,7 +186,8 @@ do
 	function newGUITreeGantt(parent)
 		local taskTree = {}	-- Main object
 		-- Main table to store the task tree that is on display
-		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {},dateRangeChange = dateRangeChange, layout = layout}
+		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, 
+		   dateRangeChange = dateRangeChange, layout = layout, associateEventFunc = associateEventFunc}
 		-- A task in Nodes or Roots will have the following attributes:
 		-- Expanded = if has children then true means it is expanded in the GUI
 		-- Task = Contains the task data structure to the task
@@ -871,6 +892,27 @@ do
 		return function(event)
 			oTree = taskTreeINT[obj]
 			oTree.treeGrid:Scroll(oTree.treeGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.ganttGrid:GetScrollPos(wx.wxVERTICAL))
+
+			local currDate = oTree.startDate
+			local finDate = oTree.finDate
+			local count = 0
+			local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+			while x == 0 and not currDate:IsLaterThan(finDate) do
+				count = count + 1
+				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+				x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+			end
+
+			local corner = oTree.ganttGrid:GetGridCornerLabelWindow()
+			corner:DestroyChildren()
+			-- Add the Month and year in the corner
+			local sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+			local textLabel = wx.wxStaticText(corner, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			textLabel:SetLabel(currDate:Format("%b %Y"))
+			sizer:Add(textLabel, 1, wx.wxLEFT+wx.wxRIGHT+wx.wxALIGN_CENTRE_VERTICAL, 3)
+			corner:SetSizer(sizer)
+			corner:Layout()	
+			oTree.startDate = oTree.startDate:Subtract(wx.wxDateSpan(0,0,0,count))			
 			event:Skip()
 		end
 	end
@@ -917,7 +959,7 @@ do
 				end		-- Looping through all the nodes ends
 				-- print("Clicked row "..tostring(row))
 				taskNode.Selected = true
-				GUI.taskDetails:SetValue(getTaskSummary(taskNode.Task))
+				taskTreeINT[obj].cellClickCallBack(taskNode.Task)
 			end
 		end		
 		taskTreeINT[obj].treeGrid:SelectBlock(row,col,row,col)
@@ -977,6 +1019,9 @@ function GUI.dateRangeChange()
 	GUI.taskTree:dateRangeChange(startDate,finDate)
 end
 
+function taskInfoUpdate(task)
+	GUI.taskDetails:SetValue(getTaskSummary(task))
+end
 
 --****f* Karm/fillTaskTree
 -- FUNCTION
@@ -1108,7 +1153,7 @@ end
 
 function NewTask(event)
 	if not GUI.TaskWindowOpen then
-		GUI.TaskForm.taskFormActivate(GUI.frame, nil, NewTaskCallBack)
+		GUI.TaskForm.taskFormActivate(GUI.frame, SporeData, nil, NewTaskCallBack)
 		GUI.TaskWindowOpen = true
 	else
 		GUI.TaskForm.frame:SetFocus()
@@ -1269,6 +1314,9 @@ function main()
                             wx.wxOK + wx.wxICON_INFORMATION,
                             frame)
         end )
+    
+    -- Task selection in task tree
+    GUI.taskTree:associateEventFunc({cellClickCallBack = taskInfoUpdate})
     -- *******************EVENTS FINISHED***************************************************************
     GUI.frame:Layout() -- help sizing the windows before being shown
     GUI.dateRangeChange()	-- To create the colums for the current date range in the GanttGrid

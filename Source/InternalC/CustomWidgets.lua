@@ -87,9 +87,9 @@ do
 			if itemText == Item then
 				-- Get checked status and update
 				if checked then
-					itemNum:SetImage(0)
+					ListBox:SetItemImage(itemNum,0)
 				else
-					itemNum:SetImage(1)
+					ListBox:SetItemImage(itemNum,1)
 				end				
 				return true
 			end
@@ -252,6 +252,10 @@ do
 		for i=#selItems,1,-1 do
 			list:DeleteItem(selItems[i])
 		end
+		if o.TextBox and o.TextBox:GetValue() ~= "" then
+			InsertItem(selList,o.TextBox:GetValue())
+			o.TextBox:SetValue("")
+		end
 	end
 	
 	local ResetCtrl = function(o)
@@ -303,7 +307,7 @@ do
 		end	
 	end
 	
-	MultiSelectCtrl = function(parent, noneSelection, LItems, RItems)
+	MultiSelectCtrl = function(parent, LItems, RItems, noneSelection, textEntry)
 		if not parent then
 			return nil
 		end
@@ -321,9 +325,19 @@ do
 			o:AddListData(LItems)
 			sizer1:Add(o.List, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 			local ID
+			if textEntry then
+				o.TextBox = wx.wxTextCtrl(parent, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
+				sizer1:Add(o.TextBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			end
 			if noneSelection then
 				ID = NewID()
-				o.CheckBox = wx.wxCheckBox(parent, ID, "None Also passes", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				local str
+				if type(noneSelection) ~= "string" then
+					str = "None Also Passes"
+				else
+					str = noneSelection
+				end
+				o.CheckBox = wx.wxCheckBox(parent, ID, str, wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 				objMap[ID] = o 
 				sizer1:Add(o.CheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 			end

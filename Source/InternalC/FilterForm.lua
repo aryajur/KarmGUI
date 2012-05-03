@@ -590,7 +590,7 @@ do
 		if not filterIndex then
 			error("Need a filterIndex for the MultiSelect Control",2)
 		end
-		local o = CW.MultiSelectCtrl(parent,noneSelection,LItems,RItems)
+		local o = CW.MultiSelectCtrl(parent,LItems,RItems,noneSelection)
 		o.filterIndex = filterIndex
 		o.UpdateFilter = UpdateFilter
 		return o
