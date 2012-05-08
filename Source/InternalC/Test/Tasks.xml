@@ -252,6 +252,10 @@
 						</Schedules>
 						<Category>Design</Category>
 						<Sub-Category>Development</Sub-Category>
+						<Tags> 
+							<tag>Current Focus</tag> 
+							<tag>Test Tag</tag>
+						</Tags>						
 					</Task>
 					<Task>
 						<Modified>YES</Modified>

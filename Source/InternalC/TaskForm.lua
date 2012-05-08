@@ -13,7 +13,14 @@ local pairs = pairs
 local GUI = GUI
 local bit = bit
 local Globals = Globals
+local XMLDate2wxDateTime = XMLDate2wxDateTime
+local task2IncSchTasks = task2IncSchTasks
+local getEmptyTask = getEmptyTask
+local copyTask = copyTask
 local addItemToArray = addItemToArray
+local newGUITreeGantt = function() 
+		return newGUITreeGantt 
+	end
 
 local CW = require("CustomWidgets")
 
@@ -22,6 +29,20 @@ module(modname)
 
 local taskData	-- To store the task data locally
 local filterData = {}
+
+local function dateRangeChangeEvent(event)
+	setfenv(1,package.loaded[modname])
+	local startDate = dateStartPick:GetValue()
+	local finDate = dateFinPick:GetValue()
+	taskTree:dateRangeChange(startDate,finDate)
+	event:Skip()
+end
+
+local function dateRangeChange()
+	local startDate = dateStartPick:GetValue()
+	local finDate = dateFinPick:GetValue()
+	taskTree:dateRangeChange(startDate,finDate)
+end
 
 function taskFormActivate(parent, SporeData, task, callBack)
 	-- Accumulate Filter Data across all spores
@@ -50,7 +71,11 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				local sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				local textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Title:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-				titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "Enter Task Title", wx.wxDefaultPosition, wx.wxDefaultSize)
+				if task and task.Title then
+					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Title, wx.wxDefaultPosition, wx.wxDefaultSize)
+				else
+					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "Enter Task Title", wx.wxDefaultPosition, wx.wxDefaultSize)
+				end				
 				sizer2:Add(titleBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
@@ -59,14 +84,22 @@ function taskFormActivate(parent, SporeData, task, callBack)
 					local sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Start Date:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-					startDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+					if task and task.Start then
+						startDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Start), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+					else
+						startDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+					end					
 					sizer3:Add(startDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					-- Due Date
 					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Due Date:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-					dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN+wx.wxDP_ALLOWNONE)
+					if task and task.Due then
+						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Due), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN+wx.wxDP_ALLOWNONE)
+					else
+						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN+wx.wxDP_ALLOWNONE)
+					end						
 					sizer3:Add(dueDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					-- Priority
@@ -77,7 +110,11 @@ function taskFormActivate(parent, SporeData, task, callBack)
 					for i = 1,#Globals.PriorityList do
 						list[i+1] = Globals.PriorityList[i]
 					end
-					priority = wx.wxComboBox(TInfo, wx.wxID_ANY,"", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)
+					if task and task.Priority then
+						priority = wx.wxComboBox(TInfo, wx.wxID_ANY,task.Priority, wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)
+					else
+						priority = wx.wxComboBox(TInfo, wx.wxID_ANY,"", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)
+					end
 					sizer3:Add(priority, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 
@@ -89,14 +126,22 @@ function taskFormActivate(parent, SporeData, task, callBack)
 					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Private/Public:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					list = {"Public","Private"}
-					pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,"Public", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)
+					if task and task.Private then
+						pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,"Private", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)
+					else
+						pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,"Public", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)
+					end
 					sizer3:Add(pubPrivate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					-- Status
 					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Status:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-					status = wx.wxComboBox(TInfo, wx.wxID_ANY,Globals.StatusList[1], wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)
+					if task and task.Status then
+						status = wx.wxComboBox(TInfo, wx.wxID_ANY,task.Status, wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)
+					else
+						status = wx.wxComboBox(TInfo, wx.wxID_ANY,Globals.StatusList[1], wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)
+					end					
 					sizer3:Add(status, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
@@ -105,7 +150,11 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)
 				textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
 				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-				commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "Enter Comment", wx.wxDefaultPosition, wx.wxDefaultSize)
+				if task and task.Comments then
+					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Comments, wx.wxDefaultPosition, wx.wxDefaultSize)
+				else
+					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "Enter Comment", wx.wxDefaultPosition, wx.wxDefaultSize)
+				end
 				sizer2:Add(commentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
@@ -127,7 +176,11 @@ function taskFormActivate(parent, SporeData, task, callBack)
 					for i = 1,#Globals.Categories do
 						list[i+1] = Globals.Categories[i]
 					end
-					Category = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)
+					if task and task.Cat then
+						Category = wx.wxComboBox(TClass, wx.wxID_ANY,task.Cat, wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)
+					else
+						Category = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)
+					end					
 					sizer3:Add(Category, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
@@ -138,7 +191,11 @@ function taskFormActivate(parent, SporeData, task, callBack)
 					for i = 1,#Globals.SubCategories do
 						list[i+1] = Globals.SubCategories[i]
 					end
-					SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)
+					if task and task.SubCat then
+						SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,task.SubCat, wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)
+					else
+						SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)
+					end					
 					sizer3:Add(SubCategory, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 
@@ -147,6 +204,9 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, "Tags:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)
 				sizer1:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				TagsCtrl = CW.MultiSelectCtrl(TClass,filterData.Tags,nil,false,true)
+				if task and task.Tags then
+					TagsCtrl:AddSelListData(task.Tags)
+				end
 				sizer1:Add(TagsCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
 				TClass:SetSizer(sizer1)
@@ -181,8 +241,18 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, "Who: (Checked=Active)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)
 				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				whoList = CW.CheckListCtrl(TPeople,false,"I","A")
+				if task and task.Who then
+					for i = 1,#task.Who do
+						local id = task.Who[i].ID
+						if task.Who[i].Status == "Active" then
+							whoList:InsertItem(id,true)
+						else
+							whoList:InsertItem(id)
+						end
+					end
+				end
 				sizer4:Add(whoList.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
 				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
@@ -196,8 +266,18 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, "Access: (Checked=Read/Write)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)
 				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				accList = CW.CheckListCtrl(TPeople,false,"W","R")
+				if task and task.Access then
+					for i = 1,#task.Access do
+						local id = task.Access[i].ID
+						if task.Who[i].Status == "Read/Write" then
+							accList:InsertItem(id,true)
+						else
+							accList:InsertItem(id)
+						end
+					end
+				end				
 				sizer4:Add(accList.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 
 				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
@@ -212,8 +292,13 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				assigList = wx.wxListCtrl(TPeople, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)
 				assigList:InsertColumn(0,"Assignees")
+				if task and task.Assignee then
+					for i = 1,#task.Assignee do
+						CW.InsertItem(assigList,task.Assignee[i].ID)
+					end
+				end
 				sizer4:Add(assigList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
 				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
@@ -224,8 +309,43 @@ function taskFormActivate(parent, SporeData, task, callBack)
 
 		-- Schedule Page
 		TSch = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
-			sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
-
+			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
+				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+				dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+				startDate = dateStartPick:GetValue()
+				month = wx.wxDateSpan(0,1,0,0)
+				dateFinPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+				sizer2:Add(dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)
+				sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)
+				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				
+				taskTree = newGUITreeGantt()(TSch,true)
+				sizer1:Add(taskTree.horSplitWin, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				dateRangeChange()
+				taskTree:layout()
+				local localTask = copyTask(task)
+				if not localTask then
+					localTask = getEmptyTask()
+				else
+					localTask.Schedules = nil
+				end
+				-- Create the 1st row for the task
+			    taskTree:Clear()
+			    taskTree:AddNode{Key=localTask.TaskID, Text = localTask.Title, Task = localTask}
+			    taskTree.Nodes[localTask.TaskID].ForeColor = GUI.nodeForeColor
+			    local prevKey = localTask.TaskID
+				-- Get list of mock tasks with incremental schedule
+				if task and task.Schedules then
+					local taskList = task2IncSchTasks(task)
+					-- Now add these tasks
+					for i = 1,#taskList do
+		            	taskTree:AddNode{Relative=prevKey, Relation="Next Sibling", Key=taskList[i].TaskID, Text=taskList[i].Title, Task = taskList[i]}
+		            	taskTree.Nodes[taskList[i].TaskID].ForeColor = GUI.nodeForeColor
+		            	prevKey = taskList[i].TaskID
+		            end
+				end
+				-- Enable planning mode for the task
+				taskTree:enablePlanningMode({localTask})
 				TSch:SetSizer(sizer1)
 			sizer1:SetSizeHints(TSch)
 		MainBook:AddPage(TSch, "Schedules")				
@@ -342,6 +462,11 @@ function taskFormActivate(parent, SporeData, task, callBack)
 			callBack(task)
 		end		
 	)
+	
+	-- Date Picker Events
+	dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,dateRangeChangeEvent)
+	dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,dateRangeChangeEvent)
+	
 
     frame:Layout() -- help sizing the windows before being shown
     frame:Show(true)

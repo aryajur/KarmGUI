@@ -23,6 +23,7 @@ nodeBackColor = {Red=255,Green=255,Blue=255}
 noScheduleColor = {Red=170,Green=170,Blue=170}
 ScheduleColor = {Red=143,Green=62,Blue=215}
 emptyDayColor = {Red=255,Green=255,Blue=255}
+sunDayOffset = {Red = 50, Green=50, Blue = 50}
 -- Task status colors
 
 setfenv(1,_G)
@@ -38,7 +39,8 @@ Globals = {
 	NoCatStr = "__NO_CAT__",
 	NoSubCatStr = "__NO_SUBCAT__",
 	NoPriStr = "__NO_PRI__",
-	__DEBUG = true		-- For debug mode
+	__DEBUG = true,		-- For debug mode
+	PlanningMode = false	-- Flag to indicate Schedule Planning mode is on.
 }
 
 -- Generate a unique new wxWindowID
@@ -64,7 +66,7 @@ do
 	
 	-- Function References
 	local onScrollTree, onScrollGantt, labelClick, cellClick, horSashAdjust, widgetResize, refreshGantt, dispTask, dispGantt
-	local cellClickCallBack
+	local cellClickCallBack, ganttCellClick
 
 	-- Function to return the iterator function to iterate over all taskTree Nodes 
 	-- This the function to be used in a Generic for
@@ -166,7 +168,8 @@ do
 		while not currDate:IsLaterThan(finDate) do
 			taskTreeINT[o].ganttGrid:InsertCols(count)
 			-- set the column labels
-			taskTreeINT[o].ganttGrid:SetColLabelValue(count,string.sub(toXMLDate(currDate:Format("%m/%d/%Y")),-2,-1))
+			taskTreeINT[o].ganttGrid:SetColLabelValue(count,string.sub(toXMLDate(currDate:Format("%m/%d/%Y")),-2,-1)..
+			    string.sub(getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))),1,1))
 			taskTreeINT[o].ganttGrid:AutoSizeColumn(count)
 			--taskTreeINT[o].ganttGrid:SetColLabelValue(count,string.sub(toXMLDate(currDate:Format("%m/%d/%Y")),-5,-1))
 			currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
@@ -183,13 +186,24 @@ do
 	    oTree.treeGrid:SetColSize(1,oTree.horSplitWin:GetSashPosition()-oTree.treeGrid:GetColSize(0)-oTree.treeGrid:GetRowLabelSize(0))	
 	end
 	
-	function newGUITreeGantt(parent)
+	local function  enablePlanningMode(taskTree, taskList)
+		oTree = taskTreeINT[taskTree]
+		oTree.Planning = true
+		oTree.taskList = {}
+		for i = 1,#taskList do
+			oTree.taskList[i] = taskList[i] 
+			oTree.Nodes[taskList[i].TaskID]:MakeVisible()
+		end
+	end
+	
+	function newGUITreeGantt(parent,noTaskTree)
 		local taskTree = {}	-- Main object
 		-- Main table to store the task tree that is on display
 		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, 
-		   dateRangeChange = dateRangeChange, layout = layout, associateEventFunc = associateEventFunc}
+		   dateRangeChange = dateRangeChange, layout = layout, associateEventFunc = associateEventFunc, enablePlanningMode = enablePlanningMode}
 		-- A task in Nodes or Roots will have the following attributes:
 		-- Expanded = if has children then true means it is expanded in the GUI
+		-- MakeVisible = Function to make sure the task is visible
 		-- Task = Contains the task data structure to the task
 		-- Children = Contains the number of children on the tree for this node
 		-- FirstChild = Contains the first child node
@@ -215,7 +229,9 @@ do
 		oTree.horSplitWin = wx.wxSplitterWindow(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxSP_3D, "Task Splitter")
 		IDMap[ID] = taskTree
 		-- wx.wxSize(GUI.initFrameW, 0.7*GUI.initFrameH)
-		oTree.horSplitWin:SetMinimumPaneSize(10)
+		if not noTaskTree then
+			oTree.horSplitWin:SetMinimumPaneSize(10)
+		end
 
 		ID = NewID()		
 		oTree.treeGrid = wx.wxGrid(oTree.horSplitWin, ID, wx.wxDefaultPosition, 
@@ -238,18 +254,23 @@ do
 	    -- GUI.ganttGrid:SetRowLabelSize(0)
 	
 		oTree.horSplitWin:SplitVertically(oTree.treeGrid, oTree.ganttGrid)
-		oTree.horSplitWin:SetSashPosition(0.3*parent:GetSize():GetWidth())
+		if not noTaskTree then
+			oTree.horSplitWin:SetSashPosition(0.3*parent:GetSize():GetWidth())
+		else
+			oTree.horSplitWin:Unsplit(oTree.treeGrid)
+		end
 
 		-- **************************EVENTS*******************************************
 		-- SYNC THE SCROLLING OF THE TWO GRIDS	
 		-- Create the scroll event to sync the 2 scroll bars in the wxScrolledWindow
 		local f = onScrollTree(taskTree)
+		--local f = onScTree
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, f)
 	
-		local f = onScrollGantt(taskTree)
+		f = onScrollGantt(taskTree)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
@@ -258,6 +279,9 @@ do
 		-- The TreeGrid label click event
 		oTree.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,labelClick)
 		--GUI.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,GUI.taskDblClick)
+		
+		-- Gantt Grid Cell left click event
+		oTree.ganttGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,ganttCellClick)
 		
 		-- TreeGrid left click on cell event
 		oTree.treeGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,cellClick)
@@ -271,9 +295,21 @@ do
 		return taskTree
 	end
 	
+	function nodeMeta.MakeVisible(node)
+		currNode = node
+		while nodeMeta[currNode].Parent and not nodeMeta[currNode].Row do
+			currNode = nodeMeta[currNode].Parent
+			currNode.Expanded = true
+		end
+	end
+	
 	function nodeMeta.__index(tab,key)
 		-- function to catch all accesses to a node object
-		return nodeMeta[tab][key]
+		if key == "MakeVisible" then
+			return nodeMeta.MakeVisible
+		else
+			return nodeMeta[tab][key]
+		end
 	end
 	
 	function nodeMeta.__newindex(tab,key,val)
@@ -515,6 +551,7 @@ do
 		if taskNode.ForeColor then
 			taskTreeINT[taskTree].treeGrid:SetCellTextColour(row-1,1,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
 		end
+		taskTreeINT[taskTree].treeGrid:ForceRefresh()
 	end
 	
 	dispTask = dispTaskFunc
@@ -537,37 +574,91 @@ do
 		local startDay = toXMLDate(taskTreeINT[taskTree].startDate:Format("%m/%d/%Y"))
 		local finDay = toXMLDate(taskTreeINT[taskTree].finDate:Format("%m/%d/%Y"))
 		local days = taskTreeINT[taskTree].ganttGrid:GetNumberCols()
-	
+		--print(getWeekDay(startDay))
 		if not taskNode.Task then
 			-- No task associated with the node so color the cells to show no schedule
 			taskTreeINT[taskTree].ganttGrid:SetRowLabelValue(row-1,"X")
+			local currDate = XMLDate2wxDateTime(startDay)
 			for i = 1,days do
-				taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
-					GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+				--print(currDate:Format("%m/%d/%Y"),getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))))
+				if getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
+					local newColor = {Red=GUI.noScheduleColor.Red - GUI.sunDayOffset.Red,Green=GUI.noScheduleColor.Green - GUI.sunDayOffset.Green,
+					Blue=GUI.noScheduleColor.Blue-GUI.sunDayOffset.Blue}
+					if newColor.Red < 0 then newColor.Red = 0 end
+					if newColor.Green < 0 then newColor.Green = 0 end
+					if newColor.Blue < 0 then newColor.Blue = 0 end
+					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
+				else
+					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
+						GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+				end
+				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 			end
 		else
 			-- Task exists so create the schedule
 			--Get the datelist
-			local dateList = getLatestScheduleDates(taskNode.Task)
+			-- Check if planning mode for this task
+			local planning = nil
+			if taskTreeINT[taskTree].Planning then
+				for i = 1,#taskTreeINT[taskTree].taskList do
+					if taskTreeINT[taskTree].taskList[i] == taskNode.Task then
+						-- This is a planning mode task
+						planning = true
+						break
+					end
+				end
+			end
+			local dateList = getLatestScheduleDates(taskNode.Task,planning)
 			if not dateList then
 				-- No task associated with the node so color the cells to show no schedule
-				taskTreeINT[taskTree].ganttGrid:SetRowLabelValue(row-1,"X")
+				if planning then
+					taskTreeINT[taskTree].ganttGrid:SetRowLabelValue(row-1,"(P)X")
+				else
+					taskTreeINT[taskTree].ganttGrid:SetRowLabelValue(row-1,"X")
+				end
+				local currDate = XMLDate2wxDateTime(startDay)
 				for i = 1,days do
-					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
-						GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+					if getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
+						local newColor = {Red=GUI.noScheduleColor.Red - GUI.sunDayOffset.Red,Green=GUI.noScheduleColor.Green - GUI.sunDayOffset.Green,
+						Blue=GUI.noScheduleColor.Blue-GUI.sunDayOffset.Blue}
+						if newColor.Red < 0 then newColor.Red = 0 end
+						if newColor.Green < 0 then newColor.Green = 0 end
+						if newColor.Blue < 0 then newColor.Blue = 0 end
+						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
+					else
+						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
+							GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+					end
+					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 				end
 			else
-				local map = {Estimate="E",Commit = "C", Revs = "R", Actual = "A"}
+				local map
+				if planning then
+					map = {Estimate="(P)E",Commit = "(P)C", Revs = "(P)R", Actual = "(P)A"}
+				else
+					map = {Estimate="E",Commit = "C", Revs = "R", Actual = "A"}
+				end
 				-- Erase the previous schedule on the row
+				local currDate = XMLDate2wxDateTime(startDay)
 				for i=1,days do
-					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.emptyDayColor.Red,
-						GUI.emptyDayColor.Green,GUI.emptyDayColor.Blue))
+					if getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
+						local newColor = {Red=GUI.emptyDayColor.Red - GUI.sunDayOffset.Red,Green=GUI.emptyDayColor.Green - GUI.sunDayOffset.Green,
+						Blue=GUI.emptyDayColor.Blue-GUI.sunDayOffset.Blue}
+						if newColor.Red < 0 then newColor.Red = 0 end
+						if newColor.Green < 0 then newColor.Green = 0 end
+						if newColor.Blue < 0 then newColor.Blue = 0 end
+						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
+					else
+						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.emptyDayColor.Red,
+							GUI.emptyDayColor.Green,GUI.emptyDayColor.Blue))
+					end
+					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 				end		
 				local before,after
 				for i=1,#dateList do
+					currDate = XMLDate2wxDateTime(dateList[i])
 					if dateList[i]>=startDay and dateList[i]<=finDay then
 						-- This date is in range find the column which needs to be highlighted
-						local currDate = XMLDate2wxDateTime(dateList[i])
 	--					local range = days
 	--					local stepDate = GUI.dateStartPick:GetValue()
 	--					stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
@@ -588,14 +679,23 @@ do
 	--					end
 	
 						local col = 0					
-						local stepDate = taskTreeINT[taskTree].startDate
+						local stepDate = XMLDate2wxDateTime(startDay)
 						while not stepDate:IsSameDate(currDate) do
 							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
 							col = col + 1
 						end
-						taskTreeINT[taskTree].startDate:Subtract(wx.wxDateSpan(0,0,0,col))
-						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(GUI.ScheduleColor.Red,
-							GUI.ScheduleColor.Green,GUI.ScheduleColor.Blue))
+						--taskTreeINT[taskTree].startDate:Subtract(wx.wxDateSpan(0,0,0,col))
+						if getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
+							local newColor = {Red=GUI.ScheduleColor.Red - GUI.sunDayOffset.Red,Green=GUI.ScheduleColor.Green - GUI.sunDayOffset.Green,
+							    Blue=GUI.ScheduleColor.Blue-GUI.sunDayOffset.Blue}
+							if newColor.Red < 0 then newColor.Red = 0 end
+							if newColor.Green < 0 then newColor.Green = 0 end
+							if newColor.Blue < 0 then newColor.Blue = 0 end
+							taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
+						else
+							taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(GUI.ScheduleColor.Red,
+								GUI.ScheduleColor.Green,GUI.ScheduleColor.Blue))
+						end
 						taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,col)
 					else
 						if dateList[i]<startDay then
@@ -604,7 +704,7 @@ do
 						if dateList[i]>finDay then
 							after = true
 						end
-					end
+					end		-- if dateList[i]>=startDay and dateList[i]<=finDay then ends
 				end		-- for i=1,#dateList do ends
 				local str = ""
 				if before then
@@ -616,6 +716,7 @@ do
 				taskTreeINT[taskTree].ganttGrid:SetRowLabelValue(row-1,map[dateList.typeSchedule]..tostring(dateList.index)..str)
 			end		-- if not dateList then ends
 		end	
+		taskTreeINT[taskTree].ganttGrid:ForceRefresh()
 	end		-- local function dispGanttFunc(taskTree,row,createRow,taskNode) ends
 	
 	dispGantt = dispGanttFunc
@@ -758,7 +859,11 @@ do
 				local sib = oTree.Nodes[nodeInfo.Relative]
 				local newNode = {}
 				nodeMeta[newNode] = {Task = nodeInfo.Task, Title = nodeInfo.Text, Key = nodeInfo.Key, Children = 0, Parent = nodeMeta[sib].Parent, taskTreeObj=taskTree}
-				nodeMeta[nodeMeta[sib].Parent].Children = nodeMeta[nodeMeta[sib].Parent].Children + 1 -- increment number of children
+				if nodeMeta[sib].Parent then
+					nodeMeta[nodeMeta[sib].Parent].Children = nodeMeta[nodeMeta[sib].Parent].Children + 1 -- increment number of children
+				else
+					oTree.Roots[#oTree.Roots + 1] = newNode
+				end
 				if nodeMeta[sib].Next then
 					-- Node needs to be inserted between these
 					nodeMeta[nodeMeta[sib].Next].Prev = newNode
@@ -807,7 +912,11 @@ do
 				local sib = oTree.Nodes[nodeInfo.Relative]
 				local newNode = {}
 				nodeMeta[newNode] = {Task = nodeInfo.Task, Title = nodeInfo.Text, Key = nodeInfo.Key, Children = 0, Parent = nodeMeta[sib].Parent, taskTreeObj = taskTree}
-				nodeMeta[nodeMeta[sib].Parent].Children = nodeMeta[nodeMeta[sib].Parent].Children + 1 -- increment number of children
+				if nodeMeta[sib].Parent then
+					nodeMeta[nodeMeta[sib].Parent].Children = nodeMeta[nodeMeta[sib].Parent].Children + 1 -- increment number of children
+				else
+					oTree.Roots[#oTree.Roots + 1] = newNode
+				end
 				if nodeMeta[sib].Prev then
 					-- Node needs to be inserted between these
 					nodeMeta[nodeMeta[sib].Prev].Next = newNode
@@ -837,7 +946,14 @@ do
 						hierLevel = hierLevel + 1
 						currNode = nodeMeta[currNode].Parent
 					end
-					nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Prev].Row+1
+					if nodeMeta[oTree.Nodes[nodeInfo.Key]].Prev then
+						nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Prev].Row+1
+					else
+						nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Next].Row-1
+						if nodeMeta[oTree.Nodes[nodeInfo.Key]].Row == 0 then
+							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = 1
+						end
+					end
 					if oTree.update then
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
@@ -888,18 +1004,34 @@ do
 		end
 	end
 	
+--		 function onScTree(event)
+--		 	oTree = event:GetEventObject()
+--			--oTree = taskTreeINT[obj]
+--			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
+--			event:Skip()
+--		end
+	
+	
 	local function onScrollGanttFunc(obj)
 		return function(event)
+			event:Skip()
 			oTree = taskTreeINT[obj]
 			oTree.treeGrid:Scroll(oTree.treeGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.ganttGrid:GetScrollPos(wx.wxVERTICAL))
 
 			local currDate = oTree.startDate
 			local finDate = oTree.finDate
 			local count = 0
-			local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
-			while x == 0 and not currDate:IsLaterThan(finDate) do
+--			local y = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count))
+--			y1 = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count+1),wx.wxGridCellCoords(0,count+1))
+--   			GUI.frame:SetStatusText(tostring(y:GetTopLeft():GetX())..","..tostring(y:GetTopLeft():GetY())..","..
+--   			  tostring(y1:GetTopLeft():GetX())..","..tostring(y1:GetTopLeft():GetY()), 1)
+   			
+    		local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+    		--local x = oTree.ganttGrid:IsVisible(0,count)
+			while x==0 and not currDate:IsLaterThan(finDate) do
 				count = count + 1
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+				--x = oTree.ganttGrid:IsVisible(0,count)
 				x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
 			end
 
@@ -913,7 +1045,6 @@ do
 			corner:SetSizer(sizer)
 			corner:Layout()	
 			oTree.startDate = oTree.startDate:Subtract(wx.wxDateSpan(0,0,0,count))			
-			event:Skip()
 		end
 	end
 	
@@ -966,6 +1097,32 @@ do
 		--event:Skip()
 	end
 	
+	local function ganttCellClickFunc(event)
+		local obj = IDMap[event:GetId()]
+		if taskTreeINT[obj].Planning then
+			local oTree = taskTreeINT[obj]
+			local row = event:GetRow()
+			local col = event:GetCol()
+			if row > -1 then
+				for i = 1,#oTree.taskList do
+					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
+						-- This is the task modify/add the planning schedule
+						local colCount = 0					
+						local stepDate = XMLDate2wxDateTime(toXMLDate(taskTreeINT[obj].startDate:Format("%m/%d/%Y")))
+						while colCount < col do
+							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
+							colCount = colCount + 1
+						end
+						togglePlanningDate(oTree.taskList[i],toXMLDate(stepDate:Format("%m/%d/%Y")))
+						dispGanttFunc(obj,row+1,false,oTree.Nodes[oTree.taskList[i].TaskID])
+						break
+					end
+				end
+			end		-- if row > -1 then ends
+		end		-- if taskTreeINT[obj].Planning then ends
+	end		-- local function ganttCellClickFunc(event) ends
+	
+	ganttCellClick = ganttCellClickFunc
 	cellClick = cellClickFunc
 	widgetResize = widgetResizeFunc
 	horSashAdjust = horSashAdjustFunc
@@ -1153,7 +1310,10 @@ end
 
 function NewTask(event)
 	if not GUI.TaskWindowOpen then
-		GUI.TaskForm.taskFormActivate(GUI.frame, SporeData, nil, NewTaskCallBack)
+		local f = {Tasks = {[1]={TaskID="TechChores_12_1",Title="Make the Structure creation and Files reading code"}}}
+		local taskList = applyFilterHier(f,SporeData["Test/Tasks.xml"])
+		--taskList[1] = nil
+		GUI.TaskForm.taskFormActivate(GUI.frame, SporeData, taskList[1], NewTaskCallBack)
 		GUI.TaskWindowOpen = true
 	else
 		GUI.TaskForm.frame:SetFocus()

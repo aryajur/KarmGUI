@@ -22,7 +22,7 @@ Globals.Categories = {
 
 Globals.SubCategories = {
 	"Phase 1",
-	"Phase 2",
+	"Development",
 	"Phase 3"
 }
 
