@@ -326,8 +326,6 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				local localTask = copyTask(task)
 				if not localTask then
 					localTask = getEmptyTask()
-				else
-					localTask.Schedules = nil
 				end
 				-- Create the 1st row for the task
 			    taskTree:Clear()

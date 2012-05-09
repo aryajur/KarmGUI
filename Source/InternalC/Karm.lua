@@ -66,7 +66,7 @@ do
 	
 	-- Function References
 	local onScrollTree, onScrollGantt, labelClick, cellClick, horSashAdjust, widgetResize, refreshGantt, dispTask, dispGantt
-	local cellClickCallBack, ganttCellClick
+	local cellClickCallBack, ganttCellClick, ganttLabelClick
 
 	-- Function to return the iterator function to iterate over all taskTree Nodes 
 	-- This the function to be used in a Generic for
@@ -190,9 +190,23 @@ do
 		oTree = taskTreeINT[taskTree]
 		oTree.Planning = true
 		oTree.taskList = {}
+		local count = 1
 		for i = 1,#taskList do
-			oTree.taskList[i] = taskList[i] 
-			oTree.Nodes[taskList[i].TaskID]:MakeVisible()
+			oTree.taskList[count] = taskList[i] 
+			if oTree.Nodes[taskList[i].TaskID]:MakeVisible() then
+				count = count + 1
+				-- Copy over the latest schedule to the planning period
+				local dateList = getLatestScheduleDates(taskList[i])
+				if dateList then
+					togglePlanningType(taskList[i])
+					taskList[i].Planning.Period = {[0]="Period",count=0}
+					for j=1,#dateList do
+						taskList[i].Planning.Period[j] = {[0]="DP",Date=dateList[j]}
+						taskList[i].Planning.Period.count = taskList[i].Planning.Period.count + 1
+					end
+				end
+				dispGantt(taskTree,oTree.Nodes[taskList[i].TaskID].Row,false,oTree.Nodes[taskList[i].TaskID])
+			end
 		end
 	end
 	
@@ -280,6 +294,9 @@ do
 		oTree.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,labelClick)
 		--GUI.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,GUI.taskDblClick)
 		
+		-- The GanttGrid label click event
+		oTree.ganttGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,ganttLabelClick)
+
 		-- Gantt Grid Cell left click event
 		oTree.ganttGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,ganttCellClick)
 		
@@ -297,10 +314,14 @@ do
 	
 	function nodeMeta.MakeVisible(node)
 		currNode = node
+		if not nodeMeta[currNode] then
+			return nil
+		end
 		while nodeMeta[currNode].Parent and not nodeMeta[currNode].Row do
 			currNode = nodeMeta[currNode].Parent
 			currNode.Expanded = true
 		end
+		return true
 	end
 	
 	function nodeMeta.__index(tab,key)
@@ -996,6 +1017,27 @@ do
 		--event:Skip()
 	end
 	
+	local function ganttLabelClickFunc(event)
+		-- Find the row of the click
+		local obj = IDMap[event:GetId()]
+		if taskTreeINT[obj].Planning then
+			local oTree = taskTreeINT[obj]
+			local row = event:GetRow()
+			local col = event:GetCol()
+			if row > -1 then
+				for i = 1,#oTree.taskList do
+					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
+						-- This is the task modify/add the planning schedule
+						togglePlanningType(oTree.taskList[i])
+						dispGanttFunc(obj,row+1,false,oTree.Nodes[oTree.taskList[i].TaskID])
+						break
+					end
+				end
+			end		-- if row > -1 then ends
+		end		-- if taskTreeINT[obj].Planning then ends
+		--event:Skip()
+	end
+
 	local function onScrollTreeFunc(obj)
 		return function(event)
 			oTree = taskTreeINT[obj]
@@ -1123,6 +1165,7 @@ do
 	end		-- local function ganttCellClickFunc(event) ends
 	
 	ganttCellClick = ganttCellClickFunc
+	ganttLabelClick = ganttLabelClickFunc
 	cellClick = cellClickFunc
 	widgetResize = widgetResizeFunc
 	horSashAdjust = horSashAdjustFunc

@@ -276,7 +276,7 @@ function getLatestScheduleDates(task,planning)
 	local typeSchedule, index
 	local dateList = {}
 	if planning then
-		if task.Planning then
+		if task.Planning and task.Planning.Period then
 			for i = 1,#task.Planning.Period do
 				dateList[#dateList + 1] = task.Planning.Period[i].Date
 			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
@@ -917,26 +917,78 @@ function getEmptyTask(SporeFile)
 	return nTask
 end
 
+-- Function to cycle the planning schedule type for a task
+function togglePlanningType(task)
+	if not task.Planning then
+		task.Planning = {}
+	end
+	local dateList = getLatestScheduleDates(task)
+	if not dateList then
+		-- No Schedules exist
+		if not task.Planning.Type then
+			task.Planning.Type = "Estimate"
+			task.Planning.index = 1
+		elseif task.Planning.Type == "Estimate" then
+			task.Planning.Type = "Commit"
+			task.Planning.index = 1
+		else
+			task.Planning.Type = "Estimate"
+			task.Planning.index = 1
+		end
+	elseif dateList.typeSchedule == "Estimate" then
+		if not task.Planning.Type then
+			task.Planning.Type = "Estimate"
+			task.Planning.index = dateList.index + 1
+		elseif task.Planning.Type == "Estimate" then
+			task.Planning.Type = "Commit"
+			task.Planning.Type.index = 1
+		else
+			task.Planning.Type = "Estimate"
+			task.Planning.index = dateList.index + 1
+		end
+	elseif dateList.typeSchedule == "Commit" then
+		task.Planning.Type = "Revs"
+		task.Planning.index = 1
+	elseif dateList.typeSchedule == "Revs" then
+		task.Planning.Type = "Revs"
+		task.Planning.index = dateList.index + 1
+	elseif dateList.typeSchedule == "Actual" then
+		task.Planning.Type = "Revs"
+		if task.Schedules.Revs then
+			task.Planning.index = task.Schedules.Revs.count + 1
+		else
+			task.Planning.index = 1
+		end
+	end
+end
+
+
 -- Function to toggle a planning date in the given task. If the planning schedule table is not present it creates it with the schedule type Estimate
 -- returns 1 if added, 2 if removed, 3 if removed and no more planning schedule left
 function togglePlanningDate(task,xmlDate)
 	if not task.Planning then
-		task.Planning = {
-							Type = "Estimate", 
-							Period = {
-										[0]="Period",
-										count=1,
-										[1]={
-												[0]="DP",
-												Date = xmlDate
-											}
-									}
-						}
-		if task.Schedules and task.Schedules.Estimate then
-			task.Planning.index = task.Schedules.Estimate.count + 1
-		else
-			task.Planning.index = 1
-		end
+		togglePlanningType(task)
+		task.Planning.Period = {
+									[0]="Period",
+									count=1,
+									[1]={
+											[0]="DP",
+											Date = xmlDate
+										}
+								}
+		
+		return 1
+	end
+	if not task.Planning.Period then
+		task.Planning.Period = {
+									[0]="Period",
+									count=1,
+									[1]={
+											[0]="DP",
+											Date = xmlDate
+										}
+								}
+		
 		return 1
 	end
 	for i=1,task.Planning.Period.count do
