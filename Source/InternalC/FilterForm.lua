@@ -31,6 +31,14 @@ local pairs = pairs
 local applyFilterHier = applyFilterHier
 local CW = require("CustomWidgets")
 
+local GlobalFilter = function() 
+		return Filter 
+	end
+	
+local SData = function()
+		return SporeData
+	end
+
 local MainFilter
 local SporeData
 
@@ -337,30 +345,34 @@ local function setfilter(f)
 		StatCtrl:AddSelListData(items)
 	end		-- if f.Status then ends
 	-- Who items
-	WhoBoolCtrl:setExpression(f.Who)
+	if f.Who then
+		WhoBoolCtrl:setExpression(f.Who)
+	end
 	-- Access items
 	if f.Access then
 		accBoolCtrl:setExpression(f.Access)
 	end		-- if f.Tags then ends
 	-- Set Start Date data
-	do
-		-- Separate out the items in the comma
-		-- Trim the string from leading and trailing spaces
-		local strtStr = string.match(f.Start,"^%s*(.-)%s*$")
-		-- Make sure the string has "," at the end
-		if string.sub(strtStr,-1,-1)~="," then
-			strtStr = strtStr .. ","
-		end
-		local items = {}
-		for strt in string.gmatch(strtStr,"(.-),") do
-			-- Trim leading and trailing spaces
-			strt = string.match(strt,"^%s*(.-)%s*$")
-			if strt ~= "" then			
-				items[#items + 1] = strt
+	if f.Start then
+		do
+			-- Separate out the items in the comma
+			-- Trim the string from leading and trailing spaces
+			local strtStr = string.match(f.Start,"^%s*(.-)%s*$")
+			-- Make sure the string has "," at the end
+			if string.sub(strtStr,-1,-1)~="," then
+				strtStr = strtStr .. ","
 			end
-		end
-		dateStarted:setRanges(items)
-	end		-- do for f.Start	
+			local items = {}
+			for strt in string.gmatch(strtStr,"(.-),") do
+				-- Trim leading and trailing spaces
+				strt = string.match(strt,"^%s*(.-)%s*$")
+				if strt ~= "" then			
+					items[#items + 1] = strt
+				end
+			end
+			dateStarted:setRanges(items)
+		end		-- do for f.Start
+	end	
 	-- Set Due Date data
 	if f.Due then
 		-- Separate out the items in the comma
@@ -665,7 +677,7 @@ do
 			if not items[1] then
 				return nil
 			else
-				return items[1]
+				return items[1].itemText..","..items[1].checked
 			end
 		end
 	end
@@ -678,9 +690,9 @@ do
 
 end
 
-function filterFormActivate(parent, GlobalFilter, SData, callBack)
-	MainFilter = GlobalFilter
-	SporeData = SData
+function filterFormActivate(parent, callBack)
+	MainFilter = GlobalFilter()
+	SporeData = SData()
 	-- Accumulate Filter Data across all spores
 	-- Loop through all the spores
 	for k,v in pairs(SporeData) do
@@ -976,5 +988,5 @@ function filterFormActivate(parent, GlobalFilter, SData, callBack)
 	
     frame:Layout() -- help sizing the windows before being shown
     frame:Show(true)
-    initializeFilterForm(filterData)
+    setfilter(MainFilter)
 end		-- function filterFormActivate(parent) ends

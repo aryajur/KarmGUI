@@ -27,6 +27,37 @@ function textSummary(filter)
 	return filterSummary
 end
 
+function collectFilterData(filterData,task)
+	-- Who data
+	for i = 1,#task.Who do
+		filterData.Who = addItemToArray(task.Who[i].ID,filterData.Who)
+	end
+	-- Access Data
+	if string.upper(task.Access.Status) == "YES" and task.Access.Access then
+		for i = 1,#task.Access.Access do
+			filterData.Access = addItemToArray(task.Access.Access[i].ID,filterData.Access)
+		end
+	end
+	-- Priority Data
+	if task.Priority then
+		filterData.Priority = addItemToArray(task.Priority,filterData.Priority)
+	end			
+	-- Category Data
+	if task.Cat then
+		filterData.Cat = addItemToArray(task.Cat,filterData.Cat)
+	end			
+	-- Sub-Category Data
+	if task.SubCat then
+		filterData.SubCat = addItemToArray(task.SubCat,filterData.SubCat)
+	end			
+	-- Tags Data
+	if task.Tags then
+		for i = 1,#task.Tags do
+			filterData.Tags = addItemToArray(task.Tags[i],filterData.Tags)
+		end
+	end
+end
+
 -- Function to filter out tasks from the task hierarchy
 function applyFilterHier(filter, taskHier)
 	local hier = taskHier

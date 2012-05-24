@@ -6,8 +6,8 @@
       <xs:element minOccurs="0" name="DB-Data">
         <xs:complexType>
           <xs:sequence>
-            <xs:element minOccurs="0" name="DBID" type="xs:string" />
-            <xs:element minOccurs="0" name="Updated" type="xs:string">
+            <xs:element name="DBID" type="xs:string" />
+            <xs:element name="Updated" type="xs:string">
               <xs:annotation>
                 <xs:documentation>Date and time the task is updated in the central database</xs:documentation>
               </xs:annotation>
@@ -611,7 +611,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
         </xs:annotation>
         <xs:complexType>
           <xs:sequence>
-            <xs:element minOccurs="0" name="MSGQ">
+            <xs:element name="MSGQ">
               <xs:complexType>
                 <xs:sequence>
                   <xs:element maxOccurs="unbounded" name="SYM" type="SYM" />

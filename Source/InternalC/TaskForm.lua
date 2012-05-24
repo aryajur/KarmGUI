@@ -5,6 +5,12 @@
 -- Created:     4/11/2012
 -----------------------------------------------------------------------------
 
+local prin
+if Globals.__DEBUG then
+	prin = print
+end
+local error = error
+local print = prin 
 local modname = ...
 local wx = wx
 local wxaui = wxaui
@@ -14,7 +20,10 @@ local GUI = GUI
 local bit = bit
 local Globals = Globals
 local XMLDate2wxDateTime = XMLDate2wxDateTime
+local toXMLDate = toXMLDate
 local task2IncSchTasks = task2IncSchTasks
+local getLatestScheduleDates = getLatestScheduleDates
+local tableToString = tableToString
 local getEmptyTask = getEmptyTask
 local copyTask = copyTask
 local addItemToArray = addItemToArray
@@ -44,7 +53,163 @@ local function dateRangeChange()
 	taskTree:dateRangeChange(startDate,finDate)
 end
 
-function taskFormActivate(parent, SporeData, task, callBack)
+-- Function to create the task
+-- If task is not nil then the previous schedules from that are copied over by starting with a copy of the task
+local function makeTask(task, taskID)
+	local newTask = copyTask(task)
+	if not newTask then
+		newTask = {[0]="Task"}
+	end
+	if task then
+		newTask.DBDATA = task.DBDATA
+	end
+	newTask.Modified = "YES"
+	if pubPrivate:GetValue() == "Public" then
+		newTask.Private = false
+	else
+		newTask.Private = true
+	end 
+	newTask.Title = titleBox:GetValue()
+	newTask.Start = toXMLDate(dateStarted:GetValue():Format("%m/%d/%Y"))
+	newTask.TaskID = taskID
+	-- Status
+	newTask.Status = status:GetValue()
+	-- Fin
+	local todayDate = wx.wxDateTime()
+	todayDate:SetToCurrent()
+	todayDate = toXMLDate(todayDate:Format("%m/%d/%Y"))
+	if task and task.Status ~= "Done" and newTask.Status == "Done" then
+		newTask.Fin = todayDate
+	elseif newTask.Status ~= "Done" then
+		newTask.Fin = nil
+	end
+	if priority:GetValue() ~= "" then
+		newTask.Priority = priority:GetValue()
+	else
+		newTask.Priority = nil
+	end
+	if DueDateEN:GetValue() then
+		newTask.Due = toXMLDate(dueDate:GetValue():Format("%m/%d/%Y"))
+	else
+		newTask.Due = nil
+	end
+	-- Who List
+	local list = whoList:getAllItems()
+	if list[1] then
+		local WhoTable = {[0]="Who", count = #list}
+		-- Loop through all the items in the list
+		for i = 1,#list do
+			WhoTable[i] = {ID = list[i].itemText, Status = list[i].checked}
+		end
+		newTask.Who = WhoTable
+	else
+		newTask.Who = nil
+	end
+	-- Access List
+	list = accList:getAllItems()
+	if list[1] then
+		local AccTable = {[0]="Access", count = #list}
+		-- Loop through all the items in the Locked element Access List
+		for i = 1,#list do
+			AccTable[i] = {ID = list[i].itemText, Status = list[i].checked}
+		end
+		newTask.Access = AccTable
+	else
+		newTask.Access = nil
+	end		
+	-- Assignee List
+	list = {}
+	local itemNum = -1
+	while assigList:GetNextItem(itemNum) ~= -1 do
+		itemNum = assigList:GetNextItem(itemNum)
+		local itemText = assigList:GetItemText(itemNum)
+		list[#list + 1] = itemText
+	end
+	if list[1] then
+		local assignee = {[0]="Assignee", count = #list}
+		-- Loop through all the items in the Assignee List
+		for i = 1,#list do
+			assignee[i] = {ID = list[i]}
+		end				
+		newTask.Assignee = assignee					
+	else
+		newTask.Assignee = nil
+	end		
+	-- Comments
+	if commentBox:GetValue() ~= "" then
+		newTask.Comments = commentBox:GetValue()
+	else 
+		newTask.Comments = nil
+	end
+	-- Category
+	if Category:GetValue() ~= "" then
+		newTask.Cat = Category:GetValue()
+	else
+		newTask.Cat = nil
+	end
+	--SubCategory
+	if SubCategory:GetValue() ~= "" then 
+		newTask.SubCat = SubCategory:GetValue()
+	else
+		newTask.SubCat = nil
+	end
+	-- Tags
+	list = TagsCtrl:getSelectedItems()
+	if list[1] then
+		local tagTable = {[0]="Tags", count = #list}
+		-- Loop through all the items in the Tags element
+		for i = 1,#list do
+			tagTable[i] = list[i]
+		end
+		newTask.Tags = tagTable
+	else
+		newTask.Tags = nil
+	end		
+	-- Schedule
+	list = getLatestScheduleDates(taskTree.taskList[1],true)
+	local list1 = getLatestScheduleDates(newTask)
+	-- Compare the schedules
+	local same = true
+	if list1.typeSchedule ~= list.typeSchedule or #list1 ~= #list or list1.index ~= list.index then
+		same = false
+	else
+		for i = 1,#list do
+			if list[i] ~= list1[i] then
+				same = false
+				break
+			end
+		end
+	end
+	if not same then
+		-- Add the schedule here
+		if not newTask.Schedules[list.typeSchedule] then
+			-- Schedule type does not exist so create it
+			newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
+		end
+		-- Schedule type already exists so just add it to the next index
+		local newSched = {[0]=list.typeSchedule}
+		local str = "WD"
+		if list.typeSchedule ~= "Actual" then
+			if schCommentBox:GetValue() ~= "" then
+				newSched.Comment = schCommentBox:GetValue()
+			end
+			newSched.Updated = todayDate
+			str = "DP"
+		end
+		-- Update the period
+		newSched.Period = {[0] = "Period", count = #list}
+		for i = 1,#list do
+			newSched.Period[i] = {[0] = str, Date = list[i]}
+		end
+		newTask.Schedules[list.typeSchedule][list.index] = newSched
+		newTask.Schedules[list.typeSchedule].count = list.index
+	end
+--	print(tableToString(list))
+--	print(tableToString(newTask))
+	return newTask
+end
+
+function taskFormActivate(parent, SporeData, task, callBack, taskID)
 	-- Accumulate Filter Data across all spores
 	-- Loop through all the spores
 	for k,v in pairs(SporeData) do
@@ -74,7 +239,7 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				if task and task.Title then
 					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Title, wx.wxDefaultPosition, wx.wxDefaultSize)
 				else
-					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "Enter Task Title", wx.wxDefaultPosition, wx.wxDefaultSize)
+					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
 				end				
 				sizer2:Add(titleBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
@@ -85,22 +250,28 @@ function taskFormActivate(parent, SporeData, task, callBack)
 					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Start Date:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					if task and task.Start then
-						startDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Start), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+						dateStarted = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Start), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 					else
-						startDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+						dateStarted = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 					end					
-					sizer3:Add(startDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					sizer3:Add(dateStarted, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					-- Due Date
 					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Due Date:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					local sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+					DueDateEN = wx.wxCheckBox(TInfo, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+					DueDateEN:SetValue(true)
+					sizer4:Add(DueDateEN, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 					if task and task.Due then
-						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Due), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN+wx.wxDP_ALLOWNONE)
+						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Due), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 					else
-						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN+wx.wxDP_ALLOWNONE)
-					end						
-					sizer3:Add(dueDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+					end	
+					-- dueDate:SetRange(XMLDate2wxDateTime("1900-01-01"),XMLDate2wxDateTime("3000-01-01"))					
+					sizer4:Add(dueDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					sizer3:Add(sizer4,1,bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					-- Priority
 					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
@@ -153,7 +324,7 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				if task and task.Comments then
 					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Comments, wx.wxDefaultPosition, wx.wxDefaultSize)
 				else
-					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "Enter Comment", wx.wxDefaultPosition, wx.wxDefaultSize)
+					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
 				end
 				sizer2:Add(commentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
@@ -231,16 +402,16 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				-- Selection boxes and buttons
 				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)
 				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
-				local sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)
 				AddWhoButton = wx.wxButton(TPeople, wx.wxID_ANY, ">", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 				sizer4:Add(AddWhoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				RemoveWhoButton = wx.wxButton(TPeople, wx.wxID_ANY, "X", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 				sizer4:Add(RemoveWhoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)
-				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, "Who: (Checked=Active)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)
+				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, "Who: (Checked=InActive)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)
 				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-				whoList = CW.CheckListCtrl(TPeople,false,"I","A")
+				whoList = CW.CheckListCtrl(TPeople,false,"Inactive","Active")
 				if task and task.Who then
 					for i = 1,#task.Who do
 						local id = task.Who[i].ID
@@ -265,7 +436,7 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)
 				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, "Access: (Checked=Read/Write)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)
 				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-				accList = CW.CheckListCtrl(TPeople,false,"W","R")
+				accList = CW.CheckListCtrl(TPeople,false,"Read/Write","Read Only")
 				if task and task.Access then
 					for i = 1,#task.Access do
 						local id = task.Access[i].ID
@@ -313,14 +484,14 @@ function taskFormActivate(parent, SporeData, task, callBack)
 				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 				startDate = dateStartPick:GetValue()
-				month = wx.wxDateSpan(0,1,0,0)
+				local month = wx.wxDateSpan(0,1,0,0)
 				dateFinPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 				sizer2:Add(dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
 				taskTree = newGUITreeGantt()(TSch,true)
-				sizer1:Add(taskTree.horSplitWin, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				sizer1:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				dateRangeChange()
 				taskTree:layout()
 				local localTask = copyTask(task)
@@ -343,7 +514,14 @@ function taskFormActivate(parent, SporeData, task, callBack)
 		            end
 				end
 				-- Enable planning mode for the task
+				--localTask.holdPlanning = true
 				taskTree:enablePlanningMode({localTask})
+				-- Add the comment box
+				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+				sizer1:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
+				sizer1:Add(schCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+				
 				TSch:SetSizer(sizer1)
 			sizer1:SetSizeHints(TSch)
 		MainBook:AddPage(TSch, "Schedules")				
@@ -357,14 +535,6 @@ function taskFormActivate(parent, SporeData, task, callBack)
 	MainSizer:Add(sizer1, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
 	frame:SetSizer(MainSizer)
-
-	frame:Connect(wx.wxEVT_CLOSE_WINDOW,
-		function (event)
-			setfenv(1,package.loaded[modname])		
-			event:Skip()
-			callBack(nil)
-		end
-	)
 
 	-- Connect event handlers to the buttons
 	RemoveAccButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
@@ -456,9 +626,21 @@ function taskFormActivate(parent, SporeData, task, callBack)
 	DoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		function(event)
 			setfenv(1,package.loaded[modname])
+			local newTask = makeTask(task, taskID)
 			frame:Close()
-			callBack(task)
+			callBack(newTask)
 		end		
+	)
+	
+	DueDateEN:Connect(wx.wxEVT_COMMAND_CHECKBOX_CLICKED,
+		function(event)
+			setfenv(1,package.loaded[modname])
+			if DueDateEN:GetValue() then
+				dueDate:Enable(true)
+			else
+				dueDate:Disable()
+			end
+		end
 	)
 	
 	-- Date Picker Events

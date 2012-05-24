@@ -143,13 +143,13 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                     <xs:complexType>
                       <xs:sequence>
                         <xs:element minOccurs="0" name="Hours" type="xs:float" />
-                        <xs:element name="Comment" type="xs:string">
+                        <xs:element minOccurs="0" name="Comment" type="xs:string">
                           <xs:annotation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
                           </xs:annotation>
                         </xs:element>
                         <xs:element name="Updated" type="xs:date" />
-                        <xs:element minOccurs="1" maxOccurs="1" name="Period" type="Period">
+                        <xs:element minOccurs="0" maxOccurs="1" name="Period" type="Period">
                           <xs:annotation>
                             <xs:documentation>Defines a working period for this task.</xs:documentation>
                           </xs:annotation>
@@ -169,7 +169,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                     </xs:annotation>
                     <xs:complexType>
                       <xs:sequence>
-                        <xs:element name="Comment" type="xs:string">
+                        <xs:element minOccurs="0" name="Comment" type="xs:string">
                           <xs:annotation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
                           </xs:annotation>
@@ -195,7 +195,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                     </xs:annotation>
                     <xs:complexType>
                       <xs:sequence>
-                        <xs:element name="Comment" type="xs:string">
+                        <xs:element minOccurs="0" name="Comment" type="xs:string">
                           <xs:annotation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
                           </xs:annotation>
@@ -219,7 +219,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                     <xs:complexType>
                       <xs:sequence>
                         <xs:element name="Date" type="xs:date" />
-                        <xs:element name="Hours" type="xs:integer" />
+                        <xs:element minOccurs="0" name="Hours" type="xs:integer" />
                       </xs:sequence>
                     </xs:complexType>
                   </xs:element>

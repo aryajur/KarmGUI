@@ -208,13 +208,29 @@ do
 				dispGantt(taskTree,oTree.Nodes[taskList[i].TaskID].Row,false,oTree.Nodes[taskList[i].TaskID])
 			end
 		end
+		oTree.taskList[count] = nil
+	end
+	
+	local function getPlanningTasks(taskTree)
+		oTree = taskTreeINT[taskTree]
+		if not oTree.Planning then
+			return nil
+		else
+			return oTree.taskList
+		end
+	end
+	
+	local function getSelectedTask(taskTree)
+		oTree = taskTreeINT[taskTree]
+		return oTree.Selected
 	end
 	
 	function newGUITreeGantt(parent,noTaskTree)
 		local taskTree = {}	-- Main object
 		-- Main table to store the task tree that is on display
-		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, 
-		   dateRangeChange = dateRangeChange, layout = layout, associateEventFunc = associateEventFunc, enablePlanningMode = enablePlanningMode}
+		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, Planning = nil, taskList = nil, Selected = {},
+		   dateRangeChange = dateRangeChange, layout = layout, associateEventFunc = associateEventFunc, enablePlanningMode = enablePlanningMode,
+		   getPlanningTasks = getPlanningTasks, getSelectedTask = getSelectedTask}
 		-- A task in Nodes or Roots will have the following attributes:
 		-- Expanded = if has children then true means it is expanded in the GUI
 		-- MakeVisible = Function to make sure the task is visible
@@ -232,6 +248,7 @@ do
 		-- Parent = Parent
 		-- Row = Row of the task in the task Grid (nil if task is not visible)
 		-- taskTreeObj = main task tree GUI object to which this node belongs to
+		-- Planning = Contains the planning mode schedule for the task if the task schedule planning is going on.
 		
 		-- Set task Tree internal as the metatable for exposed task tree empty table so we can catch all accesses to the task tree table and take actions appropriately
 		setmetatable(taskTree, taskTreeINT)
@@ -507,6 +524,12 @@ do
 				-- Clear all pending actions
 				oTree.actionQ = {}
 			end
+		elseif key == "Planning" then
+			-- do nothing user cannot modify this
+		elseif key == "taskList" then
+			-- do nothing user cannot modify this
+		elseif key == "Selected" then
+			-- do nothing user cannot modify this
 		else
 			oTree[key] = val
 		end
@@ -516,6 +539,7 @@ do
 		taskTreeINT[tab].Nodes = {}
 		taskTreeINT[tab].nodeCount = 0
 		taskTreeINT[tab].Roots = {}
+		taskTreeINT[tab].actionQ = {}
 		taskTreeINT[tab].treeGrid:DeleteRows(0,taskTreeINT[tab].treeGrid:GetNumberRows())
 		taskTreeINT[tab].ganttGrid:DeleteRows(0,taskTreeINT[tab].ganttGrid:GetNumberRows())
 	end
@@ -614,6 +638,7 @@ do
 						GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
 				end
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+				taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,i-1)
 			end
 		else
 			-- Task exists so create the schedule
@@ -651,6 +676,7 @@ do
 							GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
 					end
 					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+					taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,i-1)
 				end
 			else
 				local map
@@ -674,6 +700,7 @@ do
 							GUI.emptyDayColor.Green,GUI.emptyDayColor.Blue))
 					end
 					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+					taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,i-1)
 				end		
 				local before,after
 				for i=1,#dateList do
@@ -1127,24 +1154,25 @@ do
 					v.Selected = false	-- Make everything else unselected
 					if v.Row == row+1 then
 						taskNode = v
-						break
 					end
 				end		-- Looping through all the nodes ends
 				-- print("Clicked row "..tostring(row))
 				taskNode.Selected = true
+				taskTreeINT[obj].Selected = {taskNode.Task}
 				taskTreeINT[obj].cellClickCallBack(taskNode.Task)
 			end
 		end		
-		taskTreeINT[obj].treeGrid:SelectBlock(row,col,row,col)
+		--taskTreeINT[obj].treeGrid:SelectBlock(row,col,row,col)
+		taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
 		--event:Skip()
 	end
 	
 	local function ganttCellClickFunc(event)
 		local obj = IDMap[event:GetId()]
+		local oTree = taskTreeINT[obj]
+		local row = event:GetRow()
+		local col = event:GetCol()
 		if taskTreeINT[obj].Planning then
-			local oTree = taskTreeINT[obj]
-			local row = event:GetRow()
-			local col = event:GetCol()
 			if row > -1 then
 				for i = 1,#oTree.taskList do
 					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
@@ -1162,6 +1190,8 @@ do
 				end
 			end		-- if row > -1 then ends
 		end		-- if taskTreeINT[obj].Planning then ends
+		oTree.ganttGrid:SetGridCursor(event:GetRow(),event:GetCol())
+		cellClickFunc(wx.wxGridEvent(event:GetId(),wx.wxEVT_GRID_CELL_LEFT_CLICK,oTree.treeGrid,event:GetRow(),1))
 	end		-- local function ganttCellClickFunc(event) ends
 	
 	ganttCellClick = ganttCellClickFunc
@@ -1236,7 +1266,7 @@ function fillTaskTree()
 	GUI.taskTree.update = false		-- stop GUI updates for the time being    
     if GUI.taskTree.nodeCount > 0 then
 -- Check if the task Tree has elements then get the current selected nodekey this will be selected again after the tree view is refreshed
-        for i,v in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
+        for i,v in GUI.taskTree.tpairs(GUI.taskTree) do
         	if v.Expanded then
         		-- NOTE: i is the same as the TaskID i.e. i == GUI.taskTree.Nodes[i].Task.TaskID
             	expandedStatus[i] = true
@@ -1307,7 +1337,7 @@ function fillTaskTree()
     local selected
     if restorePrev then
 -- Update the tree status to before the refresh
-        for k,currNode in GUI.taskTree.tpairs(GUI.taskTree.Nodes) do
+        for k,currNode in GUI.taskTree.tpairs(GUI.taskTree) do
             if expandedStatus[currNode.Key] then
                 currNode.Expanded = true
 			end
@@ -1340,7 +1370,7 @@ end
 
 function SetFilter(event)
 	if not GUI.FilterWindowOpen then
-		GUI.FilterForm.filterFormActivate(GUI.frame, Filter, SporeData,SetFilterCallBack)
+		GUI.FilterForm.filterFormActivate(GUI.frame,SetFilterCallBack)
 		GUI.FilterWindowOpen = true
 	else
 		GUI.FilterForm.frame:SetFocus()
@@ -1371,6 +1401,15 @@ function main()
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE )
 
+	--Toolbar buttons plan 5/10/2012
+	-- Open - open native saved data spore
+	-- Save - Save everything
+	-- Delete Task
+	-- Set Filter
+	-- Edit Task
+	-- New Child
+	-- New Next Sibling
+	-- New Previous Sibling
 	GUI.ID_LOAD = NewID()
 	GUI.ID_UNLOAD = NewID()
 	GUI.ID_SAVEALL = NewID()

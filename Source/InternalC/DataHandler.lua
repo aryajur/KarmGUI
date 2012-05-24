@@ -264,6 +264,12 @@ function getTaskSummary(task)
 				taskSummary = taskSummary.."\n   READ/WRITE ACCESS PEOPLE: "..string.sub(RWA,2,-1)
 			end
 		end
+		if task.Cat then
+			taskSummary = taskSummary.."\nCATEGORY: "..task.Cat
+		end
+		if task.SubCat then
+			taskSummary = taskSummary.."\nSUB-CATEGORY: "..task.SubCat
+		end
 		return taskSummary
 	else
 		return "No Task Selected"
@@ -282,6 +288,7 @@ function getLatestScheduleDates(task,planning)
 			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
 			dateList.typeSchedule = task.Planning.Type
 			dateList.index = task.Planning.index
+			dateList.Planning = task.holdPlanning
 			return dateList
 		else
 			return nil
@@ -311,6 +318,7 @@ function getLatestScheduleDates(task,planning)
 			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
 			dateList.typeSchedule = typeSchedule
 			dateList.index = index
+			dateList.Planning = task.holdPlanning	-- To indicate whether the task has planning mode active
 			return dateList
 		else
 			return nil
@@ -623,7 +631,7 @@ function addItemToArray(item,array)
 end
 
 -- Function to collect and return all data from the task heirarchy on the basis of which task filtration criteria can be selected
-function collectFilterData(filterData, taskHier)
+function collectFilterDataHier(filterData, taskHier)
 	local hier = taskHier
 	local hierCount = {}
 	-- Reset the hierarchy if not already done so
@@ -642,34 +650,7 @@ function collectFilterData(filterData, taskHier)
 		else
 			-- Increment the counter
 			hierCount[hier] = hierCount[hier] + 1
-			-- Who data
-			for i = 1,#hier[hierCount[hier]].Who do
-				filterData.Who = addItemToArray(hier[hierCount[hier]].Who[i].ID,filterData.Who)
-			end
-			-- Access Data
-			if string.upper(hier[hierCount[hier]].Access.Status) == "YES" and hier[hierCount[hier]].Access.Access then
-				for i = 1,#hier[hierCount[hier]].Access.Access do
-					filterData.Access = addItemToArray(hier[hierCount[hier]].Access.Access[i].ID,filterData.Access)
-				end
-			end
-			-- Priority Data
-			if hier[hierCount[hier]].Priority then
-				filterData.Priority = addItemToArray(hier[hierCount[hier]].Priority,filterData.Priority)
-			end			
-			-- Category Data
-			if hier[hierCount[hier]].Cat then
-				filterData.Cat = addItemToArray(hier[hierCount[hier]].Cat,filterData.Cat)
-			end			
-			-- Sub-Category Data
-			if hier[hierCount[hier]].SubCat then
-				filterData.SubCat = addItemToArray(hier[hierCount[hier]].SubCat,filterData.SubCat)
-			end			
-			-- Tags Data
-			if hier[hierCount[hier]].Tags then
-				for i = 1,#hier[hierCount[hier]].Tags do
-					filterData.Tags = addItemToArray(hier[hierCount[hier]].Tags[i],filterData.Tags)
-				end
-			end
+			collectFilterData(filterData,hier[hierCount[hier]])
 			if hier[hierCount[hier]].SubTasks then
 				-- This task has children so go deeper in the hierarchy
 				hier = hier[hierCount[hier]].SubTasks
@@ -677,6 +658,31 @@ function collectFilterData(filterData, taskHier)
 			end
 		end
 	end		-- while hierCount[hier] < #hier or hier.parent do ends here
+end
+
+function collectFilterDataList(filterData,taskList)
+	for i=1,#taskList do
+		collectFilterData(filterData,taskList[i])
+	end
+end
+
+-- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value
+function copyTable(t, deep, seen)
+    seen = seen or {}
+    if t == nil then return nil end
+    if seen[t] then return seen[t] end
+
+    local nt = {}
+    for k, v in pairs(t) do
+        if deep and type(v) == 'table' then
+            nt[k] = copyTable(v, deep, seen)
+        else
+            nt[k] = v
+        end
+    end
+    setmetatable(nt, copyTable(getmetatable(t), deep, seen))
+    seen[t] = nt
+    return nt
 end
 
 -- Function to make a copy of a task (Sub tasks are not copied they are still the same tables)
@@ -688,162 +694,9 @@ function copyTask(task)
 	for k,v in pairs(task) do
 		if k ~= "Who" and k ~= "Schedules" and k~= "Tags" and k ~= "Access" and k ~= "Assignee" then
 			nTask[k] = task[k]
-		elseif k == "Tags" then
-			nTask.Tags = {}
-			for k1,v1 in pairs(task.Tags) do
-				nTask.Tags[k1] = task.Tags[k1]
-			end
-		elseif k == "Who" or k == "Access" then
-			nTask[k] = {}
-			for k1,v1 in pairs(task[k]) do
-				if tonumber(k1) and tonumber(k1) > 0 then
-					nTask[k][k1] = {}
-					nTask[k][k1].ID = task[k][k1].ID
-					nTask[k][k1].Status = task[k][k1].Status
-				else
-					nTask[k][k1] = task[k][k1]
-				end
-			end
-		elseif k == "Assignee" then
-			nTask[k] = {}
-			for k1,v1 in pairs(task[k]) do
-				if tonumber(k1) and tonumber(k1) > 0 then
-					nTask[k][k1] = {}
-					nTask[k][k1].ID = task[k][k1].ID
-				else
-					nTask[k][k1] = task[k][k1]
-				end
-			end
-		elseif k == "Schedules" then 
-			nTask.Schedules = {[0] = task.Schedules[0]}
-			-- Estimates
-			if task.Schedules.Estimate then
-				nTask.Schedules.Estimate = {}
-				for k1,v1 in pairs(task.Schedules.Estimate) do
-					if tonumber(k1) and tonumber(k1) > 0 then
-						nTask.Schedules.Estimate[k1] = {}
-						for k2,v2 in pairs(task.Schedules.Estimate[k1]) do
-							if k2 == "Period" then
-								nTask.Schedules.Estimate[k1].Period = {}
-								for k3,v3 in pairs(task.Schedules.Estimate[k1].Period) do
-									if tonumber(k3) and tonumber(k3) > 0 then
-										nTask.Schedules.Estimate[k1].Period[k3] = {}
-										for k4,v4 in pairs(task.Schedules.Estimate[k1].Period[k3]) do
-											if k4 == "TP" then
-												nTask.Schedules.Estimate[k1].Period[k3].TP = {}
-												for k5,v5 in pairs(task.Schedules.Estimate[k1].Period[k3].TP) do
-													if tonumber(k5) and tonumber(k5) > 0 then
-														nTask.Schedules.Estimate[k1].Period[k3].TP[k5] = {STA = task.Schedules.Estimate[k1].Period[k3].TP[k5].STA, STP = task.Schedules.Estimate[k1].Period[k3].TP[k5].STP}
-													else
-														nTask.Schedules.Estimate[k1].Period[k3].TP[k5] = task.Schedules.Estimate[k1].Period[k3].TP[k5]
-													end
-												end
-											else
-												nTask.Schedules.Estimate[k1].Period[k3][k4] = task.Schedules.Estimate[k1].Period[k3][k4]
-											end
-										end
-									else
-										nTask.Schedules.Estimate[k1].Period[k3] = task.Schedules.Estimate[k1].Period[k3]
-									end
-								end
-							else
-								nTask.Schedules.Estimate[k1][k2] = task.Schedules.Estimate[k1][k2]
-							end
-						end
-					else
-						nTask.Schedules.Estimate[k1] = task.Schedules.Estimate[k1]
-					end
-				end		-- for k1,v1 in pairs(task.Schedules.Estimate) do ends
-			end		-- if task.Schedules.Estimate then ends
-			
-			-- Committed schedules
-			if task.Schedules.Commit then
-				nTask.Schedules.Commit = {[1] = {}}
-				for k2,v2 in pairs(task.Schedules.Commit[1]) do
-					if k2 == "Period" then
-						nTask.Schedules.Commit[1].Period = {}
-						for k3,v3 in pairs(task.Schedules.Commit[1].Period) do
-							if tonumber(k3) and tonumber(k3) > 0 then
-								nTask.Schedules.Commit[1].Period[k3] = {}
-								for k4,v4 in pairs(task.Schedules.Commit[1].Period[k3]) do
-									if k4 == "TP" then
-										nTask.Schedules.Commit[1].Period[k3].TP = {}
-										for k5,v5 in pairs(task.Schedules.Commit[1].Period[k3].TP) do
-											if tonumber(k5) and tonumber(k5) > 0 then
-												nTask.Schedules.Commit[1].Period[k3].TP[k5] = {STA = task.Schedules.Commit[1].Period[k3].TP[k5].STA, STP = task.Schedules.Commit[1].Period[k3].TP[k5].STP}
-											else
-												nTask.Schedules.Commit[1].Period[k3].TP[k5] = task.Schedules.Commit[1].Period[k3].TP[k5]
-											end
-										end
-									else
-										nTask.Schedules.Commit[1].Period[k3][k4] = task.Schedules.Commit[1].Period[k3][k4]
-									end
-								end
-							else
-								nTask.Schedules.Commit[1].Period[k3] = task.Schedules.Commit[1].Period[k3]
-							end
-						end
-					else
-						nTask.Schedules.Commit[1][k2] = task.Schedules.Commit[1][k2]
-					end
-				end
-			end		-- if task.Schedules.Commit then ends
-			
-			-- Revision Schedules
-			if task.Schedules.Revs then
-				nTask.Schedules.Revs = {}
-				for k1,v1 in pairs(task.Schedules.Revs) do
-					if tonumber(k1) and tonumber(k1) > 0 then
-						nTask.Schedules.Revs[k1] = {}
-						for k2,v2 in pairs(task.Schedules.Revs[k1]) do
-							if k2 == "Period" then
-								nTask.Schedules.Revs[k1].Period = {}
-								for k3,v3 in pairs(task.Schedules.Revs[k1].Period) do
-									if tonumber(k3) and tonumber(k3) > 0 then
-										nTask.Schedules.Revs[k1].Period[k3] = {}
-										for k4,v4 in pairs(task.Schedules.Revs[k1].Period[k3]) do
-											if k4 == "TP" then
-												nTask.Schedules.Revs[k1].Period[k3].TP = {}
-												for k5,v5 in pairs(task.Schedules.Revs[k1].Period[k3].TP) do
-													if tonumber(k5) and tonumber(k5) > 0 then
-														nTask.Schedules.Revs[k1].Period[k3].TP[k5] = {STA = task.Schedules.Revs[k1].Period[k3].TP[k5].STA, STP = task.Schedules.Revs[k1].Period[k3].TP[k5].STP}
-													else
-														nTask.Schedules.Revs[k1].Period[k3].TP[k5] = task.Schedules.Revs[k1].Period[k3].TP[k5]
-													end
-												end
-											else
-												nTask.Schedules.Revs[k1].Period[k3][k4] = task.Schedules.Revs[k1].Period[k3][k4]
-											end
-										end
-									else
-										nTask.Schedules.Revs[k1].Period[k3] = task.Schedules.Revs[k1].Period[k3]
-									end
-								end
-							else
-								nTask.Schedules.Revs[k1][k2] = task.Schedules.Revs[k1][k2]
-							end
-						end
-					else
-						nTask.Schedules.Revs[k1] = task.Schedules.Revs[k1]
-					end
-				end		-- for k1,v1 in pairs(task.Schedules.Revs) do ends			
-			end		-- if task.Schedules.Revs then ends
-			
-			-- Actual Time Report
-			if task.Schedules.Actual then
-				nTask.Schedules.Actual = {[1]={Period = {}}}
-				for k1,v1 in pairs(task.Schedules.Actual[1].Period) do
-					if tonumber(k1) and tonumber(k1) > 0 then
-						nTask.Schedules.Actual[1].Period[k1] = {}
-						for k2,v2 in pairs(task.Schedules.Actual[1].Period[k1]) do
-							nTask.Schedules.Actual[1].Period[k1][k2] = task.Schedules.Actual[1].Period[k1][k2]
-						end
-					else
-						nTask.Schedules.Actual[1].Period[k1] = task.Schedules.Actual[1].Period[k1]
-					end
-				end
-			end		-- if task.Schedules.Actual then ends
-		end		-- if k  ends
+		else
+			nTask[k] = copyTable(task[k],true)
+		end
 	end		-- for k,v in pairs(task) do ends
 	return nTask
 end		-- function copyTask(task)ends
@@ -918,44 +771,85 @@ function getEmptyTask(SporeFile)
 end
 
 -- Function to cycle the planning schedule type for a task
+-- This function depends on the task setting methodology chosen to be in the sequence of Estimate->Commit->Revs->Actual
+-- So conversions are:
+-- Nothing->Estimate
+-- Estimate->Commit
+-- Commit->Revs
+-- Revs->Actual
+-- Actual->Back to Estimate
 function togglePlanningType(task)
 	if not task.Planning then
 		task.Planning = {}
 	end
 	local dateList = getLatestScheduleDates(task)
 	if not dateList then
-		-- No Schedules exist
-		if not task.Planning.Type then
+		dateList = {}
+		dateList.index = 0
+		dateList.typeSchedule = "Estimate"
+	end
+			
+	if not task.Planning.Type then
+		if dateList.typeSchedule == "Estimate" then
 			task.Planning.Type = "Estimate"
+			if task.holdPlanning then
+				task.Planning.index = dateList.index
+			else
+				task.Planning.index = dateList.index + 1
+			end
+		elseif dateList.typeSchedule == "Commit" then
+			if task.holdPlanning then
+				task.Planning.Type = "Commit"
+			else
+				task.Planning.Type = "Revs"
+			end
 			task.Planning.index = 1
-		elseif task.Planning.Type == "Estimate" then
+		elseif dateList.typeSchedule == "Revs" then
+			task.Planning.Type = "Revs"
+			if task.holdPlanning then
+				task.Planning.index = dateList.index
+			else
+				task.Planning.index = dateList.index + 1
+			end
+		else
+			task.Planning.Type = "Actual"
+			task.Planning.index = 1		
+		end
+	elseif task.Planning.Type == "Estimate" then
+		if task.holdPlanning and task.Planning.index == dateList.index 
+		  and dateList.typeSchedule == "Estimate" then
+			task.Planning.index = dateList.index + 1
+		else
 			task.Planning.Type = "Commit"
 			task.Planning.index = 1
+		end
+	elseif task.Planning.Type == "Commit" then
+		task.Planning.Type = "Revs"
+		if task.Schedules and task.Schedules.Revs then
+			if task.holdPlanning then
+				task.Planning.index = #task.Schedules.Revs
+			else
+				task.Planning.index = #task.Schedules.Revs + 1
+			end
 		else
-			task.Planning.Type = "Estimate"
 			task.Planning.index = 1
 		end
-	elseif dateList.typeSchedule == "Estimate" then
-		if not task.Planning.Type then
-			task.Planning.Type = "Estimate"
+	elseif task.Planning.Type == "Revs" then
+		if task.holdPlanning and task.Planning.index == dateList.index 
+		  and dateList.typeSchedule == "Revs" then
 			task.Planning.index = dateList.index + 1
-		elseif task.Planning.Type == "Estimate" then
-			task.Planning.Type = "Commit"
-			task.Planning.Type.index = 1
 		else
-			task.Planning.Type = "Estimate"
-			task.Planning.index = dateList.index + 1
+			task.Planning.Type = "Actual"
+			task.Planning.index = 1
 		end
-	elseif dateList.typeSchedule == "Commit" then
-		task.Planning.Type = "Revs"
-		task.Planning.index = 1
-	elseif dateList.typeSchedule == "Revs" then
-		task.Planning.Type = "Revs"
-		task.Planning.index = dateList.index + 1
-	elseif dateList.typeSchedule == "Actual" then
-		task.Planning.Type = "Revs"
-		if task.Schedules.Revs then
-			task.Planning.index = task.Schedules.Revs.count + 1
+	elseif task.Planning.Type == "Actual" then
+		task.Planning.Type = "Estimate"
+		if task.Schedules and task.Schedules.Estimate then
+			if task.holdPlanning then
+				task.Planning.index = #task.Schedules.Estimate
+			else
+				task.Planning.index = #task.Schedules.Estimate + 1
+			end
 		else
 			task.Planning.index = 1
 		end
@@ -1021,6 +915,43 @@ function togglePlanningDate(task,xmlDate)
 end
 
 -- Function to convert XML data from a single spore to internal data structure
+-- Task structure
+-- Task.
+--	holdPlanning = when true then the task latest schedule can be modified
+--	Planning
+--	[0] = Task
+-- 	SporeFile
+--	Title
+--	Modified
+--	DBDATA
+--	TaskID
+--	Start
+--	Fin
+--	Private
+--	Who
+--	Access
+--	Assignee
+--	Status
+--	Priority
+--	Due
+--	Comments
+--	Cat
+--	SubCat
+--	Tags
+--	Schedules.
+--		[0] = "Schedules"
+--		Estimate.
+--			[0] = "Estimate"
+--			count
+--			[i] = 
+--		Commit
+--		Revs
+--		Actual
+--	SubTasks.
+--		[0] = "SubTasks"
+--		parent
+--		tasks = count of number of subtasks
+
 function XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
@@ -1050,6 +981,11 @@ function XML2Data(SporeXML, SporeFile)
 					if task[count][0] == "Title" then
 						dataStruct[dataStruct.tasks].Title = task[count][1]
 						necessary = necessary + 1
+					elseif task[count][0] == "Modified" then
+						dataStruct[dataStruct.tasks].Modified = task[count][1]
+						necessary = necessary + 1
+					elseif task[count][0] == "DB-Data" then
+						dataStruct[dataStruct.tasks].DBDATA = {[0]="DB-Data",DBID = task[count][1][1], Updated = task[count][2][1]}
 					elseif task[count][0] == "TaskID" then
 						dataStruct[dataStruct.tasks].TaskID = task[count][1]
 						necessary = necessary + 1
@@ -1157,8 +1093,8 @@ function XML2Data(SporeXML, SporeFile)
 									end		-- for n = 1,#task[count][i][j] do ends
 								end		-- for j = 1,#task[count][i] do ends
 								schedule.Estimate = estimate
-							elseif task[count][i][0] == "Committed" then
-								local commit = {[0]="Committed"}
+							elseif task[count][i][0] == "Commit" then
+								local commit = {[0]="Commit"}
 								commit.Comment = task[count][i][1][1][1]
 								commit.Updated = task[count][i][1][2][1]
 								local period = {[0] = "Period", count = #task[count][i][1][3]}
@@ -1179,12 +1115,12 @@ function XML2Data(SporeXML, SporeFile)
 									end		-- if task[count][i][n][k][2] then ends
 								end		-- for k = 1,#task[count][i][j] do ends
 								commit.Period = period
-								schedule.Commit[1] = commit
+								schedule.Commit = {commit,[0]="Commit", count = 1}
 							elseif task[count][i][0] == "Revs" then
-								local revs = {[0]="Revisions", count = #task[count][i]}
+								local revs = {[0]="Revs", count = #task[count][i]}
 								-- Loop through all the Revisions
 								for j = 1,#task[count][i] do
-									revs[j] = {[0]="Revision"}
+									revs[j] = {[0]="Revs"}
 									-- Loop through the children of Revision element
 									for n = 1,#task[count][i][j] do
 										if task[count][i][j][n][0] == "Comment" then
@@ -1216,11 +1152,16 @@ function XML2Data(SporeXML, SporeFile)
 								schedule.Revs = revs
 							elseif task[count][i][0] == "Actual" then
 								local actual = {[0]= "Actual", count = #task[count][i]}
+								local period = {[0] = "Period", count = #task[count][i]} 
 								-- Loop through all the work done elements
-								for j = 1,actual.count do
-									actual[j] = {[0]="Work Done", Date = task[count][i][j][1][1], Hours = task[count][i][j][2][1]}
+								for j = 1,period.count do
+									period[j] = {[0]="WD", Date = task[count][i][j][1][1]}
+									if task[count][i][j][2][0] then
+										period[j].Hours = task[count][i][j][2][1]
+									end
 								end
-								schedule.Actual[1] = {Period = actual}
+								actual[1] = {Period = period,[0]="Actual"}
+								schedule.Actual = actual
 							end							
 						end
 						dataStruct[dataStruct.tasks].Schedules = schedule
@@ -1232,7 +1173,7 @@ function XML2Data(SporeXML, SporeFile)
 					end
 					count = count + 1
 				end		-- while(task[count]) do ends
-				if necessary < 6 then
+				if necessary < 7 then
 					-- this is not valid task
 					dataStruct[dataStruct.tasks] = nil
 					dataStruct.tasks = dataStruct.tasks - 1

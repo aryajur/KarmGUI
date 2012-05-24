@@ -64,12 +64,40 @@ do
 			item:SetColumn(1)
 			item:SetMask(wx.wxLIST_MASK_TEXT)
 			o.List:GetItem(item)
-			str = item:GetText()..","..str
-			selItems[#selItems + 1] = str
+			-- str = item:GetText()..","..str
+			selItems[#selItems + 1] = {itemText=item:GetText(),checked=str}
 		end
 		return selItems
 	end
 		
+	local getAllItems = function(o)
+		local selItems = {}
+		local itemNum = -1
+
+		while o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL) ~= -1 do
+			itemNum = o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL)
+			local str
+			local item = wx.wxListItem()
+			item:SetId(itemNum)
+			item:SetMask(wx.wxLIST_MASK_IMAGE)
+			o.List:GetItem(item)
+			if item:GetImage() == 0 then
+				-- Item checked
+				str = o.checkedText
+			else
+				-- Item Unchecked
+				str = o.uncheckedText
+			end
+			item:SetId(itemNum)
+			item:SetColumn(1)
+			item:SetMask(wx.wxLIST_MASK_TEXT)
+			o.List:GetItem(item)
+			-- str = item:GetText()..","..str
+			selItems[#selItems + 1] = {itemText=item:GetText(),checked=str}
+		end
+		return selItems
+	end
+
 	local InsertItem = function(o,Item,checked)
 		local ListBox = o.List
 		-- Check if the Item exists in the list control
@@ -149,10 +177,10 @@ do
 		if not parent then
 			return nil
 		end
-		local o = {ResetCtrl = ResetCtrl, InsertItem = InsertItem, getSelectedItems = getSelectedItems}	-- new object
+		local o = {ResetCtrl = ResetCtrl, InsertItem = InsertItem, getSelectedItems = getSelectedItems, getAllItems = getAllItems}	-- new object
 		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)
-		o.checkedText = checkedText
-		o.uncheckedText = uncheckedText
+		o.checkedText = checkedText or "YES"
+		o.uncheckedText = uncheckedText or "NO"
 		local ID
 		ID = NewID()	
 		if singleSelection then	
