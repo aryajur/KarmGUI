@@ -33,9 +33,9 @@ function collectFilterData(filterData,task)
 		filterData.Who = addItemToArray(task.Who[i].ID,filterData.Who)
 	end
 	-- Access Data
-	if string.upper(task.Access.Status) == "YES" and task.Access.Access then
-		for i = 1,#task.Access.Access do
-			filterData.Access = addItemToArray(task.Access.Access[i].ID,filterData.Access)
+	if task.Access then
+		for i = 1,#task.Access do
+			filterData.Access = addItemToArray(task.Access[i].ID,filterData.Access)
 		end
 	end
 	-- Priority Data
@@ -139,8 +139,8 @@ function validateTask(filter, task)
 			if string.sub(filter.Tasks[i].TaskID,1,#Globals.ROOTKEY) == Globals.ROOTKEY then
 				-- A whole spore is marked check if this task belongs to that spore
 				-- Check if this is the spore of the task
-				if string.sub(filter.Tasks[i].TaskID,#Globals.ROOTKEY,-1) == task.SporeFile then
-					if not filter.Tasks.Children then
+				if string.sub(filter.Tasks[i].TaskID,#Globals.ROOTKEY+1,-1) == task.SporeFile then
+					if not filter.Tasks[i].Children then
 						return false
 					end
 					matched = true
@@ -150,13 +150,13 @@ function validateTask(filter, task)
 				-- Check if the task ID matches
 				if filter.Tasks[i].Children then
 					-- Children are allowed
-					if filter.Tasks[i].TaskID == task.TaskID and filter.Tasks[i].Title == task.Title or 
+					if filter.Tasks[i].TaskID == task.TaskID or 
 					  filter.Tasks[i].TaskID == string.sub(task.TaskID,1,#filter.Tasks[i].TaskID) then
 						matched = true
 						break
 					end
 				else
-					if filter.Tasks[i].TaskID == task.TaskID and filter.Tasks[i].Title == task.Title then
+					if filter.Tasks[i].TaskID == task.TaskID then
 						matched = true
 						break
 					end

@@ -111,6 +111,8 @@ do
 		return taskTreeINT.nextVisibleNode, taskTree, nil
 	end
 	
+	-- This iterator function totally relies on the presence of Row and Expanded Attributes
+	-- From the given index it goes down only if the Expanded attribute is true and only gives a visible node if its Row attribute is present
 	function taskTreeINT.nextVisibleNode(taskTree, index)
 		-- index is the index of the node whose next node this function returns
 		local i = index
@@ -123,13 +125,17 @@ do
 		end
 		local oTree = taskTreeINT[taskTree]
 		-- Check if this node is has children and is expanded
-		if nodeMeta[oTree.Nodes[i]].FirstChild and nodeMeta[oTree.Nodes[i]].Expanded then
+		if nodeMeta[oTree.Nodes[i]].FirstChild and nodeMeta[oTree.Nodes[i]].Expanded and nodeMeta[nodeMeta[oTree.Nodes[i]].FirstChild].Row then
 			return nodeMeta[nodeMeta[oTree.Nodes[i]].FirstChild].Key, nodeMeta[oTree.Nodes[i]].FirstChild
+		elseif nodeMeta[oTree.Nodes[i]].FirstChild and nodeMeta[oTree.Nodes[i]].Expanded then
+			return taskTreeINT.nextVisibleNode(taskTree,nodeMeta[nodeMeta[oTree.Nodes[i]].FirstChild].Key)
 		end
 		-- No children visible so only way is next sibling or parents
 		while oTree.Nodes[i] do
-			if nodeMeta[oTree.Nodes[i]].Next then
+			if nodeMeta[oTree.Nodes[i]].Next and nodeMeta[nodeMeta[oTree.Nodes[i]].Next].Row then
 				return nodeMeta[nodeMeta[oTree.Nodes[i]].Next].Key, nodeMeta[oTree.Nodes[i]].Next
+			elseif nodeMeta[oTree.Nodes[i]].Next then
+				return taskTreeINT.nextVisibleNode(taskTree,nodeMeta[nodeMeta[oTree.Nodes[i]].Next].Key)
 			else
 				-- No next siblings so go up a level and continue
 				if nodeMeta[oTree.Nodes[i]].Parent then
@@ -414,6 +420,18 @@ do
 						oTree.treeGrid:DeleteRows(oNode.Row,rows)
 						oTree.ganttGrid:DeleteRows(oNode.Row,rows)
 						oTree.treeGrid:SetRowLabelValue(oNode.Row-1,"+")
+						if #oTree.Selected > 0 then
+							if oTree.Selected[oTree.Selected.Latest].Row then
+								oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+							else
+								-- The selected node is not visible anymore
+								currNode = oTree.Selected[oTree.Selected.Latest].Parent
+								while not currNode.Row do
+									currNode = currNode.Parent
+								end
+								oTree.treeGrid:SetGridCursor(currNode.Row-1,1)
+							end
+						end
 					end
 					-- Expanded was true and now making it false
 					oNode.Expanded = nil
@@ -449,6 +467,9 @@ do
 							nextNode.Row = currRow
 							dispTask(oNode.taskTreeObj,nextNode.Row,true,nextNode,hierLevel)
 							dispGantt(oNode.taskTreeObj,nextNode.Row,true,nextNode)
+							if #oTree.Selected > 0 then
+								oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+							end
 							nextNode = nextNode.Next
 						end
 						oTree.treeGrid:SetRowLabelValue(oNode.Row-1,"-")
@@ -481,12 +502,14 @@ do
 				-- Selected was true and now making it false
 				oNode.Selected = nil
 				-- Unselect this node in the GUI
-				-- #######################################################################
+				oTree.Selected = {}
+				oTree.treeGrid:SetGridCursor(0,0)
 			elseif not oNode.Selected and val then
 				-- Selected was false and now making it true
 				oNode.Selected = true
 				-- Select the node in the GUI here
-				-- #######################################################################
+				oTree.Selected = {oNode,Latest = 1}
+				oTree.treeGrid:SetGridCursor(oNode.Row-1,1)
 			end			
 		else
 			oNode[key] = val
@@ -530,6 +553,10 @@ do
 			-- do nothing user cannot modify this
 		elseif key == "Selected" then
 			-- do nothing user cannot modify this
+		elseif key == "UpdateKeys" then
+			-- do nothing user cannot modify this
+		elseif key == "SwapUpdateKeys" then
+			-- do nothing user cannot modify this
 		else
 			oTree[key] = val
 		end
@@ -557,6 +584,7 @@ do
 	
 	refreshGantt = refreshGanttFunc
 	
+	-- row begins with 1 as the 1st row of the spreadsheet
 	local function dispTaskFunc(taskTree,row, createRow, taskNode, hierLevel)
 		if (createRow and taskTreeINT[taskTree].treeGrid:GetNumberRows()<row-1) then
 			return nil
@@ -567,22 +595,22 @@ do
 		if createRow then
 			taskTreeINT[taskTree].treeGrid:InsertRows(row-1)
 			-- Now shift the row labels
-			for i = taskTreeINT[taskTree].treeGrid:GetNumberRows(),row,-1 do
+			for i = taskTreeINT[taskTree].treeGrid:GetNumberRows()-1,row,-1 do
 				taskTreeINT[taskTree].treeGrid:SetRowLabelValue(i,taskTreeINT[taskTree].treeGrid:GetRowLabelValue(i-1))
 			end
 		end
 		if taskNode.Children > 0 then
+			taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
 			if taskNode.Expanded then
-				taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
+				taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1,"-")
 			else
-				taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
+				taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1,"+")
 			end
-			taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1,"+")
 		else
 			taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
 			taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1," ")
 		end
-		if taskNode.Task and string.upper(taskNode.Task.Status) == "DONE" then
+		if taskNode.Task and taskNode.Task.Status and string.upper(taskNode.Task.Status) == "DONE" then
 			taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,0,"1")
 		else
 			taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,0,"0")
@@ -601,6 +629,7 @@ do
 	
 	dispTask = dispTaskFunc
 	
+	-- row begins with 1 as the 1st row of the spreadsheet
 	local function dispGanttFunc(taskTree,row,createRow,taskNode)
 		if (createRow and taskTreeINT[taskTree].ganttGrid:GetNumberRows()<row-1) then
 			return nil
@@ -768,6 +797,97 @@ do
 	end		-- local function dispGanttFunc(taskTree,row,createRow,taskNode) ends
 	
 	dispGantt = dispGanttFunc
+	
+	-- Updates the keys of a node from the underlying tasks
+	function taskTreeINT.UpdateKeys(taskTree,node)
+		if getmetatable(node) ~= nodeMeta then
+			error("Need valid node objects to UpdateKeys.",2)
+		end
+		if not nodeMeta[node].Task then
+			error("Need a node with an associated task to update the key.",2)
+		end
+		local currNode = node
+		local oTree = taskTreeINT[taskTree]
+		oTree.Nodes[nodeMeta[currNode].Key]  = nil
+		nodeMeta[currNode].Key = nodeMeta[currNode].Task.TaskID
+		oTree.Nodes[nodeMeta[currNode].Key] = currNode
+		if nodeMeta[currNode].FirstChild then
+			currNode = nodeMeta[currNode].FirstChild
+			while currNode ~= node do
+				oTree.Nodes[nodeMeta[currNode].Key]  = nil
+				nodeMeta[currNode].Key = nodeMeta[currNode].Task.TaskID
+				oTree.Nodes[nodeMeta[currNode].Key] = currNode
+				if nodeMeta[currNode].FirstChild then
+					currNode = nodeMeta[currNode].FirstChild
+				elseif nodeMeta[currNode].Next then
+					currNode = nodeMeta[currNode].Next
+				else
+					while currNode ~= node and not nodeMeta[currNode].Next do
+						currNode = nodeMeta[currNode].Parent
+					end
+					if currNode == node then 
+						break
+					end
+				end		-- if nodeMeta[currNode].FirstChild then ends here
+			end		-- while currNode ~= node do ends
+		end		-- if nodeMeta[currNode].FirstChild then ends		
+	end
+	
+	-- Function to swap the keys of the given 2 node hierarchies. They keys are still taken from the taskIDs for task swap
+	-- The function just assumes that there would eb key swapping happenning so uses a 3rd storage element to make the swap
+	-- happen and make data consistent in the Nodes table (Where each node is accessible from its key)
+	function taskTreeINT.SwapUpdateKeys(taskTree,node1,node2)
+		if getmetatable(node1)~=nodeMeta or getmetatable(node2)~=nodeMeta then
+			error("Need valid node objects to SwapKeys.",2)
+		end
+		if (not nodeMeta[node1].Task and nodeMeta[node2].Task) or (not nodeMeta[node2].Task and nodeMeta[node1].Task) then
+			error("Cannot Swap Keys between a Spore and task.",2)
+		end
+		local oTree = taskTreeINT[taskTree]
+		-- Check if these are spore nodes
+		if nodeMeta[node1].Key:sub(1,#Globals.ROOTKEY)==Globals.ROOTKEY then
+			-- ################################################################################
+			-- QUESTIONALBLE SINCE SPORE KEYS ARE BASED ON THEIR FILE NAMES!
+			-- ################################################################################
+			-- These are spores
+			-- Just swap the spore keys
+			nodeMeta[node1].Key, nodeMeta[node2].Key = nodeMeta[node2].Key, nodeMeta[node1].Key
+			oTree.Nodes[nodeMeta[node1].Key] = node1
+			oTree.Nodes[nodeMeta[node2].Key] = node2
+		else
+			-- Move the node1 hierarchy out of Nodes table
+			local node1Hier = {}
+			local currNode = node1
+			node1Hier[nodeMeta[node1].Key] = node1
+			oTree.Nodes[nodeMeta[node1].Key]  = nil
+			if nodeMeta[currNode].FirstChild then
+				currNode = nodeMeta[currNode].FirstChild
+				while currNode ~= node1 do
+					node1Hier[nodeMeta[currNode].Key] = currNode
+					oTree.Nodes[nodeMeta[currNode].Key]  = nil
+					if nodeMeta[currNode].FirstChild then
+						currNode = nodeMeta[currNode].FirstChild
+					elseif nodeMeta[currNode].Next then
+						currNode = nodeMeta[currNode].Next
+					else
+						while currNode ~= node1 and not nodeMeta[currNode].Next do
+							currNode = nodeMeta[currNode].Parent
+						end
+						if currNode == node1 then 
+							break
+						end
+					end		-- if nodeMeta[currNode].FirstChild then ends here
+				end		-- while currNode ~= node1 do ends
+			end		-- if nodeMeta[currNode].FirstChild then ends
+			-- Now convert node2 hierarchy to the proper Keys
+			taskTreeINT.UpdateKeys(taskTree,node2)
+			-- Now add the node1 nodes back with the correct keys
+			for k,v in pairs(node1Hier) do
+				nodeMeta[v].Key = nodeMeta[v].Task.TaskID
+				oTree.Nodes[nodeMeta[v].Key] = v
+			end
+		end		-- if not nodeMeta[node1].Task then ends
+	end
 
 	function taskTreeINT.AddNode(taskTree,nodeInfo)
 		-- Add the node to the GUI task tree
@@ -830,26 +950,35 @@ do
 				if oTree.update then
 					dispTask(taskTree,oTree.Nodes[nodeInfo.Key].Row,true,oTree.Nodes[nodeInfo.Key],0)
 					dispGantt(taskTree,oTree.Nodes[nodeInfo.Key].Row,true,oTree.Nodes[nodeInfo.Key])
+					if #oTree.Selected > 0 then
+						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+					end
 				else
 					-- Add to actionQ
 					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 						nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],0)"
 					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
 						nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"				
+					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 				end
 			else
 				oTree.Nodes[nodeInfo.Key].Row = 1
 				if oTree.update then
 					dispTask(taskTree,1,true,oTree.Nodes[nodeInfo.Key],0)
 					dispGantt(taskTree,1,true,oTree.Nodes[nodeInfo.Key])
+					if #oTree.Selected>0 then
+						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+					end
 				else
 					-- Add to actionQ
 					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,1,true,taskTreeINT[tab].Nodes['"..
 						nodeInfo.Key.."'],0)"
 					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,1,true,taskTreeINT[tab].Nodes['"..
 						nodeInfo.Key.."'])"
+					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 				end
 			end
+
 			-- return the node
 			return oTree.Nodes[nodeInfo.Key]
 		else
@@ -888,17 +1017,31 @@ do
 					else
 						nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = 
 						   nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Parent].Row + 1
-					end				
+					end			
+					-- Update the row values of subsequent tasks	
+					local nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Key)]
+					while nextNode do
+						nextNode.Row = nextNode.Row + 1
+						nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[nextNode].Key)]
+					end
 					if oTree.update then
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
+						if #oTree.Selected>0 then
+							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+						end
 					else
 						-- Add to actionQ
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"
+						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 					end
+				elseif nodeMeta[parent].Row and nodeMeta[parent].Children == 1 then
+					-- This is the 1st child to this visible parent
+					-- Add the row label to '+'
+					oTree.treeGrid:SetRowLabelValue(nodeMeta[parent].Row-1,"+")
 				end			
 				-- return the node
 				return oTree.Nodes[nodeInfo.Key]
@@ -942,15 +1085,25 @@ do
 						currNode = nodeMeta[currNode].Parent
 					end
 					nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Prev].Row+1
+					-- Update the row values of subsequent tasks	
+					local nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Key)]
+					while nextNode do
+						nextNode.Row = nextNode.Row + 1
+						nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[nextNode].Key)]
+					end
 					if oTree.update then
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
+						if #oTree.Selected>0 then
+							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+						end
 					else
 						-- Add to actionQ
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"
+						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 					end
 				end			
 				-- return the node
@@ -994,23 +1147,26 @@ do
 						hierLevel = hierLevel + 1
 						currNode = nodeMeta[currNode].Parent
 					end
-					if nodeMeta[oTree.Nodes[nodeInfo.Key]].Prev then
-						nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Prev].Row+1
-					else
-						nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Next].Row-1
-						if nodeMeta[oTree.Nodes[nodeInfo.Key]].Row == 0 then
-							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = 1
-						end
+					nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nodeMeta[oTree.Nodes[nodeInfo.Key]].Next].Row
+					-- Update the row values of subsequent tasks	
+					local nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Key)]
+					while nextNode do
+						nextNode.Row = nextNode.Row + 1
+						nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[nextNode].Key)]
 					end
 					if oTree.update then
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
+						if #oTree.Selected>0 then
+							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+						end
 					else
 						-- Add to actionQ
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
 							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"
+						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 					end
 				end			
 				-- return the node
@@ -1096,12 +1252,14 @@ do
 --   			  tostring(y1:GetTopLeft():GetX())..","..tostring(y1:GetTopLeft():GetY()), 1)
    			
     		local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
-    		--local x = oTree.ganttGrid:IsVisible(0,count)
-			while x==0 and not currDate:IsLaterThan(finDate) do
+    		--local y = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+    		local x = oTree.ganttGrid:IsVisible(0,count)
+			--while x==0 and not currDate:IsLaterThan(finDate) do
+			while not x and not currDate:IsLaterThan(finDate) do
 				count = count + 1
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
-				--x = oTree.ganttGrid:IsVisible(0,count)
-				x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+				x = oTree.ganttGrid:IsVisible(0,count)
+				--x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
 			end
 
 			local corner = oTree.ganttGrid:GetGridCornerLabelWindow()
@@ -1158,12 +1316,16 @@ do
 				end		-- Looping through all the nodes ends
 				-- print("Clicked row "..tostring(row))
 				taskNode.Selected = true
-				taskTreeINT[obj].Selected = {taskNode.Task}
-				taskTreeINT[obj].cellClickCallBack(taskNode.Task)
+				taskTreeINT[obj].Selected = {taskNode,Latest=1}
+				if taskTreeINT[obj].cellClickCallBack and taskNode.Key:sub(1,#Globals.ROOTKEY) ~= Globals.ROOTKEY then
+					taskTreeINT[obj].cellClickCallBack(taskNode.Task)
+				end
+			else
+				taskTreeINT[obj].Selected = {}
 			end
+			taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
 		end		
 		--taskTreeINT[obj].treeGrid:SelectBlock(row,col,row,col)
-		taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
 		--event:Skip()
 	end
 	
@@ -1304,23 +1466,23 @@ function fillTaskTree()
                 	end
             	end
             	-- Add the spore node
-	            GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY.."_"..tostring(count), Text=strVar}
-	            GUI.taskTree.Nodes[Globals.ROOTKEY.."_"..tostring(count)].ForeColor = GUI.nodeForeColor
+	            GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..k, Text=strVar, Task = v}
+	            GUI.taskTree.Nodes[Globals.ROOTKEY..k].ForeColor = GUI.nodeForeColor
 				local taskList = applyFilterHier(Filter, v)
 -- Now add the tasks under the spore in the TaskTree
             	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
 	                -- Add the 1st element under the spore
-    	            local currNode = GUI.taskTree:AddNode{Relative=Globals.ROOTKEY.."_"..tostring(count), Relation="Child", Key=taskList[1].TaskID, 
+    	            local currNode = GUI.taskTree:AddNode{Relative=Globals.ROOTKEY..k, Relation="Child", Key=taskList[1].TaskID, 
     	            		Text=taskList[1].Title, Task=taskList[1]}
                 	currNode.ForeColor = GUI.nodeForeColor
 	                for intVar = 2,taskList.count do
-	                	local cond1 = currNode.Key ~= Globals.ROOTKEY.."_"..tostring(count)
+	                	local cond1 = currNode.Key ~= Globals.ROOTKEY..k
 	                	local cond2 = #taskList[intVar].TaskID > #currNode.Key
 	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                     	while cond1 and not (cond2 and cond3) do
                         	-- Go up the hierarchy
                         	currNode = currNode.Parent
-		                	cond1 = currNode.Key ~= Globals.ROOTKEY.."_"..tostring(count)
+		                	cond1 = currNode.Key ~= Globals.ROOTKEY..k
 		                	cond2 = #taskList[intVar].TaskID > #currNode.Key
 		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                         end
@@ -1377,17 +1539,135 @@ function SetFilter(event)
 	end
 end
 
+-- Relative = relative of this new node (should be a task ID) 
+-- Relation = relation of this new node to the Relative. This can be "Child", "Next Sibling", "Prev Sibling" 
 function NewTaskCallBack(task)
+	if task then
+		if GUI.TaskWindowOpen.Spore then
+			-- Add the task to the SporeData
+			addTask2Spore(task,SporeData[task.SporeFile])
+		else
+			-- Normal Hierarchy add
+			if Relation:upper() == "CHILD" then
+				-- Add child
+				addTask2Parent(task, GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task)
+			elseif Relation:Upper() == "NEXT SIBLING" then
+				-- Add as next sibling
+				-- First add as child
+				addTask2Parent(task, task.Parent)
+				-- Now move it to the right place
+				bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"AFTER")
+				-- Now modify the GUI keys and add it to the UI
+				local currNode = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Parent.LastChild
+				local relative = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative]
+				while currNode ~= relative do
+					GUI.taskTree:UpdateKeys(currNode)
+					currNode = currNode.Prev					
+				end
+			else
+				-- Add as previous sibling
+				-- First add as child
+				addTask2Parent(task, task.Parent)
+				-- Now move it to the right place
+				bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"BEFORE")
+				-- Now modify the GUI keys and add it to the UI
+				local currNode = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Parent.LastChild
+				local relative = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative]
+				while currNode ~= relative do
+					GUI.taskTree:UpdateKeys(currNode)
+					currNode = currNode.Prev					
+				end
+				-- Move the relative also
+				GUI.taskTree:UpdateKeys(currNode)
+				-- Since the Relative ID has changed update the ID in TaskWindowOpen here
+				GUI.TaskWindowOpen.Relative = currNode.Key
+			end
+		end
+	    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
+    	GUI.taskTree.Nodes[task.TaskID].ForeColor = GUI.nodeForeColor
+    end
 	GUI.TaskWindowOpen = false
+	-- Add the task here to the taskTree
+end
+
+function EditTask(event)
+	wx.wxMessageBox("Under Construction","Under Construction", wx.wxOK + wx.wxCENTRE, GUI.frame)
 end
 
 function NewTask(event)
 	if not GUI.TaskWindowOpen then
-		local f = {Tasks = {[1]={TaskID="TechChores_12_1",Title="Make the Structure creation and Files reading code"}}}
-		local taskList = applyFilterHier(f,SporeData["Test/Tasks.xml"])
-		--taskList[1] = nil
-		GUI.TaskForm.taskFormActivate(GUI.frame, SporeData, taskList[1], NewTaskCallBack)
-		GUI.TaskWindowOpen = true
+		local taskList = GUI.taskTree.Selected
+		if #taskList == 0 then
+            wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            return
+		end			
+		if #taskList > 1 then
+            wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            return
+		end		
+		-- Get the new task task ID
+		local relativeID = taskList[1].Key
+		local task = {}
+		if relativeID == Globals.ROOTKEY then
+			if event:GetId() == GUI.ID_NEW_PREV_TASK or event:GetId() == GUI.ID_NEW_NEXT_TASK then
+	            wx.wxMessageBox("A sibling for the root node cannot be created.","Root Node Sibling", wx.wxOK + wx.wxCENTRE, GUI.frame)
+	            return
+			end						
+			-- This is the root so the request is to create a new spore
+			local SporeName = wx.wxGetTextFromUser("Enter the Spore File name (Blank to cancel):", "New Spore", "")
+			if SporeName == "" then
+				return
+			end
+			SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
+			SporeData[SporeName].Modified = true
+            GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
+            GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor
+		elseif relativeID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			if event:GetId() == GUI.ID_NEW_PREV_TASK or event:GetId() == GUI.ID_NEW_NEXT_TASK then
+				local SporeName = wx.wxGetTextFromUser("Enter the Spore File name (Blank to cancel):", "New Spore", "")
+				if SporeName == "" then
+					return
+				end
+				SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
+				SporeData[SporeName].Modified = true
+				if event:GetId() == GUI.ID_NEW_PREV_TASK then
+	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="PREV SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
+	            else
+	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="NEXT SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
+	            end
+	            GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor	
+			else
+				-- This is a Spore so the request is to create a new root task in the spore
+				task.TaskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "New Task", "")
+				if task.TaskID == "" then
+					return
+				end
+				while GUI.taskTree.Nodes[task.TaskID] do
+					task.TaskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "New Task", "")
+				end				
+				task.SporeFile = string.sub(GUI.taskTree.Nodes[relativeID].Key,#Globals.ROOTKEY+1,-1)
+				GUI.TaskWindowOpen = {Spore = true, Relative = relativeID, Relation = "Child"}
+				GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
+			end
+		else
+			-- This is a normal task so the request is to create a new task relative to this task
+			if event:GetId() == GUI.ID_NEW_SUB_TASK then
+				task.TaskID = getNewChildTaskID(GUI.taskTree.Nodes[relativeID].Task)
+				task.Parent = GUI.taskTree.Nodes[relativeID].Task
+				GUI.TaskWindowOpen = {Relative = relativeID, Relation = "Child"}
+			else
+				task.TaskID = getNewChildTaskID(GUI.taskTree.Nodes[relativeID].Task.Parent)
+				task.Parent = GUI.taskTree.Nodes[relativeID].Task.Parent
+				if event:GetId() == GUI.ID_NEW_PREV_TASK then
+					GUI.TaskWindowOpen = {Relative = relativeID, Relation = "PREV SIBLING"}
+				else
+					GUI.TaskWindowOpen = {Relative = relativeID, Relation = "NEXT SIBLING"}
+				end
+			end
+			task.SporeFile = GUI.taskTree.Nodes[relativeID].Task.SporeFile
+			GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
+		end
+		
 	else
 		GUI.TaskForm.frame:SetFocus()
 	end	
@@ -1416,6 +1696,8 @@ function main()
 	GUI.ID_SAVECURR = NewID()
 	GUI.ID_SET_FILTER = NewID()
 	GUI.ID_NEW_SUB_TASK = NewID()
+	GUI.ID_NEW_PREV_TASK = NewID()
+	GUI.ID_NEW_NEXT_TASK = NewID()
 	GUI.ID_EDIT_TASK = NewID()
 	GUI.ID_DEL_TASK = NewID()
 	GUI.ID_MOVE_UNDER = NewID()
@@ -1436,13 +1718,15 @@ function main()
 	toolBar:AddSeparator()
 	toolBar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
 	toolBar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
+	toolBar:AddTool(GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat  Next task")
+	toolBar:AddTool(GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Previous task")
 	toolBar:AddTool(GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
 	toolBar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
 	toolBar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...")
 	toolBar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...")
 	toolBar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...")
-	toolBar:AddSeparator()
-	toolBar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
+	--toolBar:AddSeparator()
+	--toolBar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
 	toolBar:Realize()
 
 	-- Create status Bar in the window
@@ -1538,6 +1822,9 @@ function main()
 	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadXML)
 	GUI.frame:Connect(GUI.ID_SET_FILTER,wx.wxEVT_COMMAND_MENU_SELECTED,SetFilter)
 	GUI.frame:Connect(GUI.ID_NEW_SUB_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,NewTask)
+	GUI.frame:Connect(GUI.ID_NEW_NEXT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,NewTask)
+	GUI.frame:Connect(GUI.ID_NEW_PREV_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,NewTask)
+	GUI.frame:Connect(GUI.ID_EDIT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,EditTask)
 
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an

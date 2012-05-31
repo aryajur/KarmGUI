@@ -914,6 +914,164 @@ function togglePlanningDate(task,xmlDate)
 	task.Planning.Period[task.Planning.Period.count] = {[0]="DP",Date = xmlDate	}
 end
 
+function addTask2Spore(task,dataStruct)
+	dataStruct.tasks = dataStruct.tasks + 1
+	dataStruct[dataStruct.tasks] = task 
+	collectFilterData(dataStruct.filterData,task)
+end
+
+function getNewChildTaskID(parent)
+	local taskID
+	if not parent.SubTasks then
+		taskID = parent.TaskID.."_1"
+	else 
+		local intVar1 = 0
+		for count = 0,#parent.SubTasks do
+	        local tempTaskID = parent.SubTasks[count].TaskID
+	        if tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1)) > intVar1 then
+	            intVar1 = tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1))
+	        end
+		end
+		intVar1 = intVar1 + 1
+		taskID = parent.TaskID.."_"..tostring(intVar1)
+	end
+	return taskID
+end
+
+-- Function to add a task according to the specified relation
+function addTask2Parent(task, parent)
+	if not (task and parent) then
+		error("nil parameter cannot be handled at addTask2Parent in DataHandler.lua.",2)
+	end
+	if not parent.SubTasks then
+		parent.SubTasks = {parent = parent, tasks = 0, [0]="SubTasks"}
+	end
+	parent.SubTasks.tasks = parent.SubTasks.tasks + 1
+	parent.SubTasks[parent.SubTasks.tasks] = task
+end
+
+-- function to update the taskID in the whole hierarchy
+function updateTaskID(task,taskID)
+	if not(task and taskID) then
+		error("Need a task and taskID for updateTaskID in DataHandler.lua",2)
+	end
+	local prevTaskID = task.TaskID
+	task.TaskID = taskID
+	if task.SubTasks then
+		local currNode = task.SubTasks
+		local hierCount = {}
+		hierCount[currNode] = 0
+		-- Traverse the task hierarchy here
+		hierCount[currNode] = 0
+		while hierCount[currNode] < #currNode or currNode.parent do
+			if not(hierCount[currNode] < #currNode) then
+				if currNode == task.SubTasks then
+					-- Do not go above the passed task
+					break
+				end 
+				currNode = currNode.parent
+			else
+				-- Increment the counter
+				hierCount[currNode] = hierCount[currNode] + 1
+				local passed = validateTask(filter,hier[hierCount[hier]])
+				if passed then
+					returnList.count = returnList.count + 1
+					returnList[returnList.count] = hier[hierCount[hier]]
+				end
+				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,taskID)
+				if currNode[hierCount[currNode]].SubTasks then
+					-- This task has children so go deeper in the hierarchy
+					currNode = currNode[hierCount[currNode]].SubTasks
+					hierCount[currNode] = 0
+				end
+			end
+		end		-- while hierCount[hier] < #hier or hier.parent do ends here
+	end		-- if task.SubTasks then ends
+end
+
+-- Function to move the task before/after
+function bubbleTask(task,relative,beforeAfter)
+	if task.Parent ~= relative.Parent then
+		error("The task and relative should be on the same level in the bubbleTask call in DataHandler.lua",2)
+	end
+	if task==relative then
+		return
+	end
+	if beforeAfter:upper() == "AFTER" then
+		-- Next Sibling
+		-- Find the relative and task number
+		local posRel, posTask
+		for i = 1,relative.Parent.SubTasks.tasks do
+			if relative.Parent.SubTasks[i] == relative then
+				posRel = i
+			end
+			if task.Parent.SubTasks[i] == task then
+				posTask = i
+			end
+		end
+		if posRel < posTask then
+			-- Start the bubble up 
+			for i = posTask,posRel+2,-1 do
+				-- Swap TaskID
+				local tim1 = relative.Parent.SubTasks[i].TaskID
+				local ti = relative.Parent.SubTasks[i-1].TaskID
+				updateTaskID(relative.Parent.SubTasks[i],ti) 
+				updateTaskID(relative.Parent.SubTasks[i-1],tim1) 
+				-- Swap task position
+				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i-1] = relative.Parent.SubTasks[i-1],relative.Parent.SubTasks[i]
+			end
+		else
+			-- Start the bubble down 
+			for i = posTask,posRel-1 do
+				-- Swap TaskID
+				local tip1 = relative.Parent.SubTasks[i].TaskID
+				local ti = relative.Parent.SubTasks[i+1].TaskID
+				updateTaskID(relative.Parent.SubTasks[i],ti) 
+				updateTaskID(relative.Parent.SubTasks[i+1],tip1) 
+				-- Swap task position
+				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i+1] = relative.Parent.SubTasks[i+1],relative.Parent.SubTasks[i]
+			end
+		end
+	else
+		-- Previous sibling
+		-- Find the relative and task number
+		local posRel, posTask
+		for i = 1,relative.Parent.SubTasks.tasks do
+			if relative.Parent.SubTasks[i] == relative then
+				posRel = i
+			end
+			if task.Parent.SubTasks[i] == task then
+				posTask = i
+			end
+		end
+		if posRel < posTask then
+			-- Start the bubble up 
+			for i = posTask,posRel+1,-1 do
+				-- Swap TaskID
+				local tim1 = relative.Parent.SubTasks[i].TaskID
+				local ti = relative.Parent.SubTasks[i-1].TaskID
+				updateTaskID(relative.Parent.SubTasks[i],ti) 
+				updateTaskID(relative.Parent.SubTasks[i-1],tim1) 
+				-- Swap task position
+				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i-1] = relative.Parent.SubTasks[i-1],relative.Parent.SubTasks[i]
+			end
+		else
+			-- Start the bubble down 
+			for i = posTask,posRel-2 do
+				-- Swap TaskID
+				local tip1 = relative.Parent.SubTasks[i].TaskID
+				local ti = relative.Parent.SubTasks[i+1].TaskID
+				updateTaskID(relative.Parent.SubTasks[i],ti) 
+				updateTaskID(relative.Parent.SubTasks[i+1],tip1) 
+				-- Swap task position
+				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i+1] = relative.Parent.SubTasks[i+1],relative.Parent.SubTasks[i]
+			end
+		end
+	end
+
+end
+
+
 -- Function to convert XML data from a single spore to internal data structure
 -- Task structure
 -- Task.
@@ -951,11 +1109,12 @@ end
 --		[0] = "SubTasks"
 --		parent
 --		tasks = count of number of subtasks
+--		[i] = Task table like this one repeated for sub tasks
 
 function XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
-	local dataStruct = {tasks = 0, [0] = "Task_Spore",filterData = {Who={},Assignee={},Access={},Priority={},Cat={},SubCat={},Tags={}}}	-- to create the data structure
+	local dataStruct = {tasks = 0, TaskID = Globals.ROOTKEY..SporeFile, [0] = "Task_Spore",filterData = {Who={},Assignee={},Access={},Priority={},Cat={},SubCat={},Tags={}}}	-- to create the data structure
 	local filterData = dataStruct.filterData
 	if SporeXML[0]~="Task_Spore" then
 		return nil
@@ -975,6 +1134,7 @@ function XML2Data(SporeXML, SporeFile)
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile
+				dataStruct[dataStruct.tasks].Parent = dataStruct.parent
 				-- Extract all task information here
 				local count = 1
 				while(task[count]) do

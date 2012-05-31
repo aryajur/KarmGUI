@@ -31,6 +31,10 @@ local newGUITreeGantt = function()
 		return newGUITreeGantt 
 	end
 
+local SData = function()
+		return SporeData
+	end
+
 local CW = require("CustomWidgets")
 
 
@@ -55,11 +59,11 @@ end
 
 -- Function to create the task
 -- If task is not nil then the previous schedules from that are copied over by starting with a copy of the task
-local function makeTask(task, taskID)
-	local newTask = copyTask(task)
-	if not newTask then
-		newTask = {[0]="Task"}
+local function makeTask(task)
+	if not task then
+		error("Need a task object with at least a task ID",2)
 	end
+	local newTask = copyTask(task)
 	if task then
 		newTask.DBDATA = task.DBDATA
 	end
@@ -71,7 +75,7 @@ local function makeTask(task, taskID)
 	end 
 	newTask.Title = titleBox:GetValue()
 	newTask.Start = toXMLDate(dateStarted:GetValue():Format("%m/%d/%Y"))
-	newTask.TaskID = taskID
+	-- newTask.TaskID = task.TaskID -- Already has task ID from copyTask
 	-- Status
 	newTask.Status = status:GetValue()
 	-- Fin
@@ -167,49 +171,55 @@ local function makeTask(task, taskID)
 	end		
 	-- Schedule
 	list = getLatestScheduleDates(taskTree.taskList[1],true)
-	local list1 = getLatestScheduleDates(newTask)
-	-- Compare the schedules
-	local same = true
-	if list1.typeSchedule ~= list.typeSchedule or #list1 ~= #list or list1.index ~= list.index then
-		same = false
-	else
-		for i = 1,#list do
-			if list[i] ~= list1[i] then
-				same = false
-				break
+	if list then
+		local list1 = getLatestScheduleDates(newTask)
+		-- Compare the schedules
+		local same = true
+		if not list1 or list1.typeSchedule ~= list.typeSchedule or #list1 ~= #list or list1.index ~= list.index then
+			same = false
+		else
+			for i = 1,#list do
+				if list[i] ~= list1[i] then
+					same = false
+					break
+				end
 			end
 		end
-	end
-	if not same then
-		-- Add the schedule here
-		if not newTask.Schedules[list.typeSchedule] then
-			-- Schedule type does not exist so create it
-			newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
-		end
-		-- Schedule type already exists so just add it to the next index
-		local newSched = {[0]=list.typeSchedule}
-		local str = "WD"
-		if list.typeSchedule ~= "Actual" then
-			if schCommentBox:GetValue() ~= "" then
-				newSched.Comment = schCommentBox:GetValue()
+		if not same then
+			-- Add the schedule here
+			if not newTask.Schedules then
+				newTask.Schedules = {}
 			end
-			newSched.Updated = todayDate
-			str = "DP"
+			if not newTask.Schedules[list.typeSchedule] then
+				-- Schedule type does not exist so create it
+				newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
+			end
+			-- Schedule type already exists so just add it to the next index
+			local newSched = {[0]=list.typeSchedule}
+			local str = "WD"
+			if list.typeSchedule ~= "Actual" then
+				if schCommentBox:GetValue() ~= "" then
+					newSched.Comment = schCommentBox:GetValue()
+				end
+				newSched.Updated = todayDate
+				str = "DP"
+			end
+			-- Update the period
+			newSched.Period = {[0] = "Period", count = #list}
+			for i = 1,#list do
+				newSched.Period[i] = {[0] = str, Date = list[i]}
+			end
+			newTask.Schedules[list.typeSchedule][list.index] = newSched
+			newTask.Schedules[list.typeSchedule].count = list.index
 		end
-		-- Update the period
-		newSched.Period = {[0] = "Period", count = #list}
-		for i = 1,#list do
-			newSched.Period[i] = {[0] = str, Date = list[i]}
-		end
-		newTask.Schedules[list.typeSchedule][list.index] = newSched
-		newTask.Schedules[list.typeSchedule].count = list.index
-	end
+	end		-- if list ends here
 --	print(tableToString(list))
---	print(tableToString(newTask))
+	print(tableToString(newTask))
 	return newTask
 end
 
-function taskFormActivate(parent, SporeData, task, callBack, taskID)
+function taskFormActivate(parent, callBack, task)
+	local SporeData = SData()
 	-- Accumulate Filter Data across all spores
 	-- Loop through all the spores
 	for k,v in pairs(SporeData) do
@@ -262,7 +272,7 @@ function taskFormActivate(parent, SporeData, task, callBack, taskID)
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					local sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 					DueDateEN = wx.wxCheckBox(TInfo, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-					DueDateEN:SetValue(true)
+					DueDateEN:SetValue(false)
 					sizer4:Add(DueDateEN, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 					if task and task.Due then
 						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Due), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
@@ -494,9 +504,11 @@ function taskFormActivate(parent, SporeData, task, callBack, taskID)
 				sizer1:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				dateRangeChange()
 				taskTree:layout()
-				local localTask = copyTask(task)
-				if not localTask then
+				local localTask
+				if not task.Title then
 					localTask = getEmptyTask()
+				else
+					localTask = copyTask(task)
 				end
 				-- Create the 1st row for the task
 			    taskTree:Clear()
@@ -626,9 +638,9 @@ function taskFormActivate(parent, SporeData, task, callBack, taskID)
 	DoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		function(event)
 			setfenv(1,package.loaded[modname])
-			local newTask = makeTask(task, taskID)
-			frame:Close()
+			local newTask = makeTask(task)
 			callBack(newTask)
+			frame:Close()
 		end		
 	)
 	
