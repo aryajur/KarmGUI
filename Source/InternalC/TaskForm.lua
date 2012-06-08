@@ -233,7 +233,6 @@ function taskFormActivate(parent, callBack, task)
 			end
 		end		-- if k~=0 then ends
 	end		-- for k,v in pairs(SporeData) do ends
-
 	frame = wx.wxFrame(parent, wx.wxID_ANY, "Task Form", wx.wxDefaultPosition,
 		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)
 

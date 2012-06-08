@@ -926,7 +926,7 @@ function getNewChildTaskID(parent)
 		taskID = parent.TaskID.."_1"
 	else 
 		local intVar1 = 0
-		for count = 0,#parent.SubTasks do
+		for count = 1,#parent.SubTasks do
 	        local tempTaskID = parent.SubTasks[count].TaskID
 	        if tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1)) > intVar1 then
 	            intVar1 = tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1))
@@ -939,12 +939,21 @@ function getNewChildTaskID(parent)
 end
 
 -- Function to add a task according to the specified relation
-function addTask2Parent(task, parent)
+function addTask2Parent(task, parent, Spore)
 	if not (task and parent) then
 		error("nil parameter cannot be handled at addTask2Parent in DataHandler.lua.",2)
 	end
 	if not parent.SubTasks then
-		parent.SubTasks = {parent = parent, tasks = 0, [0]="SubTasks"}
+		parent.SubTasks = {tasks = 0, [0]="SubTasks"}
+		if not parent.Parent then
+			if not Spore then
+				error("nil parameter cannot be handled at addTask2Parent in DataHandler.lua.",2)
+			end
+			-- This is a Spore root node
+			parent.SubTasks.parent = Spore
+		else
+			parent.SubTasks.parent = parent.Parent.SubTasks
+		end 
 	end
 	parent.SubTasks.tasks = parent.SubTasks.tasks + 1
 	parent.SubTasks[parent.SubTasks.tasks] = task
@@ -960,7 +969,6 @@ function updateTaskID(task,taskID)
 	if task.SubTasks then
 		local currNode = task.SubTasks
 		local hierCount = {}
-		hierCount[currNode] = 0
 		-- Traverse the task hierarchy here
 		hierCount[currNode] = 0
 		while hierCount[currNode] < #currNode or currNode.parent do
@@ -973,12 +981,7 @@ function updateTaskID(task,taskID)
 			else
 				-- Increment the counter
 				hierCount[currNode] = hierCount[currNode] + 1
-				local passed = validateTask(filter,hier[hierCount[hier]])
-				if passed then
-					returnList.count = returnList.count + 1
-					returnList[returnList.count] = hier[hierCount[hier]]
-				end
-				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,taskID)
+				currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,task.TaskID)
 				if currNode[hierCount[currNode]].SubTasks then
 					-- This task has children so go deeper in the hierarchy
 					currNode = currNode[hierCount[currNode]].SubTasks
@@ -990,81 +993,101 @@ function updateTaskID(task,taskID)
 end
 
 -- Function to move the task before/after
-function bubbleTask(task,relative,beforeAfter)
+function bubbleTask(task,relative,beforeAfter,parent)
 	if task.Parent ~= relative.Parent then
 		error("The task and relative should be on the same level in the bubbleTask call in DataHandler.lua",2)
 	end
+	if not (task.Parent or parent) then
+		error("parent argument should be specified for tasks/relative that do not have a parent defined in bubbleTask call in DataHandler.lua",2)
+	end	
 	if task==relative then
 		return
+	end
+	local pTable, swapID
+	if not task.Parent then
+		-- These are root nodes in a spore
+		pTable = parent
+		swapID = false	-- since IDs for spore root nodes should not be swapped since they are roots and unique
+	else
+		pTable = relative.Parent.SubTasks
+		swapID = true
 	end
 	if beforeAfter:upper() == "AFTER" then
 		-- Next Sibling
 		-- Find the relative and task number
 		local posRel, posTask
-		for i = 1,relative.Parent.SubTasks.tasks do
-			if relative.Parent.SubTasks[i] == relative then
+		for i = 1,pTable.tasks do
+			if pTable[i] == relative then
 				posRel = i
 			end
-			if task.Parent.SubTasks[i] == task then
+			if pTable[i] == task then
 				posTask = i
 			end
 		end
 		if posRel < posTask then
 			-- Start the bubble up 
 			for i = posTask,posRel+2,-1 do
-				-- Swap TaskID
-				local tim1 = relative.Parent.SubTasks[i].TaskID
-				local ti = relative.Parent.SubTasks[i-1].TaskID
-				updateTaskID(relative.Parent.SubTasks[i],ti) 
-				updateTaskID(relative.Parent.SubTasks[i-1],tim1) 
+				if swapID then
+					-- Swap TaskID
+					local tim1 = pTable[i].TaskID
+					local ti = pTable[i-1].TaskID
+					updateTaskID(pTable[i],ti) 
+					updateTaskID(pTable[i-1],tim1)
+				end 
 				-- Swap task position
-				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i-1] = relative.Parent.SubTasks[i-1],relative.Parent.SubTasks[i]
+				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]
 			end
 		else
 			-- Start the bubble down 
 			for i = posTask,posRel-1 do
-				-- Swap TaskID
-				local tip1 = relative.Parent.SubTasks[i].TaskID
-				local ti = relative.Parent.SubTasks[i+1].TaskID
-				updateTaskID(relative.Parent.SubTasks[i],ti) 
-				updateTaskID(relative.Parent.SubTasks[i+1],tip1) 
+				if swapID then
+					-- Swap TaskID
+					local tip1 = pTable[i].TaskID
+					local ti = pTable[i+1].TaskID
+					updateTaskID(pTable[i],ti) 
+					updateTaskID(pTable[i+1],tip1)
+				end 
 				-- Swap task position
-				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i+1] = relative.Parent.SubTasks[i+1],relative.Parent.SubTasks[i]
+				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]
 			end
 		end
 	else
 		-- Previous sibling
 		-- Find the relative and task number
 		local posRel, posTask
-		for i = 1,relative.Parent.SubTasks.tasks do
-			if relative.Parent.SubTasks[i] == relative then
+		for i = 1,pTable.tasks do
+			if pTable[i] == relative then
 				posRel = i
 			end
-			if task.Parent.SubTasks[i] == task then
+			if pTable[i] == task then
 				posTask = i
 			end
 		end
 		if posRel < posTask then
 			-- Start the bubble up 
 			for i = posTask,posRel+1,-1 do
-				-- Swap TaskID
-				local tim1 = relative.Parent.SubTasks[i].TaskID
-				local ti = relative.Parent.SubTasks[i-1].TaskID
-				updateTaskID(relative.Parent.SubTasks[i],ti) 
-				updateTaskID(relative.Parent.SubTasks[i-1],tim1) 
+				if swapID then
+					-- Swap TaskID
+					local tim1 = pTable[i].TaskID
+					local ti = pTable[i-1].TaskID
+					updateTaskID(pTable[i],ti) 
+					updateTaskID(pTable[i-1],tim1)
+				end 
 				-- Swap task position
-				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i-1] = relative.Parent.SubTasks[i-1],relative.Parent.SubTasks[i]
+				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]
 			end
 		else
 			-- Start the bubble down 
 			for i = posTask,posRel-2 do
-				-- Swap TaskID
-				local tip1 = relative.Parent.SubTasks[i].TaskID
-				local ti = relative.Parent.SubTasks[i+1].TaskID
-				updateTaskID(relative.Parent.SubTasks[i],ti) 
-				updateTaskID(relative.Parent.SubTasks[i+1],tip1) 
+				if swapID then
+					-- Swap TaskID
+					local tip1 = pTable[i].TaskID
+					local ti = pTable[i+1].TaskID
+					updateTaskID(pTable[i],ti) 
+					updateTaskID(pTable[i+1],tip1)
+				end 
 				-- Swap task position
-				relative.Parent.SubTasks[i],relative.Parent.SubTasks[i+1] = relative.Parent.SubTasks[i+1],relative.Parent.SubTasks[i]
+				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]
 			end
 		end
 	end
@@ -1090,6 +1113,7 @@ end
 --	Access
 --	Assignee
 --	Status
+--	Parent = Pointer to the Task to which this is a sub task
 --	Priority
 --	Due
 --	Comments
@@ -1107,7 +1131,7 @@ end
 --		Actual
 --	SubTasks.
 --		[0] = "SubTasks"
---		parent
+--		parent  = pointer to the array containing the list of tasks having the task whose SubTask this is 
 --		tasks = count of number of subtasks
 --		[i] = Task table like this one repeated for sub tasks
 
@@ -1120,6 +1144,7 @@ function XML2Data(SporeXML, SporeFile)
 		return nil
 	end
 	local currNode = SporeXML
+	local parentTask = nil
 	local hierInfo = {}
 	hierInfo[currNode] = {count = 1}
 	while(currNode[hierInfo[currNode].count] or hierInfo[currNode].parent) do
@@ -1134,7 +1159,8 @@ function XML2Data(SporeXML, SporeFile)
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile
-				dataStruct[dataStruct.tasks].Parent = dataStruct.parent
+				-- Each task has a Parent Attribute which points to a parent Task containing this task. For root tasks in the spore this is nil
+				dataStruct[dataStruct.tasks].Parent = parentTask
 				-- Extract all task information here
 				local count = 1
 				while(task[count]) do
