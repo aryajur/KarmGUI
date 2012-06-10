@@ -1143,10 +1143,9 @@ function XML2Data(SporeXML, SporeFile)
 	if SporeXML[0]~="Task_Spore" then
 		return nil
 	end
-	local currNode = SporeXML
-	local parentTask = nil
+	local currNode = SporeXML		-- currNode contains the current XML node being processed
 	local hierInfo = {}
-	hierInfo[currNode] = {count = 1}
+	hierInfo[currNode] = {count = 1}		-- hierInfo contains associated information with the currNode i.e. its Parent and count of the node being processed
 	while(currNode[hierInfo[currNode].count] or hierInfo[currNode].parent) do
 		if not(currNode[hierInfo[currNode].count]) then
 			currNode = hierInfo[currNode].parent
@@ -1160,7 +1159,7 @@ function XML2Data(SporeXML, SporeFile)
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile
 				-- Each task has a Parent Attribute which points to a parent Task containing this task. For root tasks in the spore this is nil
-				dataStruct[dataStruct.tasks].Parent = parentTask
+				dataStruct[dataStruct.tasks].Parent = hierInfo[currNode].parentTask
 				-- Extract all task information here
 				local count = 1
 				while(task[count]) do
@@ -1352,7 +1351,7 @@ function XML2Data(SporeXML, SporeFile)
 						end
 						dataStruct[dataStruct.tasks].Schedules = schedule
 					elseif task[count][0] == "SubTasks" then
-						hierInfo[task[count]] = {count = 1, parent = currNode}
+						hierInfo[task[count]] = {count = 1, parent = currNode,parentTask = dataStruct[dataStruct.tasks]}
 						currNode = task[count]
 						dataStruct[dataStruct.tasks].SubTasks = {parent = dataStruct, tasks = 0, [0]="SubTasks"}
 						dataStruct = dataStruct[dataStruct.tasks].SubTasks
@@ -1370,7 +1369,7 @@ function XML2Data(SporeXML, SporeFile)
 					dataStruct = dataStruct.parent
 				end		-- if currNode[hierInfo[level].parent ends here
 			end		-- if currNode[hierInfo[level].count][0] == "Task"  ends here
-		end
+		end		-- if not(currNode[hierInfo[currNode].count]) then ends
 	end		-- while(currNode[hierInfo[level].count]) ends here
 	while dataStruct.parent do
 		dataStruct = dataStruct.parent

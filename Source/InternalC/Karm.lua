@@ -1019,7 +1019,7 @@ do
 					local nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[parent].Key)]
 					while true do
 						-- Check if nextNode is in the child hierarchy of parent
-						local prevNode
+						local prevNode = parent
 						local currNode = nextNode
 						local inHier = nil
 						while currNode do
@@ -1032,13 +1032,13 @@ do
 							end
 							currNode = nodeMeta[currNode].Parent
 						end
-						if not inHier then
-							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nextNode].Row
-							break
-						end
 						if not nextNode then
 							-- This would be last node in the grid so assign the row one greater than the last visible node
 							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[prevNode].Row + 1
+							break
+						end
+						if not inHier then
+							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nextNode].Row
 							break
 						end
 					end
@@ -1112,7 +1112,7 @@ do
 					local nextNode = oTree.Nodes[taskTreeINT.nextVisibleNode(taskTree,nodeMeta[sib].Key)]
 					while true do
 						-- Check if nextNode is in the child hierarchy of sib
-						local prevNode
+						local prevNode = sib
 						local currNode = nextNode
 						local inHier = nil
 						while currNode do
@@ -1125,13 +1125,13 @@ do
 							end
 							currNode = nodeMeta[currNode].Parent
 						end
-						if not inHier then
-							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nextNode].Row
-							break
-						end
 						if not nextNode then
 							-- This would be last node in the grid so assign the row one greater than the last visible node
 							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[prevNode].Row + 1
+							break
+						end
+						if not inHier then
+							nodeMeta[oTree.Nodes[nodeInfo.Key]].Row = nodeMeta[nextNode].Row
 							break
 						end
 					end
@@ -1514,6 +1514,9 @@ function fillTaskTree()
                     	break
                 	end
             	end
+            	if not strVar then
+            		strVar = k
+            	end
             	-- Add the spore node
 	            GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..k, Text=strVar, Task = v}
 	            GUI.taskTree.Nodes[Globals.ROOTKEY..k].ForeColor = GUI.nodeForeColor
@@ -1552,6 +1555,8 @@ function fillTaskTree()
             if expandedStatus[currNode.Key] then
                 currNode.Expanded = true
 			end
+        end
+        for k,currNode in GUI.taskTree.tvpairs(GUI.taskTree) do
             if currNode.Key == prevSelect then
                 currNode.Selected = true
                 selected = currNode.Task
@@ -1604,7 +1609,7 @@ function NewTaskCallBack(task)
 			elseif GUI.TaskWindowOpen.Relation:upper() == "NEXT SIBLING" then
 				-- Add as next sibling
 				if not task.Parent then
-					-- Task is a root spore node
+					-- Task is a root task in a spore
 					addTask2Spore(task,SporeData[task.SporeFile])
 					-- Now move it to the right place
 					bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"AFTER",SporeData[task.SporeFile])
@@ -1647,15 +1652,32 @@ function NewTaskCallBack(task)
 				end		-- if not task.Parent then ends here
 			end		-- if GUI.TaskWindowOpen.Relation:upper() == "CHILD" then ends here
 		end		-- if GUI.TaskWindowOpen.Spore then ends here
-	    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
-    	GUI.taskTree.Nodes[task.TaskID].ForeColor = GUI.nodeForeColor
+		local taskList = applyFilterList(Filter,{[1]=task})
+		if #taskList == 1 then
+		    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
+	    	GUI.taskTree.Nodes[task.TaskID].ForeColor = GUI.nodeForeColor
+	    end
     end
 	GUI.TaskWindowOpen = false
 	-- Add the task here to the taskTree
 end
 
 function EditTask(event)
-	wx.wxMessageBox("Under Construction","Under Construction", wx.wxOK + wx.wxCENTRE, GUI.frame)
+	if not GUI.TaskWindowOpen then
+		-- Get the selected task
+		local taskList = GUI.taskTree.Selected
+		if #taskList == 0 then
+            wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            return
+		end			
+		if #taskList > 1 then
+            wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            return
+		end		
+		-- Get the new task task ID
+		local task = {}
+		task.TaskID = taskList[1].Key
+	end
 end
 
 function NewTask(event)
@@ -1689,7 +1711,7 @@ function NewTask(event)
 				return
 			end
 			SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
-			SporeData[SporeName].Modified = true
+			SporeData[SporeName].Modified = "YES"
             GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
             GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor
 		elseif relativeID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
@@ -1700,7 +1722,7 @@ function NewTask(event)
 					return
 				end
 				SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
-				SporeData[SporeName].Modified = true
+				SporeData[SporeName].Modified = "YES"
 				if event:GetId() == GUI.ID_NEW_PREV_TASK then
 	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="PREV SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
 	            else

@@ -78,7 +78,7 @@ local function SelTaskPress(event)
 	local CancelButton = wx.wxButton(frame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 	local CheckBox = wx.wxCheckBox(frame, wx.wxID_ANY, "Subtasks", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 	
-	if filter.Tasks and filter.Tasks.Children then
+	if filter.TasksSet and filter.TasksSet.Children then
 		CheckBox:SetValue(true)
 	end
 	buttonSizer:Add(OKButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
@@ -116,8 +116,8 @@ local function SelTaskPress(event)
             	-- Add the spore node
 	            local currNode = taskTree:AppendItem(root,strVar)
 				treeData[currNode:GetValue()] = {Key = Globals.ROOTKEY..k, Parent = root, Title = strVar}
-				if filter.Tasks and #filter.Tasks.TaskID > #Globals.ROOTKEY and 
-				  string.sub(filter.Tasks.TaskID,#Globals.ROOTKEY + 1, -1) == k then
+				if filter.TasksSet and #filter.TasksSet.TaskID > #Globals.ROOTKEY and 
+				  string.sub(filter.TasksSet.TaskID,#Globals.ROOTKEY + 1, -1) == k then
 					taskTree:EnsureVisible(currNode)
 					taskTree:SelectItem(currNode)
 				end
@@ -252,7 +252,27 @@ local function setfilter(f)
 	-- Set the task details
 	local str = ""
 	if f.Tasks then
-		str = f.Tasks[1].Title
+		filter.TasksSet = {[1]={}}
+		if f.Tasks[1].Title then
+			str = f.Tasks[1].Title
+			filter.TasksSet[1].Title = str
+		else
+			for k,v in pairs(SporeData) do
+				if k~=0 then
+					local taskList = applyFilterHier({Tasks={[1]={TaskID = f.Tasks.TaskID}}},v)
+					if #taskList then
+						str = taskList[1].Title
+						break
+					end
+				end		-- if k~=0 then ends
+			end		-- for k,v in pairs(SporeData) do ends
+			if not str then
+				str = "TASK ID: "..f.Tasks[1].TaskID
+				filter.TasksSet[1].Title = str
+			end
+		end	
+		filter.TasksSet[1].TaskID = f.Tasks[1].TaskID
+		filter.TasksSet[1].Children = f.Tasks[1].Children
 		if f.Tasks[1].Children then
 			str = str.." and Children"
 		end
@@ -977,7 +997,7 @@ function filterFormActivate(parent, callBack)
 	ClearTaskButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		function (event)
 			setfenv(1,package.loaded[modname])
-			filter.Tasks = nil
+			filter.TasksSet = nil
 			FilterTask:SetLabel("No Task Selected")
 		end
 	)
