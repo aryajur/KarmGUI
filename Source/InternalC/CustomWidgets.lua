@@ -787,10 +787,45 @@ do
 		if #Sel == 0 then
 			return nil
 		end
+		-- Get list of Parents
+		local parents = {}
 		-- Delete all selected
 		for i=1,#Sel do
+			local parent = ob.object.SelTree:GetItemParent(Sel[i])
+			local addParent = true
+			for j = 1,#parents do
+				if parents[j]:GetValue() == parent:GetValue() then
+					addParent = nil
+					break
+				end
+			end
+			if addParent then
+				parents[#parents + 1] = parent
+			end
 			if Sel[i]:GetValue() ~= ob.object.SelTree:GetRootItem():GetValue() then
 				DelTree(ob.object,Sel[i])
+			end
+		end
+		-- Check for any parents that are logic nodes with only 1 child under them
+		for i = 1,#parents do
+			if ob.object.SelTree:GetChildrenCount(parents[i],false) == 1 then
+				local nodeText = ob.object.SelTree:GetItemText(parents[i])
+				if nodeText == "(OR)" or nodeText == "(AND)" then
+					-- This is a logic node without NOT()
+					-- Delete the Parent and move the children up 1 level
+					-- Move it up the hierarchy
+					local pParent = ob.object.SelTree:GetItemParent(parents[i])
+					-- Copy all children to pParent
+					local currNode = ob.object.SelTree:GetFirstChild(parents[i])
+					while currNode:IsOk() do
+						CopyTree(ob.object,currNode,pParent)
+						currNode = ob.object.SelTree:GetNextSibling(currNode)
+					end
+					DelTree(ob.object,parents[i])
+				elseif nodeText == "NOT(OR)" or nodeText == "NOT(AND)"  then
+					-- Just change the text to NOT()
+					ob.object.SelTree:SetItemText(node,"NOT(OR)")
+				end
 			end
 		end
 		if ob.object.SelTree:GetChildrenCount(ob.object.SelTree:GetRootItem()) == 1 then
@@ -807,25 +842,91 @@ do
 			return nil
 		end
 		local parent = ob.object.SelTree:GetItemParent(Sel[1])
+		for i = 2,#Sel do
+			if ob.object.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then
+				wx.wxMessageBox("For multiple selection negate they must all be under the same node.","Selections not at the same level", wx.wxOK + wx.wxCENTRE, o.parent)
+				return
+			end
+		end
 		if parent:IsOk() then
 			if #Sel == 1 then
 				-- Single Selection
-				local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
-				CopyTree(ob.object,Sel[1],currNode)
-				DelTree(ob.object,Sel[1])
+				-- Check if this is a Logic node
+				local nodeText = ob.object.SelTree:GetItemText(Sel[1])
+				if nodeText == "(OR)" or nodeText == "(AND)" or nodeText == "NOT(OR)" or nodeText == "NOT(AND)" or nodeText == "NOT()" then
+					-- Just negation of the node has to be done
+					node = Sel[1]
+					if nodeText == "(OR)" then
+						ob.object.SelTree:SetItemText(node,"NOT(OR)")
+					elseif nodeText == "(AND)" then
+						ob.object.SelTree:SetItemText(node,"NOT(AND)")
+					elseif nodeText == "NOT(OR)" then
+						ob.object.SelTree:SetItemText(node,"(OR)")
+					elseif nodeText == "NOT(AND)" then
+						ob.object.SelTree:SetItemText(node,"(AND)")
+					else
+						-- NOT()
+						-- Move it up the hierarchy
+						local pParent = ob.object.SelTree:GetItemParent(node)
+						-- Copy all children to pParent
+						local currNode = ob.object.SelTree:GetFirstChild(node)
+						while currNode:IsOk() do
+							CopyTree(ob.object,currNode,pParent)
+							currNode = ob.object.SelTree:GetNextSibling(currNode)
+						end
+						DelTree(ob.object,node)
+					end		-- if parentText == "(OR)" then ends here
+				-- Check if the parent just has this child
+				elseif ob.object.SelTree:GetChildrenCount(parent,false) == 1 then
+					node = parent
+					nodeText = ob.object.SelTree:GetItemText(parent)
+					if nodeText == "(OR)" then
+						ob.object.SelTree:SetItemText(node,"NOT(OR)")
+					elseif nodeText == "(AND)" then
+						ob.object.SelTree:SetItemText(node,"NOT(AND)")
+					elseif nodeText == "NOT(OR)" then
+						ob.object.SelTree:SetItemText(node,"(OR)")
+					elseif nodeText == "NOT(AND)" then
+						ob.object.SelTree:SetItemText(node,"(AND)")
+					else
+						-- NOT()
+						-- Move it up the hierarchy
+						local pParent = ob.object.SelTree:GetItemParent(node)
+						CopyTree(ob.object,Sel[1],pParent)
+						DelTree(ob.object,node)
+					end		-- if parentText == "(OR)" then ends here
+				else
+					local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
+					CopyTree(ob.object,Sel[1],currNode)
+					DelTree(ob.object,Sel[1])
+				end		-- if type of node - Logic Node, Single Child node of a parent or one of many children
 			else
 				-- Multiple Selection
-				-- First move the selections to a correct new node
+				-- Check if the parent just has these children
 				local parentText = ob.object.SelTree:GetItemText(parent)
-				if parentText == "(OR)" or parentText == "NOT(OR)" then
-					parentText = "NOT(OR)"
-				elseif parentText == "(AND)" or parentText == "NOT(AND)" then
-					parentText = "NOT(AND)" 
-				end
-				parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)
-				for i = 1,#Sel do
-					CopyTree(ob.object,Sel[i],parent)
-					DelTree(ob.object,Sel[i])
+				if ob.object.SelTree:GetChildrenCount(parent,false) == #Sel then
+					-- Just modify the parent text
+					if parentText == "(OR)" then
+						ob.object.SelTree:SetItemText(parent,"NOT(OR)")
+					elseif parentText == "(AND)" then
+						ob.object.SelTree:SetItemText(parent,"NOT(AND)")
+					elseif parentText == "NOT(OR)" then
+						ob.object.SelTree:SetItemText(parent,"(OR)")
+					else -- parentText == "NOT(AND)" 
+						ob.object.SelTree:SetItemText(parent,"(AND)")
+					end
+				else
+					-- First move the selections to a correct new node
+					if parentText == "(OR)" or parentText == "NOT(OR)" then
+						parentText = "NOT(OR)"
+					elseif parentText == "(AND)" or parentText == "NOT(AND)" then
+						parentText = "NOT(AND)" 
+					end
+					parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)
+					for i = 1,#Sel do
+						CopyTree(ob.object,Sel[i],parent)
+						DelTree(ob.object,Sel[i])
+					end
 				end
 			end
 		end	-- if parent:IsOk() then
@@ -1258,6 +1359,7 @@ do
 		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression, setExpression = setExpression}
 		o.getInfo = getInfoFunc
 		o.prevSel = {}
+		o.parent = parent
 		local ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)
 			local ID = NewID()
 			o.ANDButton = wx.wxButton(parent, ID, "AND", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)

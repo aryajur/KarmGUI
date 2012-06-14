@@ -214,7 +214,7 @@ local function makeTask(task)
 		end
 	end		-- if list ends here
 --	print(tableToString(list))
-	print(tableToString(newTask))
+--	print(tableToString(newTask))
 	return newTask
 end
 
@@ -425,9 +425,9 @@ function taskFormActivate(parent, callBack, task)
 					for i = 1,#task.Who do
 						local id = task.Who[i].ID
 						if task.Who[i].Status == "Active" then
-							whoList:InsertItem(id,true)
-						else
 							whoList:InsertItem(id)
+						else
+							whoList:InsertItem(id,true)
 						end
 					end
 				end

@@ -134,9 +134,9 @@ function convertBoolStr2Tab(str)
 	local currTab = boolTab
 	while currTab do
 		-- Remove all brackets
-		if not(strLevel[currTab]) then
+--[[		if not(strLevel[currTab]) then
 			print(currTab.Item)
-		end
+		end]]
 		strLevel[currTab] = string.gsub(strLevel[currTab],"%s+"," ")
 		bracketReplace(strLevel[currTab],subMap)
 		-- Check what type of element this is
@@ -224,27 +224,36 @@ end		-- function convertBoolStr2Tab(str) ends
 function getTaskSummary(task)
 	if task then
 		local taskSummary
-		taskSummary = "ID: "..task.TaskID.."\nSTART DATE: "..task.Start
+		if task.TaskID then
+			taskSummary = "ID: "..task.TaskID
+		end
+		if task.Start then
+			taskSummary = taskSummary.."\nSTART DATE: "..task.Start
+		end
 		if task.Fin then
 			taskSummary = taskSummary.."\nFINISH DATE: "..task.Fin
 		end
-		taskSummary = taskSummary.."\nSTATUS: "..task.Status
+		if task.Status then
+			taskSummary = taskSummary.."\nSTATUS: "..task.Status
+		end
 		-- Responsible People
-		taskSummary = taskSummary.."\nPEOPLE: "
-		local ACT = ""
-		local INACT = ""
-		for i=1,task.Who.count do
-			if string.upper(task.Who[i].Status) == "ACTIVE" then
-				ACT = ACT..","..task.Who[i].ID
-			else
-				INACT = INACT..","..task.Who[i].ID
+		if task.Who then
+			taskSummary = taskSummary.."\nPEOPLE: "
+			local ACT = ""
+			local INACT = ""
+			for i=1,task.Who.count do
+				if string.upper(task.Who[i].Status) == "ACTIVE" then
+					ACT = ACT..","..task.Who[i].ID
+				else
+					INACT = INACT..","..task.Who[i].ID
+				end
 			end
-		end
-		if #ACT > 0 then
-			taskSummary = taskSummary.."\n   ACTIVE: "..string.sub(ACT,2,-1)
-		end
-		if #INACT > 0 then
-			taskSummary = taskSummary.."\n   INACTIVE: "..string.sub(INACT,2,-1)
+			if #ACT > 0 then
+				taskSummary = taskSummary.."\n   ACTIVE: "..string.sub(ACT,2,-1)
+			end
+			if #INACT > 0 then
+				taskSummary = taskSummary.."\n   INACTIVE: "..string.sub(INACT,2,-1)
+			end
 		end
 		if task.Access then
 			taskSummary = taskSummary.."\nLOCKED: YES"

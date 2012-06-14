@@ -893,6 +893,166 @@ do
 		end		-- if not nodeMeta[node1].Task then ends
 	end
 
+	-- Updates a node with the key same as the given task's TaskID
+	function taskTreeINT.UpdateNode(taskTree,task)
+		local oTree = taskTreeINT[taskTree]
+		local node = oTree.Nodes[task.TaskID]
+		
+		nodeMeta[node].Task = task
+		nodeMeta[node].Title = task.Title
+
+		-- Calculate the hierLevel
+		local hierLevel = 0
+		local currNode = node
+		while nodeMeta[currNode].Parent do
+			hierLevel = hierLevel + 1
+			currNode = nodeMeta[currNode].Parent
+		end
+
+		if oTree.update then
+			dispTask(taskTree,nodeMeta[node].Row,false,node,hierLevel)
+			dispGantt(taskTree,nodeMeta[node].Row,false,node)
+			if #oTree.Selected > 0 then
+				oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+			end
+		else
+			-- Add to actionQ
+			oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
+				task.TaskID.."'].Row,false,taskTreeINT[tab].Nodes['"..task.TaskID.."'],"..tostring(hierLevel)..")"
+			oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
+				task.TaskID.."'].Row,false,taskTreeINT[tab].Nodes['"..task.TaskID.."'])"				
+			oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+		end
+	end
+	
+	function taskTreeINT.DeleteSubUpdate(taskTree,task)
+		local oTree = taskTreeINT[taskTree]
+		local node = oTree.Nodes[task.TaskID]
+		local parent = nodeMeta[node].Parent
+		-- Expand the node first
+		node.Expanded = true
+		-- Update the row numbers of all subsequent tasks first
+		local key,nextNode = taskTree:nextVisibleNode(task.TaskID)
+		while nextNode do
+			-- Check if this is in the child hierarchy for node
+			local inHier = nil
+			local currNode = nextNode
+			while currNode and not inHier do
+				if nodeMeta[currNode].Parent == node then
+					-- In the child hierarchy
+					inHier = true
+				end
+				currNode = nodeMeta[currNode].Parent
+			end
+			if inHier then
+				-- Update the display of the task
+				-- Calculate the hierLevel
+				local hierLevel = -1
+				local cN = nextNode
+				while nodeMeta[cN].Parent do
+					hierLevel = hierLevel + 1
+					cN = nodeMeta[cN].Parent
+				end
+		
+				if oTree.update then
+					dispTask(taskTree,nodeMeta[nextNode].Row,false,nextNode,hierLevel)
+					dispGantt(taskTree,nodeMeta[nextNode].Row,false,nextNode)
+					if #oTree.Selected > 0 then
+						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+					end
+				else
+					-- Add to actionQ
+					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
+						nodeMeta[nextNode].Key.."'].Row,false,taskTreeINT[tab].Nodes['"..nodeMeta[nextNode].Key.."'],"..tostring(hierLevel)..")"
+					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
+						nodeMeta[nextNode].Key.."'].Row,false,taskTreeINT[tab].Nodes['"..nodeMeta[nextNode].Key.."'])"				
+					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+				end
+			end
+			-- Update the row now since this will be the new row after the node row is deleted
+			nodeMeta[nextNode].Row = nodeMeta[nextNode].Row - 1
+			key, nextNode = taskTree:nextVisibleNode(key)
+		end		-- while nextNode do ends
+		
+		-- Update the parent of all the immediate children and the hierLevel of all children hierarchy
+		local currNode = nodeMeta[node].FirstChild
+		while currNode do		
+			-- Update the parent
+			nodeMeta[currNode].Parent = parent
+			currNode = nodeMeta[currNode].Next
+		end
+
+		-- Update the Parent links for the node
+		if parent then
+			nodeMeta[parent].Children = nodeMeta[parent].Children + nodeMeta[node].Children
+			if not nodeMeta[node].Prev and nodeMeta[node].FirstChild then
+				nodeMeta[parent].FirstChild = nodeMeta[node].FirstChild
+			end
+			if not nodeMeta[node].Next and nodeMeta[node].LastChild then
+				nodeMeta[parent].LastChild = nodeMeta[node].LastChild
+			end
+		end
+
+		-- Update the sibling links of the node
+		if nodeMeta[node].Prev then
+			if nodeMeta[node].FirstChild then
+				nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].FirstChild
+				nodeMeta[nodeMeta[node].FirstChild].Prev = nodeMeta[node].Prev
+			else
+				nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].Next
+				nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
+			end
+		end
+		if nodeMeta[node].Next then
+			if nodeMeta[node].LastChild then
+				nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].LastChild
+				nodeMeta[nodeMeta[node].LastChild].Next = nodeMeta[node].Next
+			else
+				nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
+				nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].Next
+			end
+		end
+
+
+		-- Adjust the row labels
+		for i = nodeMeta[node].Row+1,oTree.treeGrid:GetNumberRows() do
+			oTree.treeGrid:SetRowLabelValue(i-2,oTree.treeGrid:GetRowLabelValue(i-1))
+			oTree.ganttGrid:SetRowLabelValue(i-2,oTree.ganttGrid:GetRowLabelValue(i-1))
+		end		
+		-- Finally delete the node row
+		oTree.treeGrid:DeleteRows(nodeMeta[node].Row-1)
+		oTree.ganttGrid:DeleteRows(nodeMeta[node].Row-1)
+		oTree.Nodes[nodeMeta[node].Key] = nil
+		nodeMeta[node] = nil
+		-- Update the - sign on the parent
+		if not nodeMeta[parent].FirstChild then
+			-- Nothing left under the parent
+			oTree.treeGrid:SetRowLabelValue(nodeMeta[parent].Row-1,"")
+		elseif not nodeMeta[nodeMeta[parent].FirstChild].Row then
+			oTree.treeGrid:SetRowLabelValue(nodeMeta[parent].Row-1,"+")
+			nodeMeta[parent].Expanded = nil
+		end
+		-- Remove the node from the Selected list
+		if #oTree.Selected > 0 then
+			local index
+			for i = 1,#oTree.Selected do
+				if oTree.Selected[i] == node then
+					index = i
+					break
+				end
+			end
+			if index then
+				for i = index+1,#oTree.Selected-1 do
+					oTree.Selected[i-1] = oTree.Selected[i]
+				end
+				oTree.Selected[#oTree.Selected] = nil
+				if oTree.Selected.Latest > #oTree.Selected then
+					oTree.Selected.Lates = #oTree.Selected
+				end
+			end
+		end
+	end		-- function taskTreeINT.DeleteSubUpdate(taskTree,task) ends
+	
 	function taskTreeINT.AddNode(taskTree,nodeInfo)
 		-- Add the node to the GUI task tree
 		-- nodeInfo.Relative = relative of this new node (should be a task ID) (Can be nil - together with relation means root node)
@@ -1366,7 +1526,7 @@ do
 				-- print("Clicked row "..tostring(row))
 				taskNode.Selected = true
 				taskTreeINT[obj].Selected = {taskNode,Latest=1}
-				if taskTreeINT[obj].cellClickCallBack and taskNode.Key:sub(1,#Globals.ROOTKEY) ~= Globals.ROOTKEY then
+				if taskTreeINT[obj].cellClickCallBack then
 					taskTreeINT[obj].cellClickCallBack(taskNode.Task)
 				end
 			else
@@ -1659,7 +1819,41 @@ function NewTaskCallBack(task)
 	    end
     end
 	GUI.TaskWindowOpen = false
-	-- Add the task here to the taskTree
+end
+
+function EditTaskCallBack(task)
+	if task then
+		-- Replace task into GUI.TaskWindowOpen.Task
+		if not GUI.TaskWindowOpen.Task.Parent then
+			-- This is a root task in the Spore
+			local Spore = SporeData[GUI.TaskWindowOpen.Task.SporeFile]
+			for i=1,#Spore do
+				if Spore[i] == GUI.TaskWindowOpen.Task then
+					Spore[i] = task
+					break
+				end
+			end
+		else
+			local parentTask = GUI.TaskWindowOpen.Task.Parent
+			for i=1,#parentTask.SubTasks do
+				if parentTask.SubTasks[i] == GUI.TaskWindowOpen.Task then
+					parentTask.SubTasks[i] = task
+					break
+				end
+			end
+		end
+		-- Update the task in the GUI here
+		-- Check if the task passes the filter now
+		local taskList = applyFilterList(Filter,{[1]=task})
+		if #taskList == 1 then
+			-- It passes the filter so update the task
+		    GUI.taskTree:UpdateNode(task)
+	    else
+	    	-- Delete the task and adjust the hier level of all the sub task hierarchy if any
+	    	GUI.taskTree:DeleteSubUpdate(task)
+	    end
+	end
+	GUI.TaskWindowOpen = false
 end
 
 function EditTask(event)
@@ -1675,8 +1869,20 @@ function EditTask(event)
             return
 		end		
 		-- Get the new task task ID
-		local task = {}
-		task.TaskID = taskList[1].Key
+		local taskID = taskList[1].Key
+		if taskID == Globals.ROOTKEY then
+			-- Root node editing requested
+			wx.wxMessageBox("Nothing editable in the root node","Root Node Editing", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			return
+		elseif taskID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			-- Spore node editing requested
+			wx.wxMessageBox("Nothing editable in the spore node","Spore Node Editing", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			return
+		else
+			-- A normal task editing requested
+			GUI.TaskWindowOpen = {Task = taskList[1].Task}
+			GUI.TaskForm.taskFormActivate(GUI.frame, EditTaskCallBack,taskList[1].Task)
+		end
 	end
 end
 
