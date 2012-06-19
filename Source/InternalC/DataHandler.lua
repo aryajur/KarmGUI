@@ -990,7 +990,7 @@ function updateTaskID(task,taskID)
 			else
 				-- Increment the counter
 				hierCount[currNode] = hierCount[currNode] + 1
-				currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,task.TaskID)
+				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,task.TaskID)
 				if currNode[hierCount[currNode]].SubTasks then
 					-- This task has children so go deeper in the hierarchy
 					currNode = currNode[hierCount[currNode]].SubTasks
@@ -1103,6 +1103,41 @@ function bubbleTask(task,relative,beforeAfter,parent)
 
 end
 
+function DeleteTaskFromSpore(task, Spore)
+	if task.Parent then
+		error("DeleteTaskFromSpore: Cannot delete task that is not a root task in Spore.",2)
+	end
+	local taskList
+	taskList = Spore
+	for i = 1,#taskList do
+		if taskList[i] == task then
+			for j = i, #taskList-1 do
+				taskList[j] = taskList[j+1]
+			end
+			taskList[#taskList] = nil
+			taskList.tasks = taskList.tasks - 1
+			break
+		end
+	end
+end
+
+function DeleteTaskDB(task)
+	if not task.Parent then
+		error("DeleteTask: Cannot delete task that is a root task in Spore or which does not have any parent.",2)
+	end
+	local taskList
+	taskList = task.Parent.SubTasks
+	for i = 1,#taskList do
+		if taskList[i] == task then
+			for j = i, #taskList-1 do
+				taskList[j] = taskList[j+1]
+			end
+			taskList[#taskList] = nil
+			taskList.tasks = taskList.tasks - 1
+			break
+		end
+	end
+end
 
 -- Function to convert XML data from a single spore to internal data structure
 -- Task structure

@@ -63,10 +63,10 @@ function applyFilterHier(filter, taskHier)
 	local hier = taskHier
 	local hierCount = {}
 	local returnList = {count = 0}
-	-- Reset the hierarchy if not already done so
+--[[	-- Reset the hierarchy if not already done so
 	while hier.parent do
 		hier = hier.parent
-	end
+	end]]
 	-- Traverse the task hierarchy here
 	hierCount[hier] = 0
 	while hierCount[hier] < #hier or hier.parent do

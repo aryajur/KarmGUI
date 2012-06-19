@@ -24,6 +24,8 @@ noScheduleColor = {Red=170,Green=170,Blue=170}
 ScheduleColor = {Red=143,Green=62,Blue=215}
 emptyDayColor = {Red=255,Green=255,Blue=255}
 sunDayOffset = {Red = 50, Green=50, Blue = 50}
+defaultColor = {Red=0,Green=0,Blue=0}
+highLightColor = {Red=120,Green=120,Blue=120}
 -- Task status colors
 
 setfenv(1,_G)
@@ -925,14 +927,127 @@ do
 		end
 	end
 	
-	function taskTreeINT.DeleteSubUpdate(taskTree,task)
+	function taskTreeINT.DeleteTree(taskTree,Key)
+		if Key == Globals.ROOTKEY then
+			error("DeleteTree: Function cannot be used to delete a Root node,",2)
+		end
 		local oTree = taskTreeINT[taskTree]
-		local node = oTree.Nodes[task.TaskID]
+		local node = oTree.Nodes[Key]
+		if not node then
+			-- Already deleted
+			return
+		end
+		local nodesToDel = {node}
+		local rowsToDel = {nodeMeta[node].Row}
+		-- Make list of nodes and rows to delete
+		local k, nextNode = taskTree:nextNode(Key)
+		while nextNode do
+			-- Check if this is in the child hierarchy for node
+			local inHier = nil
+			local currNode = nextNode
+			while currNode and not inHier do
+				if nodeMeta[currNode].Parent == node then
+					-- In the child hierarchy
+					inHier = true
+				end
+				currNode = nodeMeta[currNode].Parent
+			end
+			if not inHier then
+				break	-- once a hierarchy is exited there cannot be another following node in the hierarchy
+			end
+			-- Add to the delete list
+			nodesToDel[#nodesToDel + 1] = nextNode
+			rowsToDel[#rowsToDel + 1] = nodeMeta[nextNode].Row
+			k, nextNode = taskTree:nextNode(k)
+		end		-- while nextNode do ends
+		-- Update the links
+		if nodeMeta[node].Prev then
+			nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].Next
+		end
+		if nodeMeta[node].Next then
+			nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
+		end
+		-- Parent links
+		nodeMeta[nodeMeta[node].Parent].Children = nodeMeta[nodeMeta[node].Parent].Children - 1
+		if not nodeMeta[node].Prev then
+			-- This was the first child
+			nodeMeta[nodeMeta[node].Parent].FirstChild = nodeMeta[node].Next
+		end
+		if not nodeMeta[node].Next then
+			-- This was the last child
+			nodeMeta[nodeMeta[node].Parent].LastChild = nodeMeta[node].Prev
+		end
+		
+		if nextNode then
+			-- Adjust the row labels
+			if not nodeMeta[nextNode].Row then
+				k,nextNode = taskTree:nextVisibleNode(k)
+			end
+			local nextStartNode = nextNode
+			while nextNode do
+				oTree.treeGrid:SetRowLabelValue(nodeMeta[nextNode].Row-#rowsToDel-1,oTree.treeGrid:GetRowLabelValue(nodeMeta[nextNode].Row-1))
+				oTree.ganttGrid:SetRowLabelValue(nodeMeta[nextNode].Row-#rowsToDel-1,oTree.ganttGrid:GetRowLabelValue(nodeMeta[nextNode].Row-1))
+				-- Update the node Row
+				nodeMeta[nextNode].Row = nodeMeta[nextNode].Row-#rowsToDel
+				k,nextNode = taskTree:nextVisibleNode(k)
+			end
+		end	
+		-- Update the parent row label
+		if nodeMeta[nodeMeta[node].Parent].Children == 0 then
+			oTree.treeGrid:SetRowLabelValue(nodeMeta[nodeMeta[node].Parent].Row-1,"")
+		end
+		-- Now delete everything
+		-- Delete the nodes
+		for i = 1,#nodesToDel do
+			oTree.Nodes[nodeMeta[nodesToDel[i]].Key] = nil
+			nodeMeta[nodesToDel[i]] = nil
+		end
+		oTree.nodeCount = oTree.nodeCount - #nodesToDel
+		
+		-- Delete the rows
+		for i = 1,#rowsToDel do
+			oTree.treeGrid:DeleteRows(rowsToDel[i]-1)
+			oTree.ganttGrid:DeleteRows(rowsToDel[i]-1)
+			-- Adjust the row numbers to account for deleted row	
+			for j = i + 1,#rowsToDel do	
+				if rowsToDel[j] > rowsToDel[i] then
+					rowsToDel[j] = rowsToDel[j] - 1
+				end
+			end
+		end
+		
+		-- Remove the nodes from the Selected list
+		if #oTree.Selected > 0 then
+			local i = 1
+			while i <= #oTree.Selected do
+				for j = 1,#nodesToDel do
+					if oTree.Selected[i] == nodesToDel[j] then
+						for k = i+1,#oTree.Selected-1 do
+							oTree.Selected[k-1] = oTree.Selected[k]
+						end
+						oTree.Selected[#oTree.Selected] = nil
+						break
+					end
+				end
+				i = i + 1
+			end
+			if oTree.Selected.Latest > #oTree.Selected then
+				oTree.Selected.Lates = #oTree.Selected
+			end
+		end
+	end		-- function taskTreeINT.DeleteTree(taskTree,Key) ends
+	
+	function taskTreeINT.DeleteSubUpdate(taskTree,Key)
+		if Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			error("DeleteSubUpdate: Function cannot be used to delete a spore or Root node.",2)
+		end
+		local oTree = taskTreeINT[taskTree]
+		local node = oTree.Nodes[Key]
 		local parent = nodeMeta[node].Parent
 		-- Expand the node first
 		node.Expanded = true
 		-- Update the row numbers of all subsequent tasks first
-		local key,nextNode = taskTree:nextVisibleNode(task.TaskID)
+		local key,nextNode = taskTree:nextVisibleNode(Key)
 		while nextNode do
 			-- Check if this is in the child hierarchy for node
 			local inHier = nil
@@ -983,14 +1098,12 @@ do
 		end
 
 		-- Update the Parent links for the node
-		if parent then
-			nodeMeta[parent].Children = nodeMeta[parent].Children + nodeMeta[node].Children
-			if not nodeMeta[node].Prev and nodeMeta[node].FirstChild then
-				nodeMeta[parent].FirstChild = nodeMeta[node].FirstChild
-			end
-			if not nodeMeta[node].Next and nodeMeta[node].LastChild then
-				nodeMeta[parent].LastChild = nodeMeta[node].LastChild
-			end
+		nodeMeta[parent].Children = nodeMeta[parent].Children + nodeMeta[node].Children
+		if not nodeMeta[node].Prev and nodeMeta[node].FirstChild then
+			nodeMeta[parent].FirstChild = nodeMeta[node].FirstChild
+		end
+		if not nodeMeta[node].Next and nodeMeta[node].LastChild then
+			nodeMeta[parent].LastChild = nodeMeta[node].LastChild
 		end
 
 		-- Update the sibling links of the node
@@ -1024,6 +1137,7 @@ do
 		oTree.ganttGrid:DeleteRows(nodeMeta[node].Row-1)
 		oTree.Nodes[nodeMeta[node].Key] = nil
 		nodeMeta[node] = nil
+		oTree.nodeCount = oTree.nodeCount - 1
 		-- Update the - sign on the parent
 		if not nodeMeta[parent].FirstChild then
 			-- Nothing left under the parent
@@ -1576,54 +1690,6 @@ do
 	
 end	-- The custom tree and Gantt widget object for Karm ends here
 
-function Initialize()
-	configFile = "KarmConfig.lua"
-	local f=io.open(configFile,"r")
-	if f~=nil then 
-		io.close(f) 
-		-- load the configuration file
-		dofile(configFile)
-	end
-	-- Load all the XML spores
-	local count = 1
-	-- print(Spores[count])
-	if Spores then
-		while Spores[count] do
-			SporeData[Spores[count]] = XML2Data(xml.load(Spores[count]), Spores[count])
-			count = count + 1
-		end
-	end
-	SporeData[0] = count - 1
-end
-
-function GUI.frameResize(event)
-	local winSize = event:GetSize()
-	local hei = 0.6*winSize:GetHeight()
-	if winSize:GetHeight() - hei > 400 then
-		hei = winSize:GetHeight() - 400
-	end
-	GUI.vertSplitWin:SetSashPosition(hei)
-	event:Skip()
-end
-
-function GUI.dateRangeChangeEvent(event)
-	local startDate = GUI.dateStartPick:GetValue()
-	local finDate = GUI.dateFinPick:GetValue()
-	GUI.taskTree:dateRangeChange(startDate,finDate)
-	event:Skip()
-end
-
-function GUI.dateRangeChange()
-	-- Clear the GanttGrid
-	local startDate = GUI.dateStartPick:GetValue()
-	local finDate = GUI.dateFinPick:GetValue()
-	GUI.taskTree:dateRangeChange(startDate,finDate)
-end
-
-function taskInfoUpdate(task)
-	GUI.taskDetails:SetValue(getTaskSummary(task))
-end
-
 --****f* Karm/fillTaskTree
 -- FUNCTION
 -- Function to recreate the task tree based on the global filter criteria from all the loaded spores
@@ -1735,6 +1801,301 @@ function fillTaskTree()
     GUI.taskDetails:SetValue(getTaskSummary(selected))
 end
 --@@END@@
+
+function Initialize()
+	configFile = "KarmConfig.lua"
+	local f=io.open(configFile,"r")
+	if f~=nil then 
+		io.close(f) 
+		-- load the configuration file
+		dofile(configFile)
+	end
+	-- Load all the XML spores
+	local count = 1
+	-- print(Spores[count])
+	if Spores then
+		while Spores[count] do
+			SporeData[Spores[count]] = XML2Data(xml.load(Spores[count]), Spores[count])
+			count = count + 1
+		end
+	end
+	SporeData[0] = count - 1
+end
+
+function GUI.frameResize(event)
+	local winSize = event:GetSize()
+	local hei = 0.6*winSize:GetHeight()
+	if winSize:GetHeight() - hei > 400 then
+		hei = winSize:GetHeight() - 400
+	end
+	GUI.vertSplitWin:SetSashPosition(hei)
+	event:Skip()
+end
+
+function GUI.dateRangeChangeEvent(event)
+	local startDate = GUI.dateStartPick:GetValue()
+	local finDate = GUI.dateFinPick:GetValue()
+	GUI.taskTree:dateRangeChange(startDate,finDate)
+	event:Skip()
+end
+
+function GUI.dateRangeChange()
+	-- Clear the GanttGrid
+	local startDate = GUI.dateStartPick:GetValue()
+	local finDate = GUI.dateFinPick:GetValue()
+	GUI.taskTree:dateRangeChange(startDate,finDate)
+end
+
+function createNewSpore()
+	local SporeName = wx.wxGetTextFromUser("Enter the New Spore File name under which to move the task (Blank to cancel):", "New Spore", "")
+	if SporeName == "" then
+		return
+	end
+	SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
+	SporeData[SporeName].Modified = "YES"
+	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
+	GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor
+	return Globals.ROOTKEY..SporeName
+end
+
+
+function taskInfoUpdate(task)
+	GUI.taskDetails:SetValue(getTaskSummary(task))
+	if GUI.MoveTask then
+		-- Do the move task here
+		-- Get the selected task
+		local taskList = GUI.taskTree.Selected
+		if #taskList == 0 then
+			-- Cancel the move
+			GUI.statusBar:SetStatusText("",0)
+			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+			GUI.MoveTask = nil
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
+            return
+		end			
+		if #taskList > 1 then
+			GUI.statusBar:SetStatusText("",0)
+			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+			GUI.MoveTask = nil
+			-- Cancel the move
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
+            return
+		end		
+		if taskList[1] ~= GUI.MoveTask.task then
+			-- Start the move
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
+			if taskList[1].Key == Globals.ROOTKEY then
+				-- Relative is Root node
+				if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW then
+					wx.wxMessageBox("Can only move a task under the root task!","Illegal Move", wx.wxOK + wx.wxCENTRE, GUI.frame)
+					GUI.statusBar:SetStatusText("",0)
+					GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+					GUI.MoveTask = nil
+					return
+				end
+				-- This is to move the task into a new Spore
+				-- Create a new Spore here
+				taskList[1] = GUI.taskTree.Nodes[createNewSpore()]
+			end
+			local task = GUI.MoveTask.task
+			if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+				-- Relative is Spore
+				if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW then
+					-- Create a new spore and move it under there
+					taskList[1] = GUI.taskTree.Nodes[createNewSpore()]
+				end
+				-- This is to move the task into this spore
+				local taskID
+				-- Get a new task ID
+				taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "Move Task Under Spore", "")
+				if taskID == "" then
+					GUI.statusBar:SetStatusText("",0)
+					GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+					GUI.MoveTask = nil
+					return
+				end
+				-- Check if the task ID exists in all the loaded spores
+				while true do
+					local redo = nil
+					for k,v in pairs(SporeData) do
+	        			if k~=0 then
+							local list = applyFilterHier({Tasks={[1]={TaskID=taskID}}}, v)
+							if #list > 0 then
+								redo = true
+								break
+							end
+						end
+					end
+					if redo then
+						taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "Move Task Under Spore", "")
+						if taskID == "" then
+							GUI.statusBar:SetStatusText("",0)
+							GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+							GUI.MoveTask = nil
+							return
+						end
+					else
+						break
+					end
+				end		
+				-- Parent of a root node is nil	
+				-- Delete it from db
+				-- Delete from Spores
+				if task.Parent then
+					-- This is a internal hierarchy task
+					DeleteTaskDB(task)
+				else
+					-- This is a root task in a Spore
+					DeleteTaskFromSpore(task,SporeData[task.SporeFile])
+				end
+				-- Delete from task Tree GUI
+				GUI.taskTree:DeleteTree(task.TaskID)
+				updateTaskID(task,taskID)
+				task.Parent = nil
+				task.SporeFile = string.sub(taskList[1].Key,#Globals.ROOTKEY+1,-1)
+				GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
+				NewTaskCallBack(task)				
+				if task.SubTasks then
+					-- Now add all the Child hierarchy of the moved task to the GUI
+					local addList = applyFilterHier(Filter, task.SubTasks)
+					-- Now add the tasks under the spore in the TaskTree
+	            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
+	    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
+		                for intVar = 2,addList.count do
+		                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+		                	local cond2 = #addList[intVar].TaskID > #currNode.Key
+		                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+	                    	while cond1 and not (cond2 and cond3) do
+	                        	-- Go up the hierarchy
+	                        	currNode = currNode.Parent
+			                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+			                	cond2 = #addList[intVar].TaskID > #currNode.Key
+			                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+	                        end
+	                    	-- Now currNode has the node which is the right parent
+		                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
+		                    		Text=addList[intVar].Title, Task = addList[intVar]}
+	                    	currNode.ForeColor = nodeColor
+	                    end
+		            end  -- if addList.count > 0 then ends
+				end		-- if task.SubTasks then ends
+			else		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+				-- This is to move the task in relation to this task
+				-- This relative might be a Spore root task or a normal hierarchy task
+				if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then
+					-- Sub task handling is same in both cases
+					-- Delete it from db
+					-- Delete from Spores
+					if task.Parent then
+						-- This is a internal hierarchy task
+						DeleteTaskDB(task)
+					else
+						-- This is a root task in a Spore
+						DeleteTaskFromSpore(task,SporeData[task.SporeFile])
+					end
+					-- Delete from task Tree GUI
+					GUI.taskTree:DeleteTree(task.TaskID)
+					updateTaskID(task, getNewChildTaskID(taskList[1].Task))
+					task.Parent = taskList[1].Task
+					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "Child"}
+				else
+					local parent, taskID
+					if not taskList[1].Task.Parent then
+						-- This is a spore root node so will have to ask for the task ID from the user
+						taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "Move Task", "")
+						if taskID == "" then
+							GUI.statusBar:SetStatusText("",0)
+							GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+							GUI.MoveTask = nil
+							return
+						end
+						-- Check if the task ID exists in all the loaded spores
+						while true do
+							local redo = nil
+							for k,v in pairs(SporeData) do
+			        			if k~=0 then
+									local list = applyFilterHier({Tasks={[1]={TaskID=taskID}}}, v)
+									if #list > 0 then
+										redo = true
+										break
+									end
+								end
+							end
+							if redo then
+								taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "Move Task", "")
+								if taskID == "" then
+									GUI.statusBar:SetStatusText("",0)
+									GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+									GUI.MoveTask = nil
+									return
+								end
+							else
+								break
+							end
+						end		
+						-- Parent of a root node is nil	
+					else				
+						taskID = getNewChildTaskID(taskList[1].Task.Parent)
+						parent = taskList[1].Task.Parent
+					end
+					if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE then
+						GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "PREV SIBLING"}
+					else
+						GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "NEXT SIBLING"}
+					end
+					-- Delete it from db
+					-- Delete from Spores
+					if task.Parent then
+						-- This is a internal hierarchy task
+						DeleteTaskDB(task)
+					else
+						-- This is a root task in a Spore
+						DeleteTaskFromSpore(task,SporeData[task.SporeFile])
+					end
+					-- Delete from task Tree GUI
+					GUI.taskTree:DeleteTree(task.TaskID)
+					updateTaskID(task,taskID)
+					task.Parent = parent
+				end		-- if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then ends				
+				task.SporeFile = taskList[1].Task.SporeFile
+				NewTaskCallBack(task)
+				if task.SubTasks then
+					-- Now add all the Child hierarchy of the moved task to the GUI
+					local addList = applyFilterHier(Filter, task.SubTasks)
+					-- Now add the tasks under the spore in the TaskTree
+	            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
+	    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
+		                for intVar = 1,addList.count do
+		                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+		                	local cond2 = #addList[intVar].TaskID > #currNode.Key
+		                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+	                    	while cond1 and not (cond2 and cond3) do
+	                        	-- Go up the hierarchy
+	                        	currNode = currNode.Parent
+			                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+			                	cond2 = #addList[intVar].TaskID > #currNode.Key
+			                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+	                        end
+	                    	-- Now currNode has the node which is the right parent
+		                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
+		                    		Text=addList[intVar].Title, Task = addList[intVar]}
+	                    	currNode.ForeColor = nodeColor
+	                    end
+		            end  -- if addList.count > 0 then ends
+				end		-- if task.SubTasks then ends
+			end		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then ends
+			GUI.statusBar:SetStatusText("",0)
+			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+			GUI.MoveTask = nil
+		end		-- if taskList[1] ~= GUI.MoveTask.task then ends
+	end		-- if GUI.MoveTask then ends here
+end		-- function taskInfoUpdate(task) ends here
 
 function SetFilterCallBack(filter)
 	GUI.FilterWindowOpen = false
@@ -1849,14 +2210,125 @@ function EditTaskCallBack(task)
 			-- It passes the filter so update the task
 		    GUI.taskTree:UpdateNode(task)
 	    else
-	    	-- Delete the task and adjust the hier level of all the sub task hierarchy if any
-	    	GUI.taskTree:DeleteSubUpdate(task)
+	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
+	    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
 	    end
 	end
 	GUI.TaskWindowOpen = false
 end
 
+function DeleteTask(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
+	-- Get the selected task
+	local taskList = GUI.taskTree.Selected
+	if #taskList == 0 then
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end
+	for i = 1,#taskList do
+		if taskList[i] == Globals.ROOTKEY then
+			-- Root node  deleting requested
+			wx.wxMessageBox("Cannot delete the root node!","Root Node Deleting", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			return
+		end
+	end	
+	local confirm
+	if #taskList > 1 then
+		confirm = wx.wxMessageDialog(GUI.frame,"Are you sure you want to delete all selected tasks and all their child elements?", "Confirm Multiple Delete", wx.wxYES_NO + wx.wxNO_DEFAULT)
+	else
+		confirm = wx.wxMessageDialog(GUI.frame,"Are you sure you want to delete this task:\n"..taskList[1].Title.."\n and all its child elements?", "Confirm Delete", wx.wxYES_NO + wx.wxNO_DEFAULT)
+	end
+	local response = confirm:ShowModal()
+	if response == wx.wxID_YES then
+		for i = 1,#taskList do
+			-- Delete from Spores
+			if taskList[i].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+				-- This is a Spore node
+				SporeData[taskList[i].Key:sub(Globals.ROOTKEY+1,-1)] = nil
+			else
+				-- This is a normal task
+				if taskList[i].Task.Parent then
+					-- This is a internal hierarchy task
+					DeleteTaskDB(taskList[i].Task)
+				else
+					-- This is a root task in a Spore
+					DeleteTaskFromSpore(taskList[i].Task,SporeData[taskList[i].Task.SporeFile])
+				end
+			end
+			GUI.taskTree:DeleteTree(taskList[i].Key)
+		end
+	end
+end
+
+function MoveTaskToggle(event)
+	-- Get the selected task
+	local taskList = GUI.taskTree.Selected
+	if #taskList == 0 then
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end			
+	if #taskList > 1 then
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+        wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end	
+	if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+		wx.wxMessageBox("Cannot move the root node or a Spore node. Please select a task to be moved.", "No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		return
+	end	
+	GUI.MoveTask = {}
+	-- Check if any other button is toggled then reset that button
+	local ID = event:GetId()
+	GUI.MoveTask.action = ID
+	GUI.MoveTask.task = taskList[1].Task
+	local ID1, ID2, status
+	if ID == GUI.ID_MOVE_UNDER then
+		ID1 = GUI.ID_MOVE_ABOVE
+		ID2 = GUI.ID_MOVE_BELOW
+		status = "MOVE TASK: Click task to move this task under..."
+	elseif ID == GUI.ID_MOVE_ABOVE then
+		ID1 = GUI.ID_MOVE_UNDER
+		ID2 = GUI.ID_MOVE_BELOW
+		status = "MOVE TASK: Click task to move this task above..."
+	else
+		ID1 = GUI.ID_MOVE_ABOVE
+		ID2 = GUI.ID_MOVE_UNDER
+		status = "MOVE TASK: Click Task to move this task below..."
+	end	
+	if GUI.toolbar:GetToolState(ID1) then
+		GUI.toolbar:ToggleTool(ID1,nil)
+	end
+	if GUI.toolbar:GetToolState(ID2) then
+		GUI.toolbar:ToggleTool(ID2,nil)
+	end
+	if not (GUI.toolbar:GetToolState(GUI.ID_MOVE_ABOVE) or GUI.toolbar:GetToolState(GUI.ID_MOVE_UNDER) or GUI.toolbar:GetToolState(GUI.ID_MOVE_BELOW)) then
+		GUI.statusBar:SetStatusText("",0)
+		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+		GUI.MoveTask = nil
+		return
+	end
+	GUI.frame:SetStatusText(status,0)
+	GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.highLightColor.Red,GUI.highLightColor.Green,GUI.highLightColor.Blue))
+end
+
+function ResetToggleTools()
+	GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+	GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+	GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+end
+
 function EditTask(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
 	if not GUI.TaskWindowOpen then
 		-- Get the selected task
 		local taskList = GUI.taskTree.Selected
@@ -1887,6 +2359,8 @@ function EditTask(event)
 end
 
 function NewTask(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
 	if not GUI.TaskWindowOpen then
 		local taskList = GUI.taskTree.Selected
 		if #taskList == 0 then
@@ -1912,14 +2386,7 @@ function NewTask(event)
 	            return
 			end						
 			-- This is the root so the request is to create a new spore
-			local SporeName = wx.wxGetTextFromUser("Enter the Spore File name (Blank to cancel):", "New Spore", "")
-			if SporeName == "" then
-				return
-			end
-			SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
-			SporeData[SporeName].Modified = "YES"
-            GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
-            GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor
+			createNewSpore()
 		elseif relativeID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
 			-- 2. Spore Node
 			if event:GetId() == GUI.ID_NEW_PREV_TASK or event:GetId() == GUI.ID_NEW_NEXT_TASK then
@@ -2017,7 +2484,7 @@ function NewTask(event)
 			end
 			task.SporeFile = GUI.taskTree.Nodes[relativeID].Task.SporeFile
 			GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
-		end
+		end		-- if relativeID == Globals.ROOTKEY then ends
 		
 	else
 		GUI.TaskForm.frame:SetFocus()
@@ -2027,8 +2494,24 @@ end
 function loadXML(event)
 end
 
+function CharKeyEvent(event)
+	print("Caught Keypress")
+	local kc = event:GetKeyCode()
+	if kc == wx.WXK_ESCAPE then
+		print("Caught Escape")
+		-- Check possible ESCAPE actions
+		if GUI.MoveTask then
+			GUI.MoveTask = nil
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
+			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+		end			
+	end
+end
+
 function main()
-    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
+	GUI.ID_FRAME = NewID()
+    GUI.frame = wx.wxFrame( wx.NULL, GUI.ID_FRAME, "Karm",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE )
 
@@ -2058,39 +2541,43 @@ function main()
 	
 	local bM = wx.wxImage("images/LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
 	
-	local toolBar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
-	local toolBmpSize = toolBar:GetToolBitmapSize()
+	GUI.toolbar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
+	local toolBmpSize = GUI.toolbar:GetToolBitmapSize()
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxBitmap(bM), "Load Spore from Disk")
-	--toolBar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
-	toolBar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
-	toolBar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
-	toolBar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
-	toolBar:AddSeparator()
-	toolBar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
-	toolBar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
-	toolBar:AddTool(GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat  Next task")
-	toolBar:AddTool(GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Previous task")
-	toolBar:AddTool(GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
-	toolBar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
-	toolBar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...")
-	toolBar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...")
-	toolBar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...")
-	--toolBar:AddSeparator()
-	--toolBar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
-	toolBar:Realize()
+	GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxBitmap(bM), "Load Spore from Disk")
+	--GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
+	GUI.toolbar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
+	GUI.toolbar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
+	GUI.toolbar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
+	GUI.toolbar:AddSeparator()
+	GUI.toolbar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
+	GUI.toolbar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
+	GUI.toolbar:AddTool(GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat  Next task")
+	GUI.toolbar:AddTool(GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Previous task")
+	GUI.toolbar:AddTool(GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
+	GUI.toolbar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
+	GUI.toolbar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...", wx.wxITEM_CHECK)
+	GUI.toolbar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...", wx.wxITEM_CHECK)
+	GUI.toolbar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...", wx.wxITEM_CHECK)
+	--GUI.toolbar:AddSeparator()
+	--GUI.toolbar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
+	GUI.toolbar:Realize()
 
 	-- Create status Bar in the window
-    GUI.frame:CreateStatusBar(2)
+    GUI.statusBar = GUI.frame:CreateStatusBar(2)
     -- Text for the 1st field in the status bar
     GUI.frame:SetStatusText("Welcome to Karm", 0)
+    GUI.frame:SetStatusBarPane(-1)
     -- text for the second field in the status bar
-    GUI.frame:SetStatusText("Test", 1)
+    --GUI.frame:SetStatusText("Test", 1)
     -- Set the width of the second field to 25% of the whole window
     local widths = {}
     widths[1]=-3
     widths[2] = -1
     GUI.frame:SetStatusWidths(widths)
+    GUI.defaultColor.Red = GUI.statusBar:GetBackgroundColour():Red()
+    GUI.defaultColor.Green = GUI.statusBar:GetBackgroundColour():Green()
+    GUI.defaultColor.Blue = GUI.statusBar:GetBackgroundColour():Blue()
     
 
     -- create the menubar and attach it
@@ -2176,6 +2663,13 @@ function main()
 	GUI.frame:Connect(GUI.ID_NEW_NEXT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,NewTask)
 	GUI.frame:Connect(GUI.ID_NEW_PREV_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,NewTask)
 	GUI.frame:Connect(GUI.ID_EDIT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,EditTask)
+	GUI.frame:Connect(GUI.ID_DEL_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,DeleteTask)
+	GUI.frame:Connect(GUI.ID_MOVE_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
+	GUI.frame:Connect(GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
+	GUI.frame:Connect(GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
+	
+	-- Key Press events
+	GUI.frame:Connect(GUI.ID_FRAME, wx.wxEVT_CHAR, CharKeyEvent)
 
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
