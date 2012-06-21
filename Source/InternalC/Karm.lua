@@ -2669,7 +2669,7 @@ function main()
 	GUI.frame:Connect(GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
 	
 	-- Key Press events
-	GUI.frame:Connect(GUI.ID_FRAME, wx.wxEVT_CHAR, CharKeyEvent)
+	GUI.frame:Connect(GUI.ID_FRAME, wx.wxEVT_CHAR_HOOK, CharKeyEvent)
 
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
