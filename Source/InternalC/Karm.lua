@@ -427,15 +427,24 @@ do
 						oTree.ganttGrid:DeleteRows(oNode.Row,rows)
 						oTree.treeGrid:SetRowLabelValue(oNode.Row-1,"+")
 						if #oTree.Selected > 0 then
-							if oTree.Selected[oTree.Selected.Latest].Row then
-								oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
-							else
-								-- The selected node is not visible anymore
-								currNode = oTree.Selected[oTree.Selected.Latest].Parent
-								while not currNode.Row do
-									currNode = currNode.Parent
+							i = 0
+							while i < #oTree.Selected do
+								i = i + 1
+								if not oTree.Selected[i].Row then
+									-- The selected node is not visible anymore
+									for j = i + 1,#oTree.Selected do
+										oTree.Selected[j-1] = oTree.Selected[j]
+									end
+									oTree.Selected[#oTree.Selected] = nil
 								end
-								oTree.treeGrid:SetGridCursor(currNode.Row-1,1)
+							end
+							if #oTree.Selected == 0 then
+								oTree.Selected[1] = tab
+								oTree.Selected.Latest = 1
+								tab.Selected = true
+								if oTree.cellClickCallBack then
+									oTree.cellClickCallBack(oNode.Task)
+								end
 							end
 						end
 					end
@@ -473,9 +482,6 @@ do
 							nextNode.Row = currRow
 							dispTask(oNode.taskTreeObj,nextNode.Row,true,nextNode,hierLevel)
 							dispGantt(oNode.taskTreeObj,nextNode.Row,true,nextNode)
-							if #oTree.Selected > 0 then
-								oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
-							end
 							nextNode = nextNode.Next
 						end
 						oTree.treeGrid:SetRowLabelValue(oNode.Row-1,"-")
@@ -805,7 +811,7 @@ do
 	dispGantt = dispGanttFunc
 	
 	-- Updates the keys of a node from the underlying tasks
-	function taskTreeINT.UpdateKeys(taskTree,node)
+	function taskTreeINT.UpdateKeys(taskTree,node,noRecurse)
 		if node.ID ~= nodeMeta then
 			error("Need valid node objects to UpdateKeys.",2)
 		end
@@ -817,6 +823,9 @@ do
 		oTree.Nodes[nodeMeta[currNode].Key]  = nil
 		nodeMeta[currNode].Key = nodeMeta[currNode].Task.TaskID
 		oTree.Nodes[nodeMeta[currNode].Key] = currNode
+		if noRecurse then
+			return
+		end
 		if nodeMeta[currNode].FirstChild then
 			currNode = nodeMeta[currNode].FirstChild
 			while currNode ~= node do
@@ -933,6 +942,7 @@ do
 		end
 		local oTree = taskTreeINT[taskTree]
 		local node = oTree.Nodes[Key]
+		local parent = nodeMeta[node].Parent
 		if not node then
 			-- Already deleted
 			return
@@ -968,14 +978,14 @@ do
 			nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
 		end
 		-- Parent links
-		nodeMeta[nodeMeta[node].Parent].Children = nodeMeta[nodeMeta[node].Parent].Children - 1
+		nodeMeta[parent].Children = nodeMeta[parent].Children - 1
 		if not nodeMeta[node].Prev then
 			-- This was the first child
-			nodeMeta[nodeMeta[node].Parent].FirstChild = nodeMeta[node].Next
+			nodeMeta[parent].FirstChild = nodeMeta[node].Next
 		end
 		if not nodeMeta[node].Next then
 			-- This was the last child
-			nodeMeta[nodeMeta[node].Parent].LastChild = nodeMeta[node].Prev
+			nodeMeta[parent].LastChild = nodeMeta[node].Prev
 		end
 		
 		if nextNode then
@@ -993,7 +1003,7 @@ do
 			end
 		end	
 		-- Update the parent row label
-		if nodeMeta[nodeMeta[node].Parent].Children == 0 then
+		if nodeMeta[parent].Children == 0 then
 			oTree.treeGrid:SetRowLabelValue(nodeMeta[nodeMeta[node].Parent].Row-1,"")
 		end
 		-- Now delete everything
@@ -1031,8 +1041,17 @@ do
 				end
 				i = i + 1
 			end
-			if oTree.Selected.Latest > #oTree.Selected then
-				oTree.Selected.Lates = #oTree.Selected
+			if #oTree.Selected == 0 then
+				oTree.Selected[1] = parent
+				oTree.Selected.Latest = 1
+				parent.Selected = true
+				if oTree.cellClickCallBack then
+					oTree.cellClickCallBack(parent.Task)
+				end
+			else
+				if oTree.Selected.Latest > #oTree.Selected then
+					oTree.Selected.Lates = #oTree.Selected
+				end
 			end
 		end
 	end		-- function taskTreeINT.DeleteTree(taskTree,Key) ends
@@ -1048,6 +1067,7 @@ do
 		node.Expanded = true
 		-- Update the row numbers of all subsequent tasks first
 		local key,nextNode = taskTree:nextVisibleNode(Key)
+		local nextV = nextNode
 		while nextNode do
 			-- Check if this is in the child hierarchy for node
 			local inHier = nil
@@ -1160,8 +1180,17 @@ do
 					oTree.Selected[i-1] = oTree.Selected[i]
 				end
 				oTree.Selected[#oTree.Selected] = nil
-				if oTree.Selected.Latest > #oTree.Selected then
-					oTree.Selected.Lates = #oTree.Selected
+				if #oTree.Selected == 0 then
+					oTree.Selected[1] = nextV
+					oTree.Selected.Latest = 1
+					nextV.Selected = true
+					if oTree.cellClickCallBack then
+						oTree.cellClickCallBack(nextV.Task)
+					end
+				else
+					if oTree.Selected.Latest > #oTree.Selected then
+						oTree.Selected.Latest = #oTree.Selected
+					end
 				end
 			end
 		end
@@ -1690,6 +1719,36 @@ do
 	
 end	-- The custom tree and Gantt widget object for Karm ends here
 
+function addSporeToGUI(key,Spore)
+	-- Add the spore node
+	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..key, Text=Spore.Title, Task = Spore}
+	GUI.taskTree.Nodes[Globals.ROOTKEY..key].ForeColor = GUI.nodeForeColor
+	local taskList = applyFilterHier(Filter, Spore)
+	-- Now add the tasks under the spore in the TaskTree
+	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
+	    -- Add the 1st element under the spore
+	    local currNode = GUI.taskTree:AddNode{Relative=Globals.ROOTKEY..key, Relation="Child", Key=taskList[1].TaskID, 
+	    		Text=taskList[1].Title, Task=taskList[1]}
+		currNode.ForeColor = GUI.nodeForeColor
+	    for intVar = 2,taskList.count do
+	    	local cond1 = currNode.Key ~= Globals.ROOTKEY..key
+	    	local cond2 = #taskList[intVar].TaskID > #currNode.Key
+	    	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+	    	while cond1 and not (cond2 and cond3) do
+	        	-- Go up the hierarchy
+	        	currNode = currNode.Parent
+	        	cond1 = currNode.Key ~= Globals.ROOTKEY..key
+	        	cond2 = #taskList[intVar].TaskID > #currNode.Key
+	        	cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+	        end
+	    	-- Now currNode has the node which is the right parent
+	        currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
+	        		Text=taskList[intVar].Title, Task = taskList[intVar]}
+	    	currNode.ForeColor = nodeColor
+	    end
+	end  -- if taskList.count > 0 then ends
+end
+
 --****f* Karm/fillTaskTree
 -- FUNCTION
 -- Function to recreate the task tree based on the global filter criteria from all the loaded spores
@@ -1722,54 +1781,11 @@ function fillTaskTree()
 
     if SporeData[0] > 0 then
 -- Populate the tree control view
-		local count = 0
         for k,v in pairs(SporeData) do
         	if k~=0 then
             -- Get the tasks in the spore
 -- Add the spore to the TaskTree
-				-- Find the name of the file
-				local strVar
-        		local intVar1 = -1
-				count = count + 1
-            	for intVar = #k,1,-1 do
-                	if string.sub(k, intVar, intVar) == "." then
-                    	intVar1 = intVar
-                	end
-                	if string.sub(k, intVar, intVar) == "\\" or string.sub(k, intVar, intVar) == "/" then
-                    	strVar = string.sub(k, intVar + 1, intVar1-1)
-                    	break
-                	end
-            	end
-            	if not strVar then
-            		strVar = k
-            	end
-            	-- Add the spore node
-	            GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..k, Text=strVar, Task = v}
-	            GUI.taskTree.Nodes[Globals.ROOTKEY..k].ForeColor = GUI.nodeForeColor
-				local taskList = applyFilterHier(Filter, v)
--- Now add the tasks under the spore in the TaskTree
-            	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
-	                -- Add the 1st element under the spore
-    	            local currNode = GUI.taskTree:AddNode{Relative=Globals.ROOTKEY..k, Relation="Child", Key=taskList[1].TaskID, 
-    	            		Text=taskList[1].Title, Task=taskList[1]}
-                	currNode.ForeColor = GUI.nodeForeColor
-	                for intVar = 2,taskList.count do
-	                	local cond1 = currNode.Key ~= Globals.ROOTKEY..k
-	                	local cond2 = #taskList[intVar].TaskID > #currNode.Key
-	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                    	while cond1 and not (cond2 and cond3) do
-                        	-- Go up the hierarchy
-                        	currNode = currNode.Parent
-		                	cond1 = currNode.Key ~= Globals.ROOTKEY..k
-		                	cond2 = #taskList[intVar].TaskID > #currNode.Key
-		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                        end
-                    	-- Now currNode has the node which is the right parent
-	                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
-	                    		Text=taskList[intVar].Title, Task = taskList[intVar]}
-                    	currNode.ForeColor = nodeColor
-                    end
-	            end  -- if taskList.count > 0 then ends
+				addSporeToGUI(k,v)
 			end		-- if k~=0 then ends
 -- Repeat for all spores
         end		-- for k,v in pairs(SporeData) do ends
@@ -1815,7 +1831,13 @@ function Initialize()
 	-- print(Spores[count])
 	if Spores then
 		while Spores[count] do
-			SporeData[Spores[count]] = XML2Data(xml.load(Spores[count]), Spores[count])
+			if Spores[count].type == "XML" then
+				-- XML file
+				SporeData[Spores[count].file] = XML2Data(xml.load(Spores[count].file), Spores[count].file)
+				SporeData[Spores[count].file].Modified = true
+			else
+				-- Normal Karm File
+			end
 			count = count + 1
 		end
 	end
@@ -2209,6 +2231,7 @@ function EditTaskCallBack(task)
 		if #taskList == 1 then
 			-- It passes the filter so update the task
 		    GUI.taskTree:UpdateNode(task)
+			taskInfoUpdate(task)
 	    else
 	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
 	    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
@@ -2246,6 +2269,7 @@ function DeleteTask(event)
 			if taskList[i].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
 				-- This is a Spore node
 				SporeData[taskList[i].Key:sub(Globals.ROOTKEY+1,-1)] = nil
+				SporeData[0] = SporeData[0] - 1
 			else
 				-- This is a normal task
 				if taskList[i].Task.Parent then
@@ -2395,7 +2419,8 @@ function NewTask(event)
 					return
 				end
 				SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
-				SporeData[SporeName].Modified = "YES"
+				SporeData[SporeName].Modified = true
+				SporeData[0] = SporeData[0] + 1
 				if event:GetId() == GUI.ID_NEW_PREV_TASK then
 	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="PREV SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
 	            else
@@ -2491,9 +2516,6 @@ function NewTask(event)
 	end	
 end
 
-function loadXML(event)
-end
-
 function CharKeyEvent(event)
 	print("Caught Keypress")
 	local kc = event:GetKeyCode()
@@ -2509,11 +2531,190 @@ function CharKeyEvent(event)
 	end
 end
 
+function connectKeyUpEvent(win)
+	if win then
+		pcall(win:Connect(wx.wxID_ANY, wx.wxEVT_KEY_UP, CharKeyEvent))
+		local childNode = win:GetChildren():GetFirst()
+		while childNode do
+			connectKeyUpEvent(childNode:GetData())
+			childNode = childNode:GetNext()
+		end
+	end
+end
+
+function SaveCurrSpore(event)
+	local taskList = GUI.taskTree.Selected
+	if #taskList == 0 then
+        wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end
+	local Spore
+	if taskList[1].Task.SporeFile then
+		Spore = taskList[1].Task.SporeFile
+	else
+		Spore = taskList[1].Key:sub(#Globals.ROOTKEY + 1,-1)
+	end
+	for i = 2,#taskList do
+		if taskList[i].Task.SporeFile then
+			if Spore ~= taskList[i].Task.SporeFile then
+				-- All selected tasks are not in the same spore
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				return
+			end
+		else
+			if Spore ~= taskList[i].Key:sub(#Globals.ROOTKEY + 1, -1) then
+				-- All selected tasks are not in the same spore
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				return
+			end
+		end
+	end
+	-- Now Spore has the Spore that needs to be Saved
+	local file,err,path
+	if SporeData[Spore].Modified then
+		local notOK = true
+		while notOK do
+		    local fileDialog = wx.wxFileDialog(GUI.frame, "Save Spore: "..GUI.taskTree.Nodes[Globals.ROOTKEY..Spore].Title,
+		                                       "",
+		                                       "",
+		                                       "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
+		                                       wx.wxFD_SAVE)
+		    if fileDialog:ShowModal() == wx.wxID_OK then
+		    	if SporeData[path] then
+		    		wx.wxMessageBox("Spore already exist select a different name please.","Name Conflict", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		    	else
+		    		notOK = nil
+			    	path = fileDialog:GetPath()
+			    	file,err = io.open(path,"w+")
+			    end
+		    else
+		    	return
+		    end
+		    fileDialog:Destroy()
+		end
+	else
+		path = Spore
+		file,err = io.open(path,"w+")
+	end
+	if not file then
+        wx.wxMessageBox("Unable to save as file '"..path.."'.\n "..err, "File Save Error", wx.wxOK + wx.wxCENTRE, GUI.frame)
+    else
+    	if Spore ~= path then
+    		-- Update the Spore File name in all the tasks and the root Spore
+			SporeData[path] = SporeData[Spore]    
+			SporeData[Spore] = nil
+			SporeData[path].SporeFile = path
+			SporeData[path].TaskID = Globals.ROOTKEY..path
+			SporeData[path].Title = sporeTitle(path)		
+			GUI.taskTree:UpdateKeys(GUI.taskTree.Nodes[Globals.ROOTKEY..Spore],true)
+			GUI.taskTree:UpdateNode(SporeData[path])
+			-- Now update all sub tasks
+			local taskList = applyFilterHier(nil,SporeData[path])
+			if #taskList > 0 then
+				for i = 1,#taskList do
+					taskList[i].SporeFile = path
+				end
+			end
+    	end
+    	SporeData[path].Modified = false
+    	file:write(tableToString2(SporeData[path]))
+    	file:close()
+    end
+end
+
+function loadXML(event)
+end
+
+-- Function to load a given Spore table in the data structure and the GUI
+-- Returns:
+-- 1st parameter - true if successful, nil if not
+-- 2nd Parameter - Error code if not successful:
+--		 "LOADED" - Spore Already loaded
+-- 		 "TASKID_DUPLICATE"
+function loadKarmSpore(Spore)
+	-- First update the Globals.ROOTKEY
+	Spore.TaskID = Globals.ROOTKEY..Spore.SporeFile
+	-- Get list of task in the spore
+	local list1 = applyFilterHier(nil,Spore)
+	-- Now check if the spore is already loaded in the dB
+	for k,v in pairs(SporeData) do
+		if k~=0 then
+			if k == Spore.SporeFile then
+				local confirm = wx.wxMessageDialog(GUI.frame,"The Spore is already loaded. Do you want to reload it and loose all current changes?", "Reload", wx.wxYES_NO + wx.wxNO_DEFAULT)
+				local response = confirm:ShowModal()
+				if response == wx.wxID_YES then
+					-- Reload the spore
+					-- Delete the current spore
+					SporeData[k] = nil
+					if GUI.taskTree.Nodes[Globals.ROOTKEY..k] then
+						GUI.taskTree:DeleteTree(Globals.ROOTKEY..k)
+					end
+					-- Load the Spore
+					SporeData[Spore.SporeFile] = Spore 
+					addSporeToGUI(Spore.SporeFile,Spore)
+					return true
+				else
+					return nil, "LOADED"
+				end
+			end		-- if k == Spore.SporeFile then ends
+			-- Check if any task ID is clashing with the existing tasks
+			local list2 = applyFilterHier(nil,v)
+			for i = 1,#list1 do
+				for j = 1,#list2 do
+					if list1[i].TaskID == list2[j].TaskID then
+						wx.wxMessageBox("Task ID clash in the Spore file with the already loaded tasks. Task ID: '"..list1[i].TaskID.."'.\n ", "Task ID clash", wx.wxOK + wx.wxCENTRE, GUI.frame)
+						return nil,"TASKID_DUPLICATE"
+					end
+				end		-- for j = 1,#list2 do ends
+			end		-- for i = 1,#list1 do ends
+		end		-- if k~=0 then ends
+	end		-- for k,v in pairs(SporeData) do ends
+	
+	-- Load the spore here
+	SporeData[Spore.SporeFile] = Spore
+	SporeData[0] = SporeData[0] + 1
+	-- Load the Spore in the GUI here
+	addSporeToGUI(Spore.SporeFile,Spore)
+	return true
+end
+
+function openKarmSpore(event)
+	local ValidSpore = function(file)
+		local safeenv = {}
+		local f,message = loadfile(file)
+		if not f then
+			return nil,message
+		end
+		setfenv(f,safeenv)
+		f()
+		if safeenv.t0 and type(safeenv.t0) == "table" and safeenv.t0[0]=="Task_Spore" then
+			return safeenv.t0
+		else
+			return nil,"Cannot find a valid Spore in the file."
+		end
+	end
+    local fileDialog = wx.wxFileDialog(GUI.frame, "Open Spore file",
+                                       "",
+                                       "",
+                                       "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
+                                       wx.wxOPEN + wx.wxFILE_MUST_EXIST)
+    if fileDialog:ShowModal() == wx.wxID_OK then
+    	local result,message = ValidSpore(fileDialog:GetPath())
+        if not result then
+            wx.wxMessageBox("Unable to load file '"..fileDialog:GetPath().."'.\n "..message,
+                            "File Load Error",
+                            wx.wxOK + wx.wxCENTRE, GUI.frame)
+        else
+        	loadKarmSpore(result)
+        end
+    end
+    fileDialog:Destroy()
+end
+
 function main()
-	GUI.ID_FRAME = NewID()
-    GUI.frame = wx.wxFrame( wx.NULL, GUI.ID_FRAME, "Karm",
+    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
-                        wx.wxDEFAULT_FRAME_STYLE )
+                        wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
 
 	--Toolbar buttons plan 5/10/2012
 	-- Open - open native saved data spore
@@ -2539,13 +2740,13 @@ function main()
 	GUI.ID_MOVE_BELOW = NewID()
 	GUI.ID_REPORT = NewID()
 	
-	local bM = wx.wxImage("images/LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
 	
 	GUI.toolbar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
 	local toolBmpSize = GUI.toolbar:GetToolBitmapSize()
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxBitmap(bM), "Load Spore from Disk")
-	--GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
+	--local bM = wx.wxImage("images/LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
+	--bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	--GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxBitmap(bM), "Load Spore from Disk")
+	GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
 	GUI.toolbar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
 	GUI.toolbar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
 	GUI.toolbar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
@@ -2591,7 +2792,6 @@ function main()
     GUI.menuBar:Append(helpMenu, "&Help")
 
     GUI.frame:SetMenuBar(GUI.menuBar)
-
 	GUI.vertSplitWin = wx.wxSplitterWindow(GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
 						wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxSP_3D, "Main Vertical Splitter")
 	GUI.vertSplitWin:SetMinimumPaneSize(10)
@@ -2668,9 +2868,9 @@ function main()
 	GUI.frame:Connect(GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
 	GUI.frame:Connect(GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
 	
-	-- Key Press events
-	GUI.frame:Connect(GUI.ID_FRAME, wx.wxEVT_CHAR_HOOK, CharKeyEvent)
-
+	GUI.frame:Connect(GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,SaveCurrSpore)
+	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,openKarmSpore)
+	
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
@@ -2702,6 +2902,9 @@ function main()
 		
     wx.wxGetApp():SetTopWindow(GUI.frame)
     
+	-- Key Press events
+	--connectKeyUpEvent(GUI.frame)
+
     GUI.frame:Show(true)
 end
 

@@ -27,6 +27,7 @@ local tableToString = tableToString
 local getEmptyTask = getEmptyTask
 local copyTask = copyTask
 local addItemToArray = addItemToArray
+local collectFilterDataHier = collectFilterDataHier
 local newGUITreeGantt = function() 
 		return newGUITreeGantt 
 	end
@@ -67,7 +68,7 @@ local function makeTask(task)
 	if task then
 		newTask.DBDATA = task.DBDATA
 	end
-	newTask.Modified = "YES"
+	newTask.Modified = true
 	if pubPrivate:GetValue() == "Public" then
 		newTask.Private = false
 	else
@@ -224,13 +225,7 @@ function taskFormActivate(parent, callBack, task)
 	-- Loop through all the spores
 	for k,v in pairs(SporeData) do
 		if k~=0 then
-			for ki,val in pairs(v.filterData) do
-				-- Collect Data
-				filterData[ki] = {}
-				for i = 1,#v.filterData[ki] do
-					addItemToArray(v.filterData[ki][i],filterData[ki]) 
-				end
-			end
+			collectFilterDataHier(filterData,v)
 		end		-- if k~=0 then ends
 	end		-- for k,v in pairs(SporeData) do ends
 	frame = wx.wxFrame(parent, wx.wxID_ANY, "Task Form", wx.wxDefaultPosition,
@@ -449,7 +444,7 @@ function taskFormActivate(parent, callBack, task)
 				if task and task.Access then
 					for i = 1,#task.Access do
 						local id = task.Access[i].ID
-						if task.Who[i].Status == "Read/Write" then
+						if task.Access[i].Status == "Read/Write" then
 							accList:InsertItem(id,true)
 						else
 							accList:InsertItem(id)

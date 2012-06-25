@@ -409,6 +409,11 @@ function tableToString(t)
 	return rL[rL.cL].str
 end
 
+-- Creates lua code for a table which when executed will create a table t0 which would be the same as the originally passed table
+-- Handles the following types for keys and values:
+-- Keys: Number, String, Table
+-- Values: Number, String, Table, Boolean
+-- It also handles recursive and interlinked tables to recreate them back
 function tableToString2(t)
 	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)
 	rL[rL.cL] = {}
@@ -428,9 +433,6 @@ function tableToString2(t)
 				break
 			elseif not k then
 				-- go up in recursion level
-				if string.sub(rL[rL.cL].str,-1,-1) == "," then
-					rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)
-				end
 				--print("GOING UP:     "..rL[rL.cL].str.."}")
 				rL[rL.cL-1].str = rL[rL.cL-1].str.."\n"..rL[rL.cL].str
 				rL.cL = rL.cL - 1
@@ -475,7 +477,7 @@ function tableToString2(t)
 				if type(v) == "table" then
 					-- Check if this table is already indexed
 					if tabIndex[v] then
-						rL[rL.cL].str = rL[rL.cL].str.."t"..tabIndex[k]
+						rL[rL.cL].str = rL[rL.cL].str.."t"..tabIndex[v]
 					else
 						-- Go deeper in recursion
 						latestTab = latestTab + 1
@@ -496,7 +498,7 @@ function tableToString2(t)
 				elseif type(v) == "boolean" then
 					rL[rL.cL].str = rL[rL.cL].str..tostring(v)				
 				else
-					rL[rL.cL].str = rL[rL.cL].str.."\""..tostring(v).."\""
+					rL[rL.cL].str = rL[rL.cL].str..string.format("%q",tostring(v))
 					--print(k,"=",v)
 				end		-- if type(v) == "table" then ends
 			end		-- if doV then ends
@@ -1022,7 +1024,7 @@ end
 function addTask2Spore(task,dataStruct)
 	dataStruct.tasks = dataStruct.tasks + 1
 	dataStruct[dataStruct.tasks] = task 
-	collectFilterData(dataStruct.filterData,task)
+	--collectFilterData(dataStruct.filterData,task)
 end
 
 function getNewChildTaskID(parent)
@@ -1235,6 +1237,26 @@ function DeleteTaskDB(task)
 	end
 end
 
+function sporeTitle(path)
+	-- Find the name of the file
+	local strVar
+	local intVar1 = -1
+	for intVar = #path,1,-1 do
+		if string.sub(path, intVar, intVar) == "." then
+	    	intVar1 = intVar
+		end
+		if string.sub(path, intVar, intVar) == "\\" or string.sub(path, intVar, intVar) == "/" then
+	    	strVar = string.sub(path, intVar + 1, intVar1-1)
+	    	break
+		end
+	end
+	if not strVar then
+		strVar = path
+	end
+	return strVar
+
+end
+
 -- Function to convert XML data from a single spore to internal data structure
 -- Task structure
 -- Task.
@@ -1278,8 +1300,7 @@ end
 function XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
-	local dataStruct = {tasks = 0, TaskID = Globals.ROOTKEY..SporeFile, [0] = "Task_Spore",filterData = {Who={},Assignee={},Access={},Priority={},Cat={},SubCat={},Tags={}}}	-- to create the data structure
-	local filterData = dataStruct.filterData
+	local dataStruct = {Title = sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Globals.ROOTKEY..SporeFile, [0] = "Task_Spore"}	-- to create the data structure
 	if SporeXML[0]~="Task_Spore" then
 		return nil
 	end
@@ -1307,7 +1328,11 @@ function XML2Data(SporeXML, SporeFile)
 						dataStruct[dataStruct.tasks].Title = task[count][1]
 						necessary = necessary + 1
 					elseif task[count][0] == "Modified" then
-						dataStruct[dataStruct.tasks].Modified = task[count][1]
+						if task[count][1] == "YES" then
+							dataStruct[dataStruct.tasks].Modified = true
+						else
+							dataStruct[dataStruct.tasks].Modified = false
+						end
 						necessary = necessary + 1
 					elseif task[count][0] == "DB-Data" then
 						dataStruct[dataStruct.tasks].DBDATA = {[0]="DB-Data",DBID = task[count][1][1], Updated = task[count][2][1]}
@@ -1333,7 +1358,6 @@ function XML2Data(SporeXML, SporeFile)
 								-- Loop through all the items in the Who element
 								for i = 1,#task[count][j] do
 									WhoTable[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}
-									filterData.Who = addItemToArray(WhoTable[i].ID,filterData.Who)
 								end
 								necessary = necessary + 1
 								dataStruct[dataStruct.tasks].Who = WhoTable
@@ -1342,7 +1366,6 @@ function XML2Data(SporeXML, SporeFile)
 								-- Loop through all the items in the Locked element Access List
 								for i = 1,#task[count][j] do
 									locked[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}
-									filterData.Access = addItemToArray(locked[i].ID,filterData.Access)
 								end
 								dataStruct[dataStruct.tasks].Access = locked
 							elseif task[count][j][0] == "Assignee" then
@@ -1350,7 +1373,6 @@ function XML2Data(SporeXML, SporeFile)
 								-- Loop through all the items in the Assignee element
 								for i = 1,#task[count][j] do
 									assignee[i] = {ID = task[count][j][i][1]}
-									filterData.Assignee = addItemToArray(assignee[i].ID,filterData.Assignee)
 								end				
 								dataStruct[dataStruct.tasks].Assignee = assignee					
 							end		-- if task[count][j][0] == "Who" then ends here				
@@ -1360,23 +1382,19 @@ function XML2Data(SporeXML, SporeFile)
 						necessary = necessary + 1
 					elseif task[count][0] == "Priority" then
 						dataStruct[dataStruct.tasks].Priority = task[count][1]
-						filterData.Priority = addItemToArray(task[count][1],filterData.Priority)
 					elseif task[count][0] == "Due" then
 						dataStruct[dataStruct.tasks].Due = task[count][1]
 					elseif task[count][0] == "Comments" then
 						dataStruct[dataStruct.tasks].Comments = task[count][1]
 					elseif task[count][0] == "Category" then
 						dataStruct[dataStruct.tasks].Cat = task[count][1]
-						filterData.Cat = addItemToArray(task[count][1],filterData.Cat)
 					elseif task[count][0] == "Sub-Category" then
 						dataStruct[dataStruct.tasks].SubCat = task[count][1]
-						filterData.SubCat = addItemToArray(task[count][1],filterData.SubCat)
 					elseif task[count][0] == "Tags" then
 						local tagTable = {[0]="Tags", count = #task[count]}
 						-- Loop through all the items in the Tags element
 						for i = 1,#task[count] do
 							tagTable[i] = task[count][i][1]
-							filterData.Tags = addItemToArray(tagTable[i],filterData.Tags)
 						end
 						dataStruct[dataStruct.tasks].Tags = tagTable
 					elseif task[count][0] == "Schedules" then

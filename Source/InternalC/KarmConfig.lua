@@ -1,4 +1,4 @@
-Spores = {"Test/Tasks.xml"}
+Spores = {{file = "Test/Tasks.xml",type = "XML"}}
 -- Initial Filter
 --[[Filter = {
 	Tasks = {

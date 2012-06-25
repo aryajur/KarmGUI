@@ -28,6 +28,13 @@ function textSummary(filter)
 end
 
 function collectFilterData(filterData,task)
+	filterData = filterData or {}
+	filterData.Who = filterData.Who or {}
+	filterData.Access = filterData.Access or {}
+	filterData.Priority = filterData.Priority or {}
+	filterData.Cat = filterData.Cat or {}
+	filterData.SubCat = filterData.SubCat or {}
+	filterData.Tags = filterData.Tags or {}
 	-- Who data
 	for i = 1,#task.Who do
 		filterData.Who = addItemToArray(task.Who[i].ID,filterData.Who)
