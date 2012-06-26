@@ -1005,6 +1005,7 @@ do
 		-- Update the parent row label
 		if nodeMeta[parent].Children == 0 then
 			oTree.treeGrid:SetRowLabelValue(nodeMeta[nodeMeta[node].Parent].Row-1,"")
+			nodeMeta[parent].Expanded = false
 		end
 		-- Now delete everything
 		-- Delete the nodes
@@ -1982,14 +1983,23 @@ function taskInfoUpdate(task)
 				task.Parent = nil
 				task.SporeFile = string.sub(taskList[1].Key,#Globals.ROOTKEY+1,-1)
 				GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
-				NewTaskCallBack(task)				
+				NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
 				if task.SubTasks then
+					-- Update the SubTasks parent
+					task.SubTasks.parent = SporeData[task.SporeFile]
+					-- Update the Spore file in all sub tasks
+					local list1 = applyFilterHier(nil,SporeData[task.SporeFile])
+					if #list1 > 0 then
+						for i = 1,#list1 do
+							list1[i].SporeFile = task.SporeFile
+						end
+					end					
 					-- Now add all the Child hierarchy of the moved task to the GUI
 					local addList = applyFilterHier(Filter, task.SubTasks)
 					-- Now add the tasks under the spore in the TaskTree
 	            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
 	    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
-		                for intVar = 2,addList.count do
+		                for intVar = 1,addList.count do
 		                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
 		                	local cond2 = #addList[intVar].TaskID > #currNode.Key
 		                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
@@ -2026,7 +2036,7 @@ function taskInfoUpdate(task)
 					updateTaskID(task, getNewChildTaskID(taskList[1].Task))
 					task.Parent = taskList[1].Task
 					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "Child"}
-				else
+				else		-- if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then else
 					local parent, taskID
 					if not taskList[1].Task.Parent then
 						-- This is a spore root node so will have to ask for the task ID from the user
@@ -2065,7 +2075,7 @@ function taskInfoUpdate(task)
 					else				
 						taskID = getNewChildTaskID(taskList[1].Task.Parent)
 						parent = taskList[1].Task.Parent
-					end
+					end		-- if not taskList[1].Task.Parent then ends
 					if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE then
 						GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "PREV SIBLING"}
 					else
@@ -2086,8 +2096,17 @@ function taskInfoUpdate(task)
 					task.Parent = parent
 				end		-- if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then ends				
 				task.SporeFile = taskList[1].Task.SporeFile
-				NewTaskCallBack(task)
+				NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
 				if task.SubTasks then
+					-- update the SubTasks parent
+					task.SubTasks.parent = taskList[1].Task.SubTasks
+					-- Update the Spore file in all sub tasks
+					local list1 = applyFilterHier(nil,SporeData[task.SporeFile])
+					if #list1 > 0 then
+						for i = 1,#list1 do
+							list1[i].SporeFile = task.SporeFile
+						end
+					end										
 					-- Now add all the Child hierarchy of the moved task to the GUI
 					local addList = applyFilterHier(Filter, task.SubTasks)
 					-- Now add the tasks under the spore in the TaskTree
@@ -2200,7 +2219,7 @@ function NewTaskCallBack(task)
 		    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
 	    	GUI.taskTree.Nodes[task.TaskID].ForeColor = GUI.nodeForeColor
 	    end
-    end
+    end		-- if task then ends
 	GUI.TaskWindowOpen = false
 end
 
@@ -2268,7 +2287,7 @@ function DeleteTask(event)
 			-- Delete from Spores
 			if taskList[i].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
 				-- This is a Spore node
-				SporeData[taskList[i].Key:sub(Globals.ROOTKEY+1,-1)] = nil
+				SporeData[taskList[i].Key:sub(#Globals.ROOTKEY+1,-1)] = nil
 				SporeData[0] = SporeData[0] - 1
 			else
 				-- This is a normal task
