@@ -33,6 +33,7 @@ setfenv(1,_G)
 -- Global Declarations
 Globals = {
 	ROOTKEY = "T0",
+	KARM_VERSION = "1.12.07.01",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	NoDateStr = "__NO_DATE__",
@@ -55,6 +56,7 @@ end
 -- Karm files
 require("Filter")
 require("DataHandler")
+require("Validator")
 GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
 GUI.TaskForm = require("TaskForm")		-- Containing all Task Form GUI code
 
@@ -1829,6 +1831,7 @@ function Initialize()
 	end
 	-- Load all the XML spores
 	local count = 1
+	SporeData[0] = 0
 	-- print(Spores[count])
 	if Spores then
 		while Spores[count] do
@@ -1836,13 +1839,14 @@ function Initialize()
 				-- XML file
 				SporeData[Spores[count].file] = XML2Data(xml.load(Spores[count].file), Spores[count].file)
 				SporeData[Spores[count].file].Modified = true
+				SporeData[0] = SporeData[0] + 1
 			else
 				-- Normal Karm File
+				local result,message = pcall(loadKarmSpore,Spores[count].file, {onlyData=true})
 			end
 			count = count + 1
 		end
 	end
-	SporeData[0] = count - 1
 end
 
 function GUI.frameResize(event)
@@ -2552,7 +2556,7 @@ end
 
 function connectKeyUpEvent(win)
 	if win then
-		pcall(win:Connect(wx.wxID_ANY, wx.wxEVT_KEY_UP, CharKeyEvent))
+		pcall(win.Connect,win,wx.wxID_ANY, wx.wxEVT_KEY_UP, CharKeyEvent)
 		local childNode = win:GetChildren():GetFirst()
 		while childNode do
 			connectKeyUpEvent(childNode:GetData())
@@ -2644,36 +2648,57 @@ end
 function loadXML(event)
 end
 
--- Function to load a given Spore table in the data structure and the GUI
--- Returns:
--- 1st parameter - true if successful, nil if not
--- 2nd Parameter - Error code if not successful:
---		 "LOADED" - Spore Already loaded
--- 		 "TASKID_DUPLICATE"
-function loadKarmSpore(Spore)
+-- Function to load a Spore given the Spore file path in the data structure and the GUI
+-- Inputs:
+-- file - the file name with full path of the Spore to load
+-- commands - A table containin the set of commands on behavior
+--		onlyData - if true then only the Spore Data is loaded GUI is not touched or queries
+--		forceReload - if true reloads the data over the existing data
+-- Returns true if successful otherwise throws an error
+-- Error Codes returned:
+--		 1 - Spore Already loaded
+-- 		 2 - Task ID in the Spore already exists in the memory
+--		 3 - No valid Spore found in the file
+--		 4 - File load error
+function loadKarmSpore(file, commands)
+	local Spore
+	do
+		local safeenv = {}
+		local f,message = loadfile(file)
+		if not f then
+			error({msg = "loadKarmSpore:4 "..message, code = "loadKarmSpore:4"},2)
+		end
+		setfenv(f,safeenv)
+		f()
+		if validateSpore(safeenv.t0) then
+			Spore = safeenv.t0
+		else
+			error({msg = "loadKarmSpore:3 No valid Spore found in the file", code = "loadKarmSpore:3"},2)
+		end
+	end
+	-- Update the SporeFile in all the tasks
+	Spore.SporeFile = file
+	-- Now update all sub tasks
+	local list1 = applyFilterHier(nil,Spore)
+	if #list1 > 0 then
+		for i = 1,#list1 do
+			list1[i].SporeFile = Spore.SporeFile
+		end
+	end        	
 	-- First update the Globals.ROOTKEY
 	Spore.TaskID = Globals.ROOTKEY..Spore.SporeFile
 	-- Get list of task in the spore
-	local list1 = applyFilterHier(nil,Spore)
+	list1 = applyFilterHier(nil,Spore)
+	local reload = nil
 	-- Now check if the spore is already loaded in the dB
 	for k,v in pairs(SporeData) do
 		if k~=0 then
 			if k == Spore.SporeFile then
-				local confirm = wx.wxMessageDialog(GUI.frame,"The Spore is already loaded. Do you want to reload it and loose all current changes?", "Reload", wx.wxYES_NO + wx.wxNO_DEFAULT)
-				local response = confirm:ShowModal()
-				if response == wx.wxID_YES then
+				if commands.forceReload then
 					-- Reload the spore
-					-- Delete the current spore
-					SporeData[k] = nil
-					if GUI.taskTree.Nodes[Globals.ROOTKEY..k] then
-						GUI.taskTree:DeleteTree(Globals.ROOTKEY..k)
-					end
-					-- Load the Spore
-					SporeData[Spore.SporeFile] = Spore 
-					addSporeToGUI(Spore.SporeFile,Spore)
-					return true
+					reload = true
 				else
-					return nil, "LOADED"
+					error({msg = "loadKarmSpore:1 Spore already loaded", code = "loadKarmSpore:1"},2)
 				end
 			end		-- if k == Spore.SporeFile then ends
 			-- Check if any task ID is clashing with the existing tasks
@@ -2681,53 +2706,71 @@ function loadKarmSpore(Spore)
 			for i = 1,#list1 do
 				for j = 1,#list2 do
 					if list1[i].TaskID == list2[j].TaskID then
-						wx.wxMessageBox("Task ID clash in the Spore file with the already loaded tasks. Task ID: '"..list1[i].TaskID.."'.\n ", "Task ID clash", wx.wxOK + wx.wxCENTRE, GUI.frame)
-						return nil,"TASKID_DUPLICATE"
+						error({msg = "loadKarmSpore:2 Task ID in the Spore already exists in the memory", code = "loadKarmSpore:2"},2)
 					end
 				end		-- for j = 1,#list2 do ends
 			end		-- for i = 1,#list1 do ends
 		end		-- if k~=0 then ends
 	end		-- for k,v in pairs(SporeData) do ends
-	
+	if reload then
+		-- Delete the current spore
+		SporeData[Spore.SporeFile] = nil
+		if not commands.onlyData and GUI.taskTree.Nodes[Globals.ROOTKEY..Spore.SporeFile] then
+			GUI.taskTree:DeleteTree(Globals.ROOTKEY..Spore.SporeFile)
+		end
+	end
 	-- Load the spore here
 	SporeData[Spore.SporeFile] = Spore
 	SporeData[0] = SporeData[0] + 1
-	-- Load the Spore in the GUI here
-	addSporeToGUI(Spore.SporeFile,Spore)
+	if not commands.onlyData then
+		-- Load the Spore in the GUI here
+		addSporeToGUI(Spore.SporeFile,Spore)
+	end
 	return true
 end
 
 function openKarmSpore(event)
-	local ValidSpore = function(file)
-		local safeenv = {}
-		local f,message = loadfile(file)
-		if not f then
-			return nil,message
-		end
-		setfenv(f,safeenv)
-		f()
-		if safeenv.t0 and type(safeenv.t0) == "table" and safeenv.t0[0]=="Task_Spore" then
-			return safeenv.t0
-		else
-			return nil,"Cannot find a valid Spore in the file."
-		end
-	end
     local fileDialog = wx.wxFileDialog(GUI.frame, "Open Spore file",
                                        "",
                                        "",
                                        "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
                                        wx.wxOPEN + wx.wxFILE_MUST_EXIST)
     if fileDialog:ShowModal() == wx.wxID_OK then
-    	local result,message = ValidSpore(fileDialog:GetPath())
+    	local result,message = pcall(loadKarmSpore,fileDialog:GetPath(),{})
         if not result then
-            wx.wxMessageBox("Unable to load file '"..fileDialog:GetPath().."'.\n "..message,
+            wx.wxMessageBox("Unable to load file '"..fileDialog:GetPath().."'.\n "..message.msg,
                             "File Load Error",
                             wx.wxOK + wx.wxCENTRE, GUI.frame)
-        else
-        	loadKarmSpore(result)
         end
     end
     fileDialog:Destroy()
+end
+
+function menuEventHandlerFunction(ID, code, file)
+	if not ID or (not code and not file) or (code and file) then
+		error("menuEventHandler: invalid parameters passed, need the ID and only 1 of code chunk or file name.")
+	end
+	local handler
+	if code then
+		handler = function(event)
+			local f,message = loadstring(code)
+			if not f then
+				error(message,1)
+			end
+			setfenv(f,getfenv(1))
+			f()
+		end
+	else
+		handler = function(event)
+			local f,message = loadfile(file)
+			if not f then
+				error(message,1)
+			end
+			setfenv(f,getfenv(1))
+			f()		
+		end
+	end
+	return handler
 end
 
 function main()
@@ -2801,14 +2844,49 @@ function main()
     
 
     -- create the menubar and attach it
-    local fileMenu = wx.wxMenu()
-    fileMenu:Append(wx.wxID_EXIT, "E&xit", "Quit the program")
-    local helpMenu = wx.wxMenu()
-    helpMenu:Append(wx.wxID_ABOUT, "&About", "About Karm")
-
     GUI.menuBar = wx.wxMenuBar()
-    GUI.menuBar:Append(fileMenu, "&File")
-    GUI.menuBar:Append(helpMenu, "&Help")
+	for i = 1,#GUI.MainMenu do
+		if GUI.MainMenu[i].Text and GUI.MainMenu[i].Menu then
+			local menuTable = {}
+			for j = 1,#GUI.MainMenu[i].Menu do
+				local Menu = GUI.MainMenu[i].Menu[j]
+				menuTable[j] = {}	
+				if Menu.Text and Menu.HelpText and (Menu.Code or Menu.File) then
+					menuTable[j][1] = NewID()
+					menuTable[j][2] = Menu.Text
+					menuTable[j][3] = Menu.HelpText
+					-- Connect the event for this
+					GUI.frame:Connect(menuTable[j][1], wx.wxEVT_COMMAND_MENU_SELECTED,menuEventHandlerFunction(menuTable[j][1],Menu.Code,Menu.File))
+				end
+			end
+			local newMenu = wx.wxMenu(menuTable)
+			GUI.menuBar:Append(newMenu,GUI.MainMenu[i].Text)
+		end
+	end    
+--    local fileMenu = wx.wxMenu()
+--    fileMenu:Append(wx.wxID_EXIT, "E&xit", "Quit the program")
+--    local helpMenu = wx.wxMenu()
+--    helpMenu:Append(wx.wxID_ABOUT, "&About", "About Karm")
+--
+--    GUI.menuBar:Append(fileMenu, "&File")
+--    GUI.menuBar:Append(helpMenu, "&Help")
+	-- MENU COMMANDS
+    -- connect the selection event of the exit menu item to an
+    -- event handler that closes the window
+--    GUI.frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
+--        function (event)
+--            frame:Close(true)
+--        end )
+--
+--    -- connect the selection event of the about menu item
+--    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
+--        function (event)
+--            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
+--                            wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
+--                            "About Karm",
+--                            wx.wxOK + wx.wxICON_INFORMATION,
+--                            frame)
+--        end )
 
     GUI.frame:SetMenuBar(GUI.menuBar)
 	GUI.vertSplitWin = wx.wxSplitterWindow(GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
@@ -2890,24 +2968,6 @@ function main()
 	GUI.frame:Connect(GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,SaveCurrSpore)
 	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,openKarmSpore)
 	
-	-- MENU COMMANDS
-    -- connect the selection event of the exit menu item to an
-    -- event handler that closes the window
-    GUI.frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
-        function (event)
-            frame:Close(true)
-        end )
-
-    -- connect the selection event of the about menu item
-    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
-        function (event)
-            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
-                            wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
-                            "About Karm",
-                            wx.wxOK + wx.wxICON_INFORMATION,
-                            frame)
-        end )
-    
     -- Task selection in task tree
     GUI.taskTree:associateEventFunc({cellClickCallBack = taskInfoUpdate})
     -- *******************EVENTS FINISHED***************************************************************
