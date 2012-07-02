@@ -2565,6 +2565,67 @@ function connectKeyUpEvent(win)
 	end
 end
 
+function SaveAllSpores(event)
+	for k,v in pairs(SporeData) do
+		if k ~= 0 then
+			saveKarmSpore(k)
+		end
+	end
+end
+
+function saveKarmSpore(Spore)
+	local file,err,path
+	if SporeData[Spore].Modified then
+		local notOK = true
+		while notOK do
+		    local fileDialog = wx.wxFileDialog(GUI.frame, "Save Spore: "..GUI.taskTree.Nodes[Globals.ROOTKEY..Spore].Title,
+		                                       "",
+		                                       "",
+		                                       "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
+		                                       wx.wxFD_SAVE)
+		    if fileDialog:ShowModal() == wx.wxID_OK then
+		    	if SporeData[path] then
+		    		wx.wxMessageBox("Spore already exist select a different name please.","Name Conflict", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		    	else
+		    		notOK = nil
+			    	path = fileDialog:GetPath()
+			    	file,err = io.open(path,"w+")
+			    end
+		    else
+		    	return
+		    end
+		    fileDialog:Destroy()
+		end
+	else
+		path = Spore
+		file,err = io.open(path,"w+")
+	end		-- if SporeData[Spore].Modified then ends
+	if not file then
+        wx.wxMessageBox("Unable to save as file '"..path.."'.\n "..err, "File Save Error", wx.wxOK + wx.wxCENTRE, GUI.frame)
+    else
+    	if Spore ~= path then
+    		-- Update the Spore File name in all the tasks and the root Spore
+			SporeData[path] = SporeData[Spore]    
+			SporeData[Spore] = nil
+			SporeData[path].SporeFile = path
+			SporeData[path].TaskID = Globals.ROOTKEY..path
+			SporeData[path].Title = sporeTitle(path)		
+			GUI.taskTree:UpdateKeys(GUI.taskTree.Nodes[Globals.ROOTKEY..Spore],true)
+			GUI.taskTree:UpdateNode(SporeData[path])
+			-- Now update all sub tasks
+			local taskList = applyFilterHier(nil,SporeData[path])
+			if #taskList > 0 then
+				for i = 1,#taskList do
+					taskList[i].SporeFile = path
+				end
+			end
+    	end
+    	SporeData[path].Modified = false
+    	file:write(tableToString2(SporeData[path]))
+    	file:close()
+    end
+end
+
 function SaveCurrSpore(event)
 	local taskList = GUI.taskTree.Selected
 	if #taskList == 0 then
@@ -2593,56 +2654,7 @@ function SaveCurrSpore(event)
 		end
 	end
 	-- Now Spore has the Spore that needs to be Saved
-	local file,err,path
-	if SporeData[Spore].Modified then
-		local notOK = true
-		while notOK do
-		    local fileDialog = wx.wxFileDialog(GUI.frame, "Save Spore: "..GUI.taskTree.Nodes[Globals.ROOTKEY..Spore].Title,
-		                                       "",
-		                                       "",
-		                                       "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
-		                                       wx.wxFD_SAVE)
-		    if fileDialog:ShowModal() == wx.wxID_OK then
-		    	if SporeData[path] then
-		    		wx.wxMessageBox("Spore already exist select a different name please.","Name Conflict", wx.wxOK + wx.wxCENTRE, GUI.frame)
-		    	else
-		    		notOK = nil
-			    	path = fileDialog:GetPath()
-			    	file,err = io.open(path,"w+")
-			    end
-		    else
-		    	return
-		    end
-		    fileDialog:Destroy()
-		end
-	else
-		path = Spore
-		file,err = io.open(path,"w+")
-	end
-	if not file then
-        wx.wxMessageBox("Unable to save as file '"..path.."'.\n "..err, "File Save Error", wx.wxOK + wx.wxCENTRE, GUI.frame)
-    else
-    	if Spore ~= path then
-    		-- Update the Spore File name in all the tasks and the root Spore
-			SporeData[path] = SporeData[Spore]    
-			SporeData[Spore] = nil
-			SporeData[path].SporeFile = path
-			SporeData[path].TaskID = Globals.ROOTKEY..path
-			SporeData[path].Title = sporeTitle(path)		
-			GUI.taskTree:UpdateKeys(GUI.taskTree.Nodes[Globals.ROOTKEY..Spore],true)
-			GUI.taskTree:UpdateNode(SporeData[path])
-			-- Now update all sub tasks
-			local taskList = applyFilterHier(nil,SporeData[path])
-			if #taskList > 0 then
-				for i = 1,#taskList do
-					taskList[i].SporeFile = path
-				end
-			end
-    	end
-    	SporeData[path].Modified = false
-    	file:write(tableToString2(SporeData[path]))
-    	file:close()
-    end
+	saveKarmSpore(Spore)
 end
 
 function loadXML(event)
@@ -2744,6 +2756,10 @@ function openKarmSpore(event)
         end
     end
     fileDialog:Destroy()
+end
+
+function unloadSpore(event)
+
 end
 
 function menuEventHandlerFunction(ID, code, file)
@@ -2967,6 +2983,8 @@ function main()
 	
 	GUI.frame:Connect(GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,SaveCurrSpore)
 	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,openKarmSpore)
+	GUI.frame:Connect(GUI.ID_UNLOAD,wx.wxEVT_COMMAND_MENU_SELECTED,unloadSpore)
+	GUI.frame:Connect(GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,SaveAllSpores)
 	
     -- Task selection in task tree
     GUI.taskTree:associateEventFunc({cellClickCallBack = taskInfoUpdate})

@@ -1,7 +1,9 @@
 --Spores = {{file = "Test/Tasks.xml",type = "XML"}}
 Spores = {
-		{file = "C:\\Users\\milind.gupta\\Downloads\\AmVed Task Bank.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Downloads\\Task Bank.ksf",type = "KSF"}
+		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Task Bank.ksf",type = "KSF"},
+		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Task Bank.ksf",type = "KSF"},
+		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Home Tasks.ksf",type = "KSF"}
 }
 
 -- Initial Filter

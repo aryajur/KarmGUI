@@ -514,83 +514,101 @@ function validateTask(filter, task)
 			-- Now separate individual date ranges
 			for range in string.gmatch(rangeStr,"(.-),") do
 				ranges.count = ranges.count + 1
-				ranges[count] = range
+				ranges[ranges.count] = range
 			end
-			-- Type of Schedule - Estimate, Committed, Revision(X) (L=Latest or the number of revision), Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
-			index = nil
-			if string.upper(string.sub(typeSchedule,1,#"ESTIMATE")) == "ESTIMATE" then
-				if string.match(typeSchedule,"%(%d-%)") then
-					-- Get the index number
-					index = string.match(typeSchedule,"%((%d-)%)")
-				else  
-					-- Get the latest schedule index
-					index = #task.Schedules.Estimate
-				end
-				typeSchedule = "Estimate"
-			elseif string.upper(typeSchedule) == "COMMITTED" then
-				typeSchedule = "Commit"
-				index = 1
-			elseif string.upper(string.sub(typeSchedule,1,#"REVISION")) == "REVISION" then
-				if string.match(typeSchedule,"%(%d-%)") then
-					-- Get the index number
-					index = string.match(typeSchedule,"%((%d-)%)")
-				else  
-					-- Get the latest schedule index
-					index = #task.Schedules.Revs
-				end
-				typeSchedule = "Revs"
-			elseif string.upper(typeSchedule) == "ACTUAL" then
-				typeSchedule = "Actual"
-				index = 1
-			elseif string.upper(typeSchedule) == "LATEST" then
-				-- Find the latest schedule in the task here
-				if string.upper(task.Status) == "DONE" and task.Schedules.Actual then
-					typeSchedule = "Actual"
-					index = 1
-				elseif task.Schedules.Revs then
-					-- Actual is not the latest one but Revision is 
-					typeSchedule = "Revs"
-					index = task.Schedule.Revs.count
-				elseif task.Schedules.Commit then
-					-- Actual and Revisions don't exist but Commit does
+			-- CHeck if the task has a Schedule item
+			if not task.Schedules then
+				if ranges[0] == Globals.NoDateStr then
+					result = true
+				end			
+				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+			else
+				-- Type of Schedule - Estimate, Committed, Revision(X) (L=Latest or the number of revision), Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
+				index = nil
+				if string.upper(string.sub(typeSchedule,1,#"ESTIMATE")) == "ESTIMATE" then
+					if string.match(typeSchedule,"%(%d-%)") then
+						-- Get the index number
+						index = string.match(typeSchedule,"%((%d-)%)")
+					else  
+						-- Get the latest schedule index
+						if ranges[0] == Globals.NoDateStr then
+							result = true
+						elseif task.Schedules.Estimate then
+							index = #task.Schedules.Estimate
+						end			
+						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+					end
+					typeSchedule = "Estimate"
+				elseif string.upper(typeSchedule) == "COMMITTED" then
 					typeSchedule = "Commit"
 					index = 1
-				elseif task.Schedules.Estimate then
-					-- The latest is Estimate
-					typeSchedule = "Estimate"
-					index = task.Schedules.Estimate.count
-				else
-					-- typeSchedule is latest but non of the schedule types exist
-					-- Check if the range is Globals.NoDateStr, if not this sch is false
-					local result = false
-					if ranges[0] == Globals.NoDateStr then
-						result = true
+				elseif string.upper(string.sub(typeSchedule,1,#"REVISION")) == "REVISION" then
+					if string.match(typeSchedule,"%(%d-%)") then
+						-- Get the index number
+						index = string.match(typeSchedule,"%((%d-)%)")
+					else  
+						-- Get the latest schedule index
+						if ranges[0] == Globals.NoDateStr then
+							result = true
+						elseif task.Schedules.Revs then
+							index = #task.Schedules.Revs
+						end			
+						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 					end
-					schStr = string.gsub(schStr,"'"..sch.."'",tostring(result))
-				end
-			else
-				wx.wxMessageBox("Invalid Type Schedule ("..typeSchdule..") specified in filter: "..sch,"Filter Error",
-                            wx.wxOK + wx.wxICON_ERROR, GUI.frame)
-				return false
-			end		-- if string.upper(string.sub(typeSchedule,1,#"ESTIMATE") == "ESTIMATE" then ends  (SETTING of typeSchdule and index)
+					typeSchedule = "Revs"
+				elseif string.upper(typeSchedule) == "ACTUAL" then
+					typeSchedule = "Actual"
+					index = 1
+				elseif string.upper(typeSchedule) == "LATEST" then
+					-- Find the latest schedule in the task here
+					if string.upper(task.Status) == "DONE" and task.Schedules.Actual then
+						typeSchedule = "Actual"
+						index = 1
+					elseif task.Schedules.Revs then
+						-- Actual is not the latest one but Revision is 
+						typeSchedule = "Revs"
+						index = task.Schedule.Revs.count
+					elseif task.Schedules.Commit then
+						-- Actual and Revisions don't exist but Commit does
+						typeSchedule = "Commit"
+						index = 1
+					elseif task.Schedules.Estimate then
+						-- The latest is Estimate
+						typeSchedule = "Estimate"
+						index = task.Schedules.Estimate.count
+					else
+						-- typeSchedule is latest but non of the schedule types exist
+						-- Check if the range is Globals.NoDateStr, if not this sch is false
+						local result = false
+						if ranges[0] == Globals.NoDateStr then
+							result = true
+						end
+						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+					end
+				else
+					wx.wxMessageBox("Invalid Type Schedule ("..typeSchdule..") specified in filter: "..sch,"Filter Error",
+	                            wx.wxOK + wx.wxICON_ERROR, GUI.frame)
+					return false
+				end		-- if string.upper(string.sub(typeSchedule,1,#"ESTIMATE") == "ESTIMATE" then ends  (SETTING of typeSchdule and index)
+			end		-- if not task.Schedules then
 			if index then
 				-- We have a typeSchedule and index
 				-- Now loop through the schedule of typeSchedule and index
 				local result = false
 				-- First check if range is Globals.NoDateStr then this schedule should not exist for filter to pass
-				if range[0] == Globals.NoDateStr and not task.Schedules[typeSchedule][index] then
+				if ranges[0] == Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
 					result = true
 				end
-				if not result and task.Schedules[typeSchedule][index] then
+				if not result and task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
 					for i = 1,#task.Schedules[typeSchedule][index].Period do
 						-- Is the date in range?
 						local inrange = false
 						for j = 1,#ranges do
-							local strt,stp = string.match(range,"(.-)%-(.*)")
+							local strt,stp = string.match(ranges[j],"(.-)%-(.*)")
 							if not strt then
 								-- its not a range
-								strt = range
-								stp = range
+								strt = ranges[j]
+								stp = ranges[j]
 							end
 							strt = toXMLDate(strt)
 							stp = toXMLDate(stp)
@@ -609,7 +627,7 @@ function validateTask(filter, task)
 						end
 					end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
 				end	-- if not result and task.Schedules[typeSchedule][index] then ends
-				schStr = string.gsub(schStr,"'"..sch.."'",tostring(result))
+				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 			end		-- if index then ends
 		end		-- for sch in string.gmatch(filter.Schedules,"%'(.-)%'") do ends
 		-- Check if the boolean passes

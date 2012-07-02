@@ -934,7 +934,11 @@ function filterFormActivate(parent, callBack)
 					end
 				end
 				schDateRanges:UpdateFilter()
-				unit = unit..","..filter.ScheduleRange
+				if not filter.ScheduleRange then
+					unit = nil
+				else
+					unit = unit..","..filter.ScheduleRange
+				end
 				return unit
 			end 
 
