@@ -16,8 +16,11 @@ require("LuaXml")
 GUI = {["__index"]=_G}
 setmetatable(GUI,GUI)
 setfenv(1,GUI)
-initFrameH = 400
-initFrameW = 450
+initFrameW, initFrameH = wx.wxDisplaySize()
+initFrameW = 0.75*initFrameW
+initFrameH = 0.75*initFrameH
+initFrameW = initFrameW - initFrameW%1
+initFrameH = initFrameH - initFrameH%1
 nodeForeColor = {Red=0,Green=0,Blue=0}
 nodeBackColor = {Red=255,Green=255,Blue=255}
 noScheduleColor = {Red=170,Green=170,Blue=170}
@@ -1154,12 +1157,22 @@ do
 		end
 
 		-- Update the Parent links for the node
-		nodeMeta[parent].Children = nodeMeta[parent].Children + nodeMeta[node].Children
-		if not nodeMeta[node].Prev and nodeMeta[node].FirstChild then
-			nodeMeta[parent].FirstChild = nodeMeta[node].FirstChild
+		nodeMeta[parent].Children = nodeMeta[parent].Children + nodeMeta[node].Children - 1
+		if not nodeMeta[node].Prev then
+			-- The FirstChild is changing
+			if nodeMeta[node].FirstChild then
+				nodeMeta[parent].FirstChild = nodeMeta[node].FirstChild
+			else
+				nodeMeta[parent].FirstChild = nodeMeta[node].Next
+			end
 		end
-		if not nodeMeta[node].Next and nodeMeta[node].LastChild then
-			nodeMeta[parent].LastChild = nodeMeta[node].LastChild
+		if not nodeMeta[node].Next then
+			-- The LastChild is changing
+			if nodeMeta[node].LastChild then
+				nodeMeta[parent].LastChild = nodeMeta[node].LastChild
+			else
+				nodeMeta[parent].LastChild = nodeMeta[node].Prev
+			end
 		end
 
 		-- Update the sibling links of the node
@@ -1169,7 +1182,9 @@ do
 				nodeMeta[nodeMeta[node].FirstChild].Prev = nodeMeta[node].Prev
 			else
 				nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].Next
-				nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
+				if nodeMeta[node].Next then
+					nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
+				end
 			end
 		end
 		if nodeMeta[node].Next then
@@ -1178,7 +1193,9 @@ do
 				nodeMeta[nodeMeta[node].LastChild].Next = nodeMeta[node].Next
 			else
 				nodeMeta[nodeMeta[node].Next].Prev = nodeMeta[node].Prev
-				nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].Next
+				if nodeMeta[node].Prev then
+					nodeMeta[nodeMeta[node].Prev].Next = nodeMeta[node].Next
+				end
 			end
 		end
 

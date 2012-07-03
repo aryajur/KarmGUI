@@ -19,8 +19,8 @@ Spores = {
 
 -- GUI Settings
 setfenv(1,GUI)
-initFrameH = 800
-initFrameW = 900
+--initFrameH = 800
+--initFrameW = 900
 --MainMenu = {
 --				-- 1st Menu
 --				{	
