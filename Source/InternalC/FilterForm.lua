@@ -31,6 +31,7 @@ local pairs = pairs
 local applyFilterHier = applyFilterHier
 local collectFilterDataHier = collectFilterDataHier
 local CW = require("CustomWidgets")
+local os = os
 
 local GlobalFilter = function() 
 		return Filter 
@@ -545,7 +546,7 @@ end
 local function loadFilter(event)
 	setfenv(1,package.loaded[modname])
 	local ValidFilter = function(file)
-		local safeenv = {}
+		local safeenv = {os=os}
 		local f,message = loadfile(file)
 		if not f then
 			return nil,message

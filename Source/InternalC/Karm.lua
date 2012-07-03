@@ -26,7 +26,39 @@ emptyDayColor = {Red=255,Green=255,Blue=255}
 sunDayOffset = {Red = 50, Green=50, Blue = 50}
 defaultColor = {Red=0,Green=0,Blue=0}
 highLightColor = {Red=120,Green=120,Blue=120}
+
 -- Task status colors
+-- Main Menu
+MainMenu = {
+				-- 1st Menu
+				{	
+					Text = "&File", Menu = {
+											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "local count = 0 \
+local sporeList = \"\" \
+for k,v in pairs(Globals.unsavedSpores) do \
+	count = count + 1 \
+	sporeList = sporeList..Globals.unsavedSpores[k]..\"\\n\" \
+end \
+local confirm, response \
+if count > 0 then \
+	confirm = wx.wxMessageDialog(GUI.frame,\"The following spores:\\n\"..sporeList..\" have unsaved changes. Are you sure you want to exit and loose all changes?\", \"Loose all changes?\", wx.wxYES_NO + wx.wxNO_DEFAULT) \
+	response = confirm:ShowModal() \
+else \
+	response = wx.wxID_YES \
+end \
+if response == wx.wxID_YES then \
+	print(\"Exiting code\") \
+	GUI.frame:Close(true) \
+end"}
+									}
+				},
+				-- 2nd Menu
+				{	
+					Text = "&Help", Menu = {
+											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,GUI.frame)"}
+									}
+				}
+}
 
 setfenv(1,_G)
 
@@ -43,7 +75,8 @@ Globals = {
 	NoSubCatStr = "__NO_SUBCAT__",
 	NoPriStr = "__NO_PRI__",
 	__DEBUG = true,		-- For debug mode
-	PlanningMode = false	-- Flag to indicate Schedule Planning mode is on.
+	PlanningMode = false,	-- Flag to indicate Schedule Planning mode is on.
+	unsavedSpores = {}	-- To store list of unsaved Spores
 }
 
 -- Generate a unique new wxWindowID
@@ -453,7 +486,7 @@ do
 					-- Expanded was true and now making it false
 					oNode.Expanded = nil
 				else
-					oTree.actionQ[#oTree.actionQ + 1] = "taskTreeINT[tab].Nodes['"..oNode.Key.."'].Expanded = nil"
+					oTree.actionQ[#oTree.actionQ + 1] = "taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."].Expanded = nil"
 				end		-- if oTree.update then ends
 			elseif not oNode.Expanded and val then
 				-- Check if updates are enabled
@@ -508,7 +541,7 @@ do
 						oNode.Expanded = true
 					end
 				else
-					oTree.actionQ[#oTree.actionQ + 1] = "taskTreeINT[tab].Nodes['"..oNode.Key.."'].Expanded = true"
+					oTree.actionQ[#oTree.actionQ + 1] = "taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."].Expanded = true"
 				end		-- if oTree.update then ends
 			end		-- if oNode.Expanded and not val then ends
 		elseif key == "Selected" then
@@ -930,10 +963,10 @@ do
 			end
 		else
 			-- Add to actionQ
-			oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-				task.TaskID.."'].Row,false,taskTreeINT[tab].Nodes['"..task.TaskID.."'],"..tostring(hierLevel)..")"
-			oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
-				task.TaskID.."'].Row,false,taskTreeINT[tab].Nodes['"..task.TaskID.."'])"				
+			oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+				string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."],"..tostring(hierLevel)..")"
+			oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes["..
+				string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."])"				
 			oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 		end
 	end
@@ -1101,9 +1134,9 @@ do
 				else
 					-- Add to actionQ
 					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-						nodeMeta[nextNode].Key.."'].Row,false,taskTreeINT[tab].Nodes['"..nodeMeta[nextNode].Key.."'],"..tostring(hierLevel)..")"
+						string.format("%q",nodeMeta[nextNode].Key).."'].Row,false,taskTreeINT[tab].Nodes['"..string.format("%q",nodeMeta[nextNode].Key).."'],"..tostring(hierLevel)..")"
 					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
-						nodeMeta[nextNode].Key.."'].Row,false,taskTreeINT[tab].Nodes['"..nodeMeta[nextNode].Key.."'])"				
+						string.format("%q",nodeMeta[nextNode].Key).."'].Row,false,taskTreeINT[tab].Nodes['"..string.format("%q",nodeMeta[nextNode].Key).."'])"				
 					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 				end
 			end
@@ -1265,10 +1298,10 @@ do
 					end
 				else
 					-- Add to actionQ
-					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-						nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],0)"
-					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
-						nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"				
+					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+						string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],0)"
+					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes["..
+						string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"				
 					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 				end
 			else
@@ -1281,10 +1314,10 @@ do
 					end
 				else
 					-- Add to actionQ
-					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,1,true,taskTreeINT[tab].Nodes['"..
-						nodeInfo.Key.."'],0)"
-					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,1,true,taskTreeINT[tab].Nodes['"..
-						nodeInfo.Key.."'])"
+					oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,1,true,taskTreeINT[tab].Nodes["..
+						string.format("%q",nodeInfo.Key).."],0)"
+					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,1,true,taskTreeINT[tab].Nodes["..
+						string.format("%q",nodeInfo.Key).."])"
 					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 				end
 			end
@@ -1362,10 +1395,10 @@ do
 						end
 					else
 						-- Add to actionQ
-						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
-						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"
+						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],"..tostring(hierLevel)..")"
+						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"
 						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 					end
 				elseif nodeMeta[parent].Row and nodeMeta[parent].Children == 1 then
@@ -1454,10 +1487,10 @@ do
 						end
 					else
 						-- Add to actionQ
-						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
-						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"
+						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],"..tostring(hierLevel)..")"
+						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"
 						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 					end
 				end			
@@ -1517,10 +1550,10 @@ do
 						end
 					else
 						-- Add to actionQ
-						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'],"..tostring(hierLevel)..")"
-						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes['"..
-							nodeInfo.Key.."'].Row,true,taskTreeINT[tab].Nodes['"..nodeInfo.Key.."'])"
+						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],"..tostring(hierLevel)..")"
+						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"
 						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
 					end
 				end			
@@ -1912,7 +1945,7 @@ function taskInfoUpdate(task)
 			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
             return
 		end		
-		if taskList[1] ~= GUI.MoveTask.task then
+		if taskList[1].Task ~= GUI.MoveTask.task then
 			-- Start the move
 			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
 			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
@@ -1924,6 +1957,8 @@ function taskInfoUpdate(task)
 					GUI.statusBar:SetStatusText("",0)
 					GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
 					GUI.MoveTask = nil
+					Globals.unsavedSpores[taskList[1].Task.SporeFile] = SporeData[taskList[1].Task.SporeFile].Title
+					Globals.unsavedSpores[GUI.MoveTask.task.SporeFile] = SporeData[GUI.MoveTask.task.SporeFile].Title
 					return
 				end
 				-- This is to move the task into a new Spore
@@ -1942,6 +1977,7 @@ function taskInfoUpdate(task)
 				-- Get a new task ID
 				taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "Move Task Under Spore", "")
 				if taskID == "" then
+					-- Cancel the move
 					GUI.statusBar:SetStatusText("",0)
 					GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
 					GUI.MoveTask = nil
@@ -1962,6 +1998,7 @@ function taskInfoUpdate(task)
 					if redo then
 						taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "Move Task Under Spore", "")
 						if taskID == "" then
+							-- Cancel the move
 							GUI.statusBar:SetStatusText("",0)
 							GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
 							GUI.MoveTask = nil
@@ -2046,6 +2083,7 @@ function taskInfoUpdate(task)
 						-- This is a spore root node so will have to ask for the task ID from the user
 						taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "Move Task", "")
 						if taskID == "" then
+							-- Cancel the move
 							GUI.statusBar:SetStatusText("",0)
 							GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
 							GUI.MoveTask = nil
@@ -2066,6 +2104,7 @@ function taskInfoUpdate(task)
 							if redo then
 								taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "Move Task", "")
 								if taskID == "" then
+									-- Cancel the move
 									GUI.statusBar:SetStatusText("",0)
 									GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
 									GUI.MoveTask = nil
@@ -2135,9 +2174,12 @@ function taskInfoUpdate(task)
 		            end  -- if addList.count > 0 then ends
 				end		-- if task.SubTasks then ends
 			end		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then ends
+			Globals.unsavedSpores[taskList[1].Task.SporeFile] = SporeData[taskList[1].Task.SporeFile].Title
+			Globals.unsavedSpores[GUI.MoveTask.task.SporeFile] = SporeData[GUI.MoveTask.task.SporeFile].Title
 			GUI.statusBar:SetStatusText("",0)
 			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
 			GUI.MoveTask = nil
+			-- Finish the move
 		end		-- if taskList[1] ~= GUI.MoveTask.task then ends
 	end		-- if GUI.MoveTask then ends here
 end		-- function taskInfoUpdate(task) ends here
@@ -2223,6 +2265,7 @@ function NewTaskCallBack(task)
 		    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
 	    	GUI.taskTree.Nodes[task.TaskID].ForeColor = GUI.nodeForeColor
 	    end
+		Globals.unsavedSpores[task.SporeFile] = SporeData[task.SporeFile].Title
     end		-- if task then ends
 	GUI.TaskWindowOpen = false
 end
@@ -2259,6 +2302,7 @@ function EditTaskCallBack(task)
 	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
 	    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
 	    end
+		Globals.unsavedSpores[task.SporeFile] = SporeData[task.SporeFile].Title
 	end
 	GUI.TaskWindowOpen = false
 end
@@ -2293,6 +2337,7 @@ function DeleteTask(event)
 				-- This is a Spore node
 				SporeData[taskList[i].Key:sub(#Globals.ROOTKEY+1,-1)] = nil
 				SporeData[0] = SporeData[0] - 1
+				Globals.unsavedSpores[taskList[i].Key:sub(#Globals.ROOTKEY+1,-1)] = nil
 			else
 				-- This is a normal task
 				if taskList[i].Task.Parent then
@@ -2302,6 +2347,7 @@ function DeleteTask(event)
 					-- This is a root task in a Spore
 					DeleteTaskFromSpore(taskList[i].Task,SporeData[taskList[i].Task.SporeFile])
 				end
+				Globals.unsavedSpores[taskList[i].Task.SporeFile] = SporeData[taskList[i].Task.SporeFile].Title
 			end
 			GUI.taskTree:DeleteTree(taskList[i].Key)
 		end
@@ -2566,11 +2612,14 @@ function connectKeyUpEvent(win)
 end
 
 function SaveAllSpores(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
 	for k,v in pairs(SporeData) do
 		if k ~= 0 then
 			saveKarmSpore(k)
 		end
 	end
+	Globals.unsavedSpores = {}
 end
 
 function saveKarmSpore(Spore)
@@ -2623,10 +2672,13 @@ function saveKarmSpore(Spore)
     	SporeData[path].Modified = false
     	file:write(tableToString2(SporeData[path]))
     	file:close()
+    	Globals.unsavedSpores[Spore] = nil
     end
 end
 
 function SaveCurrSpore(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
 	local taskList = GUI.taskTree.Selected
 	if #taskList == 0 then
         wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
@@ -2658,6 +2710,8 @@ function SaveCurrSpore(event)
 end
 
 function loadXML(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
 end
 
 -- Function to load a Spore given the Spore file path in the data structure and the GUI
@@ -2742,6 +2796,8 @@ function loadKarmSpore(file, commands)
 end
 
 function openKarmSpore(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
     local fileDialog = wx.wxFileDialog(GUI.frame, "Open Spore file",
                                        "",
                                        "",
@@ -2758,8 +2814,53 @@ function openKarmSpore(event)
     fileDialog:Destroy()
 end
 
-function unloadSpore(event)
+function unloadKarmSpore(Spore)
+	SporeData[Spore] = nil
+	SporeData[0] = SporeData[0] - 1
+	GUI.taskTree:DeleteTree(Globals.ROOTKEY..Spore)
+	Globals.unsavedSpores[Spore] = nil
+end
 
+function unloadSpore(event)
+	-- Reset any toggle tools
+	ResetToggleTools()
+	local taskList = GUI.taskTree.Selected
+	if #taskList == 0 then
+        wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end
+	local Spore
+	if taskList[1].Task.SporeFile then
+		Spore = taskList[1].Task.SporeFile
+	else
+		Spore = taskList[1].Key:sub(#Globals.ROOTKEY + 1,-1)
+	end
+	for i = 2,#taskList do
+		if taskList[i].Task.SporeFile then
+			if Spore ~= taskList[i].Task.SporeFile then
+				-- All selected tasks are not in the same spore
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				return
+			end
+		else
+			if Spore ~= taskList[i].Key:sub(#Globals.ROOTKEY + 1, -1) then
+				-- All selected tasks are not in the same spore
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				return
+			end
+		end
+	end
+	-- Now Spore has the Spore that needs to be unloaded
+	local confirm, response
+	if Globals.unsavedSpores[Spore] then
+		confirm = wx.wxMessageDialog(GUI.frame,"The spore "..Globals.unsavedSpores[Spore].." has unsaved changes. Are you sure you want to unload the spore and loose all changes?", "Loose all changes?", wx.wxYES_NO + wx.wxNO_DEFAULT)
+		response = confirm:ShowModal()
+	else
+		response = wx.wxID_YES
+	end
+	if response == wx.wxID_YES then
+		unloadKarmSpore(Spore)
+	end
 end
 
 function menuEventHandlerFunction(ID, code, file)
@@ -2889,10 +2990,25 @@ function main()
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
---    GUI.frame:Connect(wx.wxID_EXIT, wx.wxEVT_COMMAND_MENU_SELECTED,
---        function (event)
---            frame:Close(true)
---        end )
+    GUI.frame:Connect(wx.wxID_ANY, wx.wxEVT_CLOSE_WINDOW,
+        function (event)
+        	local count = 0 
+			local sporeList = ""
+			for k,v in pairs(Globals.unsavedSpores) do 
+				count = count + 1 
+				sporeList = sporeList..Globals.unsavedSpores[k].."\n"
+			end 
+			local confirm, response 
+			if count > 0 then 
+				confirm = wx.wxMessageDialog(GUI.frame,"The following spores:\n"..sporeList.." have unsaved changes. Are you sure you want to exit and loose all changes?", "Loose all changes?", wx.wxYES_NO + wx.wxNO_DEFAULT) 
+				response = confirm:ShowModal() 
+			else 
+				response = wx.wxID_YES 
+			end 
+			if response == wx.wxID_YES then 
+				GUI.frame:Destroy() 
+			end
+        end )
 --
 --    -- connect the selection event of the about menu item
 --    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
