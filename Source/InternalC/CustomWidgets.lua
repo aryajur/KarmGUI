@@ -409,7 +409,7 @@ do
 	-- 3. Children - contains a sequence of tables starting from index = 1 similar to the root table
 	local function convertBoolStr2Tab(str)
 		local boolTab = {Item="",Parent=nil,Children = {},currChild=nil}
-		local strLevel = {[boolTab] = str}
+		local strLevel = {}
 		local subMap = {}
 		
 		local getUniqueSubst = function(str,subMap)
@@ -418,10 +418,11 @@ do
 			else 
 				subMap.latest = subMap.latest + 1
 			end
+			-- Generate prospective nique string
 			local uStr = "A"..tostring(subMap.latest)
 			local done = false
 			while not done do
-				-- Check if this exists in str
+				-- Check if this unique string exists in str
 				while string.find(str,"[%(%s]"..uStr.."[%)%s]") or 
 				  string.find(string.sub(str,1,string.len(uStr) + 1),uStr.."[%)%s]") or 
 				  string.find(string.sub(str,-(string.len(uStr) + 1),-1),"[%(%s]"..uStr) do
@@ -429,7 +430,7 @@ do
 					uStr = "A"..tostring(subMap.latest)
 				end
 				done = true
-				-- Check if the str exists in subMap
+				-- Check if the str exists in subMap mappings already replaced
 				for k,v in pairs(subMap) do
 					if k ~= "latest" then
 						while string.find(v,"[%(%s]"..uStr.."[%)%s]") or 
@@ -454,7 +455,7 @@ do
 			local _,stBrack = string.gsub(str,"%(","t")
 			local _,enBrack = string.gsub(str,"%)","t")
 			if stBrack ~= enBrack then
-				error("String does not have cosistent opening and closing brackets",2)
+				error("String does not have consistent opening and closing brackets",2)
 			end
 			local brack = string.find(str,"%(")
 			while brack do
@@ -475,6 +476,9 @@ do
 						end
 					end
 				end		-- for i = init,str:len() do ends
+				if count ~= 0 then
+					error("String does not have consistent opening and closing brackets",2)
+				end
 				local uStr = getUniqueSubst(str,subMap)
 				local pre = ""
 				local post = ""
@@ -526,6 +530,29 @@ do
 			return newStr
 		end		-- local function ORsubst(str) ends
 		
+		-- First replace all quoted strings in the string with substitutions
+		local strSubMap = {}
+		local _,numQuotes = string.gsub(str,"%'","t")
+		if numQuotes%2 ~= 0 then
+			error("String does not have consistent opening and closing quotes \"'\"",2)
+		end
+		local init,fin = string.find(str,"'.-'")
+		while init do
+			local uStr = getUniqueSubst(str,subMap)
+			local pre = ""
+			local post = ""
+			if init > 1 then
+				pre = string.sub(str,1,init-1)
+			end
+			if fin < str:len() then
+				post = string.sub(str,fin + 1,str:len())
+			end
+			strSubMap[uStr] = str:sub(init,fin)
+			str = pre.." "..uStr.." "..post
+			-- Now find the next
+			init,fin = string.find(str,"'.-'")
+		end		-- while brack do ends
+		strLevel[boolTab] = str
 		-- Start recursive loop here
 		local currTab = boolTab
 		while currTab do
@@ -540,9 +567,9 @@ do
 			  or subMap[strLevel[currTab]]) then
 				-- This is a simple element
 				if currTab.Item == "#NOT()#" then
-					currTab.Children[1] = {Item = string.match(strLevel[currTab],"'(.-)'"),Parent=currTab}
+					currTab.Children[1] = {Item = strLevel[currTab],Parent=currTab}
 				else
-					currTab.Item = string.match(strLevel[currTab],"'(.-)'")
+					currTab.Item = strLevel[currTab]
 					currTab.Children = nil
 				end
 				-- Return one level up
@@ -609,6 +636,34 @@ do
 				end		-- if string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") then ends
 			end 
 		end		-- while currTab do ends
+		-- Now recurse boolTab to substitute all the strings back
+		local t = boolTab
+		if strSubMap[t.Item] then
+			t.Item = string.match(strSubMap[t.Item],"'(.-)'")
+		end
+		if t.Children then
+			-- Traverse the table to fill up the tree
+			local tIndex = {}
+			tIndex[t] = 1
+			while tIndex[t] <= #t.Children or t.Parent do
+				if tIndex[t] > #t.Children then
+					tIndex[t] = nil
+					t = t.Parent
+				else
+					-- Handle the current element
+					if strSubMap[t.Children[tIndex[t]].Item] then
+						t.Children[tIndex[t]].Item = strSubMap[t.Children[tIndex[t]].Item]:match("'(.-)'")
+					end
+					tIndex[t] = tIndex[t] + 1
+					-- Check if this has children
+					if t.Children[tIndex[t]-1].Children then
+						-- go deeper in the hierarchy
+						t = t.Children[tIndex[t]-1]
+						tIndex[t] = 1
+					end
+				end		-- if tIndex[t] > #t then ends
+			end		-- while tIndex[t] <= #t and t.Parent do ends
+		end	-- if t.Children then ends
 		return boolTab
 	end		-- function convertBoolStr2Tab(str) ends
 
@@ -636,26 +691,28 @@ do
 		-- Clear the control
 		o:ResetCtrl()
 		tNode[t] = o.SelTree:AppendItem(o.SelTree:GetRootItem(),itemText(t.Item))
-		-- Traverse the table to fill up the tree
-		tIndex[t] = 1
-		while tIndex[t] <= #t.Children or t.Parent do
-			if tIndex[t] > #t.Children then
-				tIndex[t] = nil
-				t = t.Parent
-			else
-				-- Handle the current element
-				local parentNode 
-				parentNode = tNode[t]
-				tNode[t.Children[tIndex[t]]] = o.SelTree:AppendItem(parentNode,itemText(t.Children[tIndex[t]].Item)) 
-				tIndex[t] = tIndex[t] + 1
-				-- Check if this has children
-				if t.Children[tIndex[t]-1].Children then
-					-- go deeper in the hierarchy
-					t = t.Children[tIndex[t]-1]
-					tIndex[t] = 1
-				end
-			end		-- if tIndex[t] > #t then ends
-		end		-- while tIndex[t] <= #t and t.Parent do ends
+		if t.Children then
+			-- Traverse the table to fill up the tree
+			tIndex[t] = 1
+			while tIndex[t] <= #t.Children or t.Parent do
+				if tIndex[t] > #t.Children then
+					tIndex[t] = nil
+					t = t.Parent
+				else
+					-- Handle the current element
+					local parentNode 
+					parentNode = tNode[t]
+					tNode[t.Children[tIndex[t]]] = o.SelTree:AppendItem(parentNode,itemText(t.Children[tIndex[t]].Item)) 
+					tIndex[t] = tIndex[t] + 1
+					-- Check if this has children
+					if t.Children[tIndex[t]-1].Children then
+						-- go deeper in the hierarchy
+						t = t.Children[tIndex[t]-1]
+						tIndex[t] = 1
+					end
+				end		-- if tIndex[t] > #t then ends
+			end		-- while tIndex[t] <= #t and t.Parent do ends
+		end	-- if t.Children then ends
 		o.SelTree:Expand(o.SelTree:GetRootItem())
 	end		-- local function setExpression(o,str) ends
 	

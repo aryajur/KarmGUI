@@ -66,6 +66,7 @@ local function makeTask(task)
 	end
 	local newTask = copyTask(task)
 	if task then
+		-- Since copyTask does not replicate that
 		newTask.DBDATA = task.DBDATA
 	end
 	newTask.Modified = true
@@ -176,7 +177,8 @@ local function makeTask(task)
 		local list1 = getLatestScheduleDates(newTask)
 		-- Compare the schedules
 		local same = true
-		if not list1 or list1.typeSchedule ~= list.typeSchedule or #list1 ~= #list or list1.index ~= list.index then
+		if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and 
+		  not(list1.typeSchedule=="Commit" and list.typeSchedule == "Revs")) then
 			same = false
 		else
 			for i = 1,#list do
@@ -520,7 +522,6 @@ function taskFormActivate(parent, callBack, task)
 		            end
 				end
 				-- Enable planning mode for the task
-				--localTask.holdPlanning = true
 				taskTree:enablePlanningMode({localTask})
 				-- Add the comment box
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)

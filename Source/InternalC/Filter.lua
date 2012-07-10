@@ -496,7 +496,7 @@ function validateTask(filter, task)
 	
 	-- Check if the Schedules pass
 	if filter.Schedules then
-		schStr = filter.Schedules
+		local schStr = filter.Schedules
 		for sch in string.gmatch(filter.Schedules,"%'(.-)%'") do
 			-- Check if this schedule chunk passes in the task
 			-- "'Full,Estimate,12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012'"
@@ -533,10 +533,10 @@ function validateTask(filter, task)
 						-- Get the latest schedule index
 						if ranges[0] == Globals.NoDateStr then
 							result = true
+							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						elseif task.Schedules.Estimate then
 							index = #task.Schedules.Estimate
 						end			
-						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 					end
 					typeSchedule = "Estimate"
 				elseif string.upper(typeSchedule) == "COMMITTED" then
@@ -550,10 +550,10 @@ function validateTask(filter, task)
 						-- Get the latest schedule index
 						if ranges[0] == Globals.NoDateStr then
 							result = true
+							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						elseif task.Schedules.Revs then
 							index = #task.Schedules.Revs
 						end			
-						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 					end
 					typeSchedule = "Revs"
 				elseif string.upper(typeSchedule) == "ACTUAL" then
@@ -567,7 +567,7 @@ function validateTask(filter, task)
 					elseif task.Schedules.Revs then
 						-- Actual is not the latest one but Revision is 
 						typeSchedule = "Revs"
-						index = task.Schedule.Revs.count
+						index = task.Schedules.Revs.count
 					elseif task.Schedules.Commit then
 						-- Actual and Revisions don't exist but Commit does
 						typeSchedule = "Commit"
@@ -594,12 +594,16 @@ function validateTask(filter, task)
 			if index then
 				-- We have a typeSchedule and index
 				-- Now loop through the schedule of typeSchedule and index
-				local result = false
+				local result
+				if string.upper(typeMatch) == "OVERLAP" then
+					result = false
+				else
+					result = true
+				end
 				-- First check if range is Globals.NoDateStr then this schedule should not exist for filter to pass
 				if ranges[0] == Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
 					result = true
-				end
-				if not result and task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
+				elseif task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
 					for i = 1,#task.Schedules[typeSchedule][index].Period do
 						-- Is the date in range?
 						local inrange = false
@@ -626,7 +630,7 @@ function validateTask(filter, task)
 							break
 						end
 					end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
-				end	-- if not result and task.Schedules[typeSchedule][index] then ends
+				end	-- if task.Schedules[typeSchedule][index] then ends
 				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 			end		-- if index then ends
 		end		-- for sch in string.gmatch(filter.Schedules,"%'(.-)%'") do ends

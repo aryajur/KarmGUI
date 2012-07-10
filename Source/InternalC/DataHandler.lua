@@ -4,14 +4,13 @@ SporeData = {}
 -- Function to convert a boolean string to a Table
 -- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones 
 -- on which this operation is performed.
--- The table consist of a sequence of tables starting from index = 1
--- each sub table has these keys:
+-- The table consist of:
 -- 1. Item - contains the item name
 -- 2. Parent - contains the parent table
--- 3. Children - contains the table similar in hierarchy to the root table
-function convertBoolStr2Tab(str)
+-- 3. Children - contains a sequence of tables starting from index = 1 similar to the root table
+local function convertBoolStr2Tab(str)
 	local boolTab = {Item="",Parent=nil,Children = {},currChild=nil}
-	local strLevel = {[boolTab] = str}
+	local strLevel = {}
 	local subMap = {}
 	
 	local getUniqueSubst = function(str,subMap)
@@ -20,10 +19,11 @@ function convertBoolStr2Tab(str)
 		else 
 			subMap.latest = subMap.latest + 1
 		end
+		-- Generate prospective nique string
 		local uStr = "A"..tostring(subMap.latest)
 		local done = false
 		while not done do
-			-- Check if this exists in str
+			-- Check if this unique string exists in str
 			while string.find(str,"[%(%s]"..uStr.."[%)%s]") or 
 			  string.find(string.sub(str,1,string.len(uStr) + 1),uStr.."[%)%s]") or 
 			  string.find(string.sub(str,-(string.len(uStr) + 1),-1),"[%(%s]"..uStr) do
@@ -31,7 +31,7 @@ function convertBoolStr2Tab(str)
 				uStr = "A"..tostring(subMap.latest)
 			end
 			done = true
-			-- Check if the str exists in subMap
+			-- Check if the str exists in subMap mappings already replaced
 			for k,v in pairs(subMap) do
 				if k ~= "latest" then
 					while string.find(v,"[%(%s]"..uStr.."[%)%s]") or 
@@ -56,7 +56,7 @@ function convertBoolStr2Tab(str)
 		local _,stBrack = string.gsub(str,"%(","t")
 		local _,enBrack = string.gsub(str,"%)","t")
 		if stBrack ~= enBrack then
-			error("String does not have cosistent opening and closing brackets",2)
+			error("String does not have consistent opening and closing brackets",2)
 		end
 		local brack = string.find(str,"%(")
 		while brack do
@@ -77,6 +77,9 @@ function convertBoolStr2Tab(str)
 					end
 				end
 			end		-- for i = init,str:len() do ends
+			if count ~= 0 then
+				error("String does not have consistent opening and closing brackets",2)
+			end
 			local uStr = getUniqueSubst(str,subMap)
 			local pre = ""
 			local post = ""
@@ -89,9 +92,11 @@ function convertBoolStr2Tab(str)
 			subMap[uStr] = string.sub(str,init,fin)
 			str = pre.." "..uStr.." "..post
 			-- Now find the next
-			local brack = string.find(str,"(")
+			brack = string.find(str,"%(")
 		end		-- while brack do ends
 		str = string.gsub(str,"%s+"," ")		-- Remove duplicate spaces
+		str = string.match(str,"^%s*(.-)%s*$")
+		return str
 	end		-- function(str,subMap) ends
 	
 	local OperSubst = function(str, subMap,op)
@@ -109,20 +114,16 @@ function convertBoolStr2Tab(str)
 		newStr[newStr.count] = uStr
 		subMap[uStr] = subStr
 		-- Middle chunks
-		strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-4)
+		strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-op:len()-1)
 		while strt do
 			uStr = getUniqueSubst(str,subMap)
 			newStr.count = newStr.count + 1
 			newStr[newStr.count] = uStr
 			subMap[uStr] = subStr			
-			strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-4)	
+			strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-op:len()-1)	
 		end
 		-- Last Chunk
-		if not stp then
-			strt,stp,subStr = string.find(str," "..op.." (.-)$")
-		else
-			strt,stp,subStr = string.find(str," "..op.." (.-)",stp-4)
-		end
+		strt,stp,subStr = string.find(str,"^.+ "..op.." (.-)$")
 		uStr = getUniqueSubst(str,subMap)
 		newStr.count = newStr.count + 1
 		newStr[newStr.count] = uStr
@@ -130,15 +131,35 @@ function convertBoolStr2Tab(str)
 		return newStr
 	end		-- local function ORsubst(str) ends
 	
+	-- First replace all quoted strings in the string with substitutions
+	local strSubMap = {}
+	local _,numQuotes = string.gsub(str,"%'","t")
+	if numQuotes%2 ~= 0 then
+		error("String does not have consistent opening and closing quotes \"'\"",2)
+	end
+	local init,fin = string.find(str,"'.-'")
+	while init do
+		local uStr = getUniqueSubst(str,subMap)
+		local pre = ""
+		local post = ""
+		if init > 1 then
+			pre = string.sub(str,1,init-1)
+		end
+		if fin < str:len() then
+			post = string.sub(str,fin + 1,str:len())
+		end
+		strSubMap[uStr] = str:sub(init,fin)
+		str = pre.." "..uStr.." "..post
+		-- Now find the next
+		init,fin = string.find(str,"'.-'")
+	end		-- while brack do ends
+	strLevel[boolTab] = str
 	-- Start recursive loop here
 	local currTab = boolTab
 	while currTab do
 		-- Remove all brackets
---[[		if not(strLevel[currTab]) then
-			print(currTab.Item)
-		end]]
 		strLevel[currTab] = string.gsub(strLevel[currTab],"%s+"," ")
-		bracketReplace(strLevel[currTab],subMap)
+		strLevel[currTab] = bracketReplace(strLevel[currTab],subMap)
 		-- Check what type of element this is
 		if not(string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") 
 		  or string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") 
@@ -216,16 +237,45 @@ function convertBoolStr2Tab(str)
 			end		-- if string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") then ends
 		end 
 	end		-- while currTab do ends
+	-- Now recurse boolTab to substitute all the strings back
+	local t = boolTab
+	if strSubMap[t.Item] then
+		t.Item = string.match(strSubMap[t.Item],"'(.-)'")
+	end
+	if t.Children then
+		-- Traverse the table to fill up the tree
+		local tIndex = {}
+		tIndex[t] = 1
+		while tIndex[t] <= #t.Children or t.Parent do
+			if tIndex[t] > #t.Children then
+				tIndex[t] = nil
+				t = t.Parent
+			else
+				-- Handle the current element
+				if strSubMap[t.Children[tIndex[t]].Item] then
+					t.Children[tIndex[t]].Item = strSubMap[t.Children[tIndex[t]].Item]:match("'(.-)'")
+				end
+				tIndex[t] = tIndex[t] + 1
+				-- Check if this has children
+				if t.Children[tIndex[t]-1].Children then
+					-- go deeper in the hierarchy
+					t = t.Children[tIndex[t]-1]
+					tIndex[t] = 1
+				end
+			end		-- if tIndex[t] > #t then ends
+		end		-- while tIndex[t] <= #t and t.Parent do ends
+	end	-- if t.Children then ends
 	return boolTab
 end		-- function convertBoolStr2Tab(str) ends
 
-
-
 function getTaskSummary(task)
 	if task then
-		local taskSummary
+		local taskSummary = ""
 		if task.TaskID then
 			taskSummary = "ID: "..task.TaskID
+		end
+		if task.Title then
+			taskSummary = taskSummary.."\nTITLE: "..task.Title
 		end
 		if task.Start then
 			taskSummary = taskSummary.."\nSTART DATE: "..task.Start
@@ -279,6 +329,9 @@ function getTaskSummary(task)
 		if task.SubCat then
 			taskSummary = taskSummary.."\nSUB-CATEGORY: "..task.SubCat
 		end
+		if task.Comments then
+			taskSummary = taskSummary.."\nCOMMENTS:\n"..task.Comments
+		end
 		return taskSummary
 	else
 		return "No Task Selected"
@@ -297,7 +350,6 @@ function getLatestScheduleDates(task,planning)
 			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
 			dateList.typeSchedule = task.Planning.Type
 			dateList.index = task.Planning.index
-			dateList.Planning = task.holdPlanning
 			return dateList
 		else
 			return nil
@@ -327,7 +379,6 @@ function getLatestScheduleDates(task,planning)
 			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
 			dateList.typeSchedule = typeSchedule
 			dateList.index = index
-			dateList.Planning = task.holdPlanning	-- To indicate whether the task has planning mode active
 			return dateList
 		else
 			return nil
@@ -793,6 +844,7 @@ function copyTable(t, deep, seen)
 end
 
 -- Function to make a copy of a task (Sub tasks are not copied they are still the same tables)
+-- DBDATA table is also the same linked table
 function copyTask(task)
 	if not task then
 		return
@@ -841,7 +893,7 @@ function task2IncSchTasks(task)
 			taskList[#taskList].Schedules.Commit = nil
 			-- Change the task ID
 			taskList[#taskList].TaskID = task.TaskID.."_"..tostring(#taskList)
-		else
+		elseif taskList[#taskList].Schedules.Estimate then
 			-- The latest is Estimate
 			taskList[#taskList + 1] = copyTask(taskList[#taskList])
 			-- Remove the latest Estimate Schedule
@@ -852,6 +904,10 @@ function task2IncSchTasks(task)
 			end
 			-- Change the task ID
 			taskList[#taskList].TaskID = task.TaskID.."_"..tostring(#taskList)
+		elseif not taskList[#taskList].Schedules.Estimate and not taskList[#taskList].Schedules.Commit
+		  and not taskList[#taskList].Schedules.Revs then
+		  	-- Since there can be an Actual Schedule but task is not done so Schedules cannot be nil
+		  	break
 		end
 		if not taskList[#taskList].Schedules.Estimate and not taskList[#taskList].Schedules.Commit 
 		  and not taskList[#taskList].Schedules.Revs and not taskList[#taskList].Schedules.Actual then
@@ -899,64 +955,34 @@ function togglePlanningType(task)
 	if not task.Planning.Type then
 		if dateList.typeSchedule == "Estimate" then
 			task.Planning.Type = "Estimate"
-			if task.holdPlanning then
-				task.Planning.index = dateList.index
-			else
-				task.Planning.index = dateList.index + 1
-			end
+			task.Planning.index = dateList.index + 1
 		elseif dateList.typeSchedule == "Commit" then
-			if task.holdPlanning then
-				task.Planning.Type = "Commit"
-			else
-				task.Planning.Type = "Revs"
-			end
+			task.Planning.Type = "Revs"
 			task.Planning.index = 1
 		elseif dateList.typeSchedule == "Revs" then
 			task.Planning.Type = "Revs"
-			if task.holdPlanning then
-				task.Planning.index = dateList.index
-			else
-				task.Planning.index = dateList.index + 1
-			end
+			task.Planning.index = dateList.index + 1
 		else
 			task.Planning.Type = "Actual"
 			task.Planning.index = 1		
 		end
 	elseif task.Planning.Type == "Estimate" then
-		if task.holdPlanning and task.Planning.index == dateList.index 
-		  and dateList.typeSchedule == "Estimate" then
-			task.Planning.index = dateList.index + 1
-		else
-			task.Planning.Type = "Commit"
-			task.Planning.index = 1
-		end
+		task.Planning.Type = "Commit"
+		task.Planning.index = 1
 	elseif task.Planning.Type == "Commit" then
 		task.Planning.Type = "Revs"
 		if task.Schedules and task.Schedules.Revs then
-			if task.holdPlanning then
-				task.Planning.index = #task.Schedules.Revs
-			else
-				task.Planning.index = #task.Schedules.Revs + 1
-			end
+			task.Planning.index = #task.Schedules.Revs + 1
 		else
 			task.Planning.index = 1
 		end
 	elseif task.Planning.Type == "Revs" then
-		if task.holdPlanning and task.Planning.index == dateList.index 
-		  and dateList.typeSchedule == "Revs" then
-			task.Planning.index = dateList.index + 1
-		else
-			task.Planning.Type = "Actual"
-			task.Planning.index = 1
-		end
+		task.Planning.Type = "Actual"
+		task.Planning.index = 1
 	elseif task.Planning.Type == "Actual" then
 		task.Planning.Type = "Estimate"
 		if task.Schedules and task.Schedules.Estimate then
-			if task.holdPlanning then
-				task.Planning.index = #task.Schedules.Estimate
-			else
-				task.Planning.index = #task.Schedules.Estimate + 1
-			end
+			task.Planning.index = #task.Schedules.Estimate + 1
 		else
 			task.Planning.index = 1
 		end
@@ -1260,7 +1286,6 @@ end
 -- Function to convert XML data from a single spore to internal data structure
 -- Task structure
 -- Task.
---	holdPlanning = when true then the task latest schedule can be modified
 --	Planning
 --	[0] = Task
 -- 	SporeFile

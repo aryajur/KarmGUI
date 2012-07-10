@@ -31,7 +31,7 @@ local pairs = pairs
 local applyFilterHier = applyFilterHier
 local collectFilterDataHier = collectFilterDataHier
 local CW = require("CustomWidgets")
-local os = os
+
 
 local GlobalFilter = function() 
 		return Filter 
@@ -80,7 +80,7 @@ local function SelTaskPress(event)
 	local CancelButton = wx.wxButton(frame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 	local CheckBox = wx.wxCheckBox(frame, wx.wxID_ANY, "Subtasks", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 	
-	if filter.TasksSet and filter.TasksSet.Children then
+	if filter.TasksSet and filter.TasksSet[1].Children then
 		CheckBox:SetValue(true)
 	end
 	buttonSizer:Add(OKButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
@@ -118,8 +118,8 @@ local function SelTaskPress(event)
             	-- Add the spore node
 	            local currNode = taskTree:AppendItem(root,strVar)
 				treeData[currNode:GetValue()] = {Key = Globals.ROOTKEY..k, Parent = root, Title = strVar}
-				if filter.TasksSet and #filter.TasksSet.TaskID > #Globals.ROOTKEY and 
-				  string.sub(filter.TasksSet.TaskID,#Globals.ROOTKEY + 1, -1) == k then
+				if filter.TasksSet and #filter.TasksSet[1].TaskID > #Globals.ROOTKEY and 
+				  string.sub(filter.TasksSet[1].TaskID,#Globals.ROOTKEY + 1, -1) == k then
 					taskTree:EnsureVisible(currNode)
 					taskTree:SelectItem(currNode)
 				end
@@ -546,7 +546,7 @@ end
 local function loadFilter(event)
 	setfenv(1,package.loaded[modname])
 	local ValidFilter = function(file)
-		local safeenv = {os=os}
+		local safeenv = Globals.safeenv
 		local f,message = loadfile(file)
 		if not f then
 			return nil,message
@@ -894,7 +894,7 @@ function filterFormActivate(parent, callBack)
 			local typeSchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Type of Schedule", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 			duSizer:Add(typeSchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
-			TypeSch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{"Estimate","Committed","Revisions","Actual"})
+			TypeSch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{"Estimate","Committed","Revisions","Actual", "Latest"})
 			duSizer:Add(TypeSch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 			TypeSch:SetSelection(2)
 						

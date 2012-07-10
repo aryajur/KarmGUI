@@ -56,3 +56,5 @@ Globals.Resources = {
 	"deepshikha.dandora",
 	"arnav.gupta"
 }
+
+Globals.safeenv = {os=os}

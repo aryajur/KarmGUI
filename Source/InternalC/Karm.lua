@@ -36,23 +36,7 @@ MainMenu = {
 				-- 1st Menu
 				{	
 					Text = "&File", Menu = {
-											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "local count = 0 \
-local sporeList = \"\" \
-for k,v in pairs(Globals.unsavedSpores) do \
-	count = count + 1 \
-	sporeList = sporeList..Globals.unsavedSpores[k]..\"\\n\" \
-end \
-local confirm, response \
-if count > 0 then \
-	confirm = wx.wxMessageDialog(GUI.frame,\"The following spores:\\n\"..sporeList..\" have unsaved changes. Are you sure you want to exit and loose all changes?\", \"Loose all changes?\", wx.wxYES_NO + wx.wxNO_DEFAULT) \
-	response = confirm:ShowModal() \
-else \
-	response = wx.wxID_YES \
-end \
-if response == wx.wxID_YES then \
-	print(\"Exiting code\") \
-	GUI.frame:Close(true) \
-end"}
+											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "GUI.frame:Close(true)"}
 									}
 				},
 				-- 2nd Menu
@@ -79,7 +63,8 @@ Globals = {
 	NoPriStr = "__NO_PRI__",
 	__DEBUG = true,		-- For debug mode
 	PlanningMode = false,	-- Flag to indicate Schedule Planning mode is on.
-	unsavedSpores = {}	-- To store list of unsaved Spores
+	unsavedSpores = {},	-- To store list of unsaved Spores
+	safeenv = {}
 }
 
 -- Generate a unique new wxWindowID
@@ -494,7 +479,7 @@ do
 			elseif not oNode.Expanded and val then
 				-- Check if updates are enabled
 				if oTree.update then
-					if oNode.Row then
+					if oNode.Row and oNode.Children > 0 then
 						-- Task is visible on the GUI
 						-- Expand the node in the GUI here
 						-- Number of rows to insert
@@ -2746,7 +2731,7 @@ end
 function loadKarmSpore(file, commands)
 	local Spore
 	do
-		local safeenv = {}
+		local safeenv = Globals.safeenv
 		local f,message = loadfile(file)
 		if not f then
 			error({msg = "loadKarmSpore:4 "..message, code = "loadKarmSpore:4"},2)
@@ -2976,25 +2961,27 @@ function main()
     GUI.defaultColor.Green = GUI.statusBar:GetBackgroundColour():Green()
     GUI.defaultColor.Blue = GUI.statusBar:GetBackgroundColour():Blue()
     
+    local getMenu
+    getMenu = function(menuTable)
+		local newMenu = wx.wxMenu()    
+		for j = 1,#menuTable do
+			if menuTable[j].Text and menuTable[j].HelpText and (menuTable[j].Code or menuTable[j].File) then
+				local ID = NewID()
+				newMenu:Append(ID,menuTable[j].Text,menuTable[j].HelpText)
+				-- Connect the event for this
+				GUI.frame:Connect(ID, wx.wxEVT_COMMAND_MENU_SELECTED,menuEventHandlerFunction(ID,menuTable[j].Code,menuTable[j].File))
+			elseif menuTable[j].Text and menuTable[j].Menu then
+				newMenu:Append(wx.wxID_ANY,menuTable[j].Text,getMenu(menuTable[j].Menu))
+			end
+		end
+		return newMenu
+    end
 
     -- create the menubar and attach it
     GUI.menuBar = wx.wxMenuBar()
 	for i = 1,#GUI.MainMenu do
 		if GUI.MainMenu[i].Text and GUI.MainMenu[i].Menu then
-			local menuTable = {}
-			for j = 1,#GUI.MainMenu[i].Menu do
-				local Menu = GUI.MainMenu[i].Menu[j]
-				menuTable[j] = {}	
-				if Menu.Text and Menu.HelpText and (Menu.Code or Menu.File) then
-					menuTable[j][1] = NewID()
-					menuTable[j][2] = Menu.Text
-					menuTable[j][3] = Menu.HelpText
-					-- Connect the event for this
-					GUI.frame:Connect(menuTable[j][1], wx.wxEVT_COMMAND_MENU_SELECTED,menuEventHandlerFunction(menuTable[j][1],Menu.Code,Menu.File))
-				end
-			end
-			local newMenu = wx.wxMenu(menuTable)
-			GUI.menuBar:Append(newMenu,GUI.MainMenu[i].Text)
+			GUI.menuBar:Append(getMenu(GUI.MainMenu[i].Menu),GUI.MainMenu[i].Text)
 		end
 	end    
 --    local fileMenu = wx.wxMenu()
