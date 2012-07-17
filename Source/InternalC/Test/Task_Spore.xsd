@@ -148,7 +148,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
                           </xs:annotation>
                         </xs:element>
-                        <xs:element name="Updated" type="xs:date" />
+                        <xs:element name="Updated" type="xs:dateTime" />
                         <xs:element minOccurs="0" maxOccurs="1" name="Period" type="Period">
                           <xs:annotation>
                             <xs:documentation>Defines a working period for this task.</xs:documentation>
@@ -174,7 +174,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
                           </xs:annotation>
                         </xs:element>
-                        <xs:element name="Updated" type="xs:date" />
+                        <xs:element name="Updated" type="xs:dateTime" />
                         <xs:element minOccurs="1" maxOccurs="1" name="Period" type="Period">
                           <xs:annotation>
                             <xs:documentation>Defines a working period for this task.</xs:documentation>
@@ -200,7 +200,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
                             <xs:documentation>Element to add comment, eg. 1st plan or 1st revision due to following reasons etc.</xs:documentation>
                           </xs:annotation>
                         </xs:element>
-                        <xs:element name="Updated" type="xs:date" />
+                        <xs:element name="Updated" type="xs:dateTime" />
                         <xs:element minOccurs="1" maxOccurs="1" name="Period" type="Period">
                           <xs:annotation>
                             <xs:documentation>Defines a working period for this task.</xs:documentation>
@@ -215,11 +215,17 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
             <xs:element minOccurs="0" name="Actual">
               <xs:complexType>
                 <xs:sequence>
+                  <xs:element name="Updated" type="xs:dateTime" />
                   <xs:element maxOccurs="unbounded" name="WorkDone">
                     <xs:complexType>
                       <xs:sequence>
                         <xs:element name="Date" type="xs:date" />
-                        <xs:element minOccurs="0" name="Hours" type="xs:integer" />
+                        <xs:element minOccurs="0" name="Hours" type="xs:integer">
+                          <xs:annotation>
+                            <xs:documentation>The number of hours worked</xs:documentation>
+                          </xs:annotation>
+                        </xs:element>
+                        <xs:element minOccurs="0" name="Comment" type="xs:string" />
                       </xs:sequence>
                     </xs:complexType>
                   </xs:element>

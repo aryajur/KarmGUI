@@ -338,6 +338,23 @@ function getTaskSummary(task)
 	end
 end
 
+function getWorkDoneDates(task)
+	if task.Schedules then
+		if task.Schedules.Actual then
+			local dateList = {}
+			for i = 1,#task.Schedules["Actual"][1].Period do
+				dateList[#dateList + 1] = task.Schedules["Actual"][1].Period[i].Date
+			end		-- for i = 1,#task.Schedules["Actual"][1].Period do ends
+			dateList.typeSchedule = "Actual"
+			dateList.index = 1
+			return dateList
+		else 
+			return nil
+		end
+	else 
+		return nil		
+	end		-- if task.Schedules then ends
+end
 -- Function to get the list of dates in the latest schedule of the task.
 -- if planning == true then the planning schedule dates are returned
 function getLatestScheduleDates(task,planning)
@@ -368,10 +385,13 @@ function getLatestScheduleDates(task,planning)
 				-- Actual and Revisions don't exist but Commit does
 				typeSchedule = "Commit"
 				index = 1
-			else
+			elseif task.Schedules.Estimate then
 				-- The latest is Estimate
 				typeSchedule = "Estimate"
 				index = task.Schedules.Estimate.count
+			else
+				-- task.Schedules can exist if only Actual exists  but task is not DONE yet
+				return nil
 			end
 			-- Now we have the latest schedule type in typeSchedule and the index of it in index
 			for i = 1,#task.Schedules[typeSchedule][index].Period do
@@ -941,60 +961,63 @@ end
 -- Commit->Revs
 -- Revs->Actual
 -- Actual->Back to Estimate
-function togglePlanningType(task)
+function togglePlanningType(task,type)
 	if not task.Planning then
 		task.Planning = {}
 	end
-	local dateList = getLatestScheduleDates(task)
-	if not dateList then
-		dateList = {}
-		dateList.index = 0
-		dateList.typeSchedule = "Estimate"
-	end
-			
-	if not task.Planning.Type then
-		if dateList.typeSchedule == "Estimate" then
+	if type == "NORMAL" then
+		local dateList = getLatestScheduleDates(task)
+		if not dateList then
+			dateList = {}
+			dateList.index = 0
+			dateList.typeSchedule = "Estimate"
+		end
+				
+		if not task.Planning.Type then
+			if dateList.typeSchedule == "Estimate" then
+				task.Planning.Type = "Estimate"
+				task.Planning.index = dateList.index + 1
+			elseif dateList.typeSchedule == "Commit" then
+				task.Planning.Type = "Revs"
+				task.Planning.index = 1
+			elseif dateList.typeSchedule == "Revs" then
+				task.Planning.Type = "Revs"
+				task.Planning.index = dateList.index + 1
+			else
+				task.Planning.Type = "Actual"
+				task.Planning.index = 1		
+			end
+		elseif task.Planning.Type == "Estimate" then
+			task.Planning.Type = "Commit"
+			task.Planning.index = 1
+		elseif task.Planning.Type == "Commit" then
+			task.Planning.Type = "Revs"
+			if task.Schedules and task.Schedules.Revs then
+				task.Planning.index = #task.Schedules.Revs + 1
+			else
+				task.Planning.index = 1
+			end
+		elseif task.Planning.Type == "Revs" then
+			-- in "NORMAL" type the schedule does not go to "Actual"
 			task.Planning.Type = "Estimate"
-			task.Planning.index = dateList.index + 1
-		elseif dateList.typeSchedule == "Commit" then
-			task.Planning.Type = "Revs"
-			task.Planning.index = 1
-		elseif dateList.typeSchedule == "Revs" then
-			task.Planning.Type = "Revs"
-			task.Planning.index = dateList.index + 1
-		else
-			task.Planning.Type = "Actual"
-			task.Planning.index = 1		
-		end
-	elseif task.Planning.Type == "Estimate" then
-		task.Planning.Type = "Commit"
-		task.Planning.index = 1
-	elseif task.Planning.Type == "Commit" then
-		task.Planning.Type = "Revs"
-		if task.Schedules and task.Schedules.Revs then
-			task.Planning.index = #task.Schedules.Revs + 1
-		else
-			task.Planning.index = 1
-		end
-	elseif task.Planning.Type == "Revs" then
+			if task.Schedules and task.Schedules.Estimate then
+				task.Planning.index = #task.Schedules.Estimate + 1
+			else
+				task.Planning.index = 1
+			end
+		end		-- if not task.Planning.Type then ends
+	else
 		task.Planning.Type = "Actual"
 		task.Planning.index = 1
-	elseif task.Planning.Type == "Actual" then
-		task.Planning.Type = "Estimate"
-		if task.Schedules and task.Schedules.Estimate then
-			task.Planning.index = #task.Schedules.Estimate + 1
-		else
-			task.Planning.index = 1
-		end
-	end
+	end		-- if type == "NORMAL" then ends
 end
 
 
 -- Function to toggle a planning date in the given task. If the planning schedule table is not present it creates it with the schedule type Estimate
 -- returns 1 if added, 2 if removed, 3 if removed and no more planning schedule left
-function togglePlanningDate(task,xmlDate)
+function togglePlanningDate(task,xmlDate,type)
 	if not task.Planning then
-		togglePlanningType(task)
+		togglePlanningType(task,type)
 		task.Planning.Period = {
 									[0]="Period",
 									count=1,
@@ -1045,6 +1068,7 @@ function togglePlanningDate(task,xmlDate)
 	-- Date must be added in the end
 	task.Planning.Period.count = task.Planning.Period.count + 1
 	task.Planning.Period[task.Planning.Period.count] = {[0]="DP",Date = xmlDate	}
+	return 1
 end
 
 function addTask2Spore(task,dataStruct)
@@ -1313,7 +1337,8 @@ end
 --			[0] = "Estimate"
 --			count
 --			[i] = 
---		Commit
+--		Commit.
+--			[0] = "Commit"
 --		Revs
 --		Actual
 --	SubTasks.
@@ -1519,16 +1544,20 @@ function XML2Data(SporeXML, SporeFile)
 								end		-- for j = 1,#task[count][i] do ends
 								schedule.Revs = revs
 							elseif task[count][i][0] == "Actual" then
-								local actual = {[0]= "Actual", count = #task[count][i]}
-								local period = {[0] = "Period", count = #task[count][i]} 
+								local actual = {[0]= "Actual", count = 1}
+								local period = {[0] = "Period", count = #task[count][i]-1} 
 								-- Loop through all the work done elements
-								for j = 1,period.count do
+								for j = 2,period.count+1 do
 									period[j] = {[0]="WD", Date = task[count][i][j][1][1]}
-									if task[count][i][j][2][0] then
-										period[j].Hours = task[count][i][j][2][1]
+									for k = 2,#task[count][i][j] do
+										if task[count][i][j][k][0] == "Hours" then
+											period[j].Hours = task[count][i][j][k][1]
+										elseif task[count][i][j][k][0] == "Comment" then
+											period[j].Comment = task[count][i][j][k][1]
+										end
 									end
 								end
-								actual[1] = {Period = period,[0]="Actual"}
+								actual[1] = {Period = period,[0]="Actual", Updated = task[count][i][1][1]}
 								schedule.Actual = actual
 							end							
 						end

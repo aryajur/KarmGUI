@@ -10,6 +10,8 @@ if Globals.__DEBUG then
 	prin = print
 end
 local error = error
+local tonumber = tonumber
+local tostring = tostring
 local print = prin 
 local modname = ...
 local wx = wx
@@ -23,11 +25,13 @@ local XMLDate2wxDateTime = XMLDate2wxDateTime
 local toXMLDate = toXMLDate
 local task2IncSchTasks = task2IncSchTasks
 local getLatestScheduleDates = getLatestScheduleDates
+local getWorkDoneDates = getWorkDoneDates
 local tableToString = tableToString
 local getEmptyTask = getEmptyTask
 local copyTask = copyTask
 local addItemToArray = addItemToArray
 local collectFilterDataHier = collectFilterDataHier
+local togglePlanningDate = togglePlanningDate
 local newGUITreeGantt = function() 
 		return newGUITreeGantt 
 	end
@@ -49,6 +53,7 @@ local function dateRangeChangeEvent(event)
 	local startDate = dateStartPick:GetValue()
 	local finDate = dateFinPick:GetValue()
 	taskTree:dateRangeChange(startDate,finDate)
+	wdTaskTree:dateRangeChange(startDate,finDate)
 	event:Skip()
 end
 
@@ -56,6 +61,7 @@ local function dateRangeChange()
 	local startDate = dateStartPick:GetValue()
 	local finDate = dateFinPick:GetValue()
 	taskTree:dateRangeChange(startDate,finDate)
+	wdTaskTree:dateRangeChange(startDate,finDate)
 end
 
 -- Function to create the task
@@ -65,10 +71,10 @@ local function makeTask(task)
 		error("Need a task object with at least a task ID",2)
 	end
 	local newTask = copyTask(task)
-	if task then
-		-- Since copyTask does not replicate that
-		newTask.DBDATA = task.DBDATA
-	end
+--	if task then
+--		-- Since copyTask does not replicate that
+--		newTask.DBDATA = task.DBDATA
+--	end
 	newTask.Modified = true
 	if pubPrivate:GetValue() == "Public" then
 		newTask.Private = false
@@ -171,7 +177,7 @@ local function makeTask(task)
 	else
 		newTask.Tags = nil
 	end		
-	-- Schedule
+	-- Normal Schedule
 	list = getLatestScheduleDates(taskTree.taskList[1],true)
 	if list then
 		local list1 = getLatestScheduleDates(newTask)
@@ -206,11 +212,50 @@ local function makeTask(task)
 				end
 				newSched.Updated = todayDate
 				str = "DP"
+			else
+				error("Got Actual schedule type while processing schedule.")
 			end
 			-- Update the period
 			newSched.Period = {[0] = "Period", count = #list}
 			for i = 1,#list do
 				newSched.Period[i] = {[0] = str, Date = list[i]}
+			end
+			newTask.Schedules[list.typeSchedule][list.index] = newSched
+			newTask.Schedules[list.typeSchedule].count = list.index
+		end
+	end		-- if list ends here
+	-- Work done Schedule
+	list = getLatestScheduleDates(wdTaskTree.taskList[1],true)
+	if list then
+		local list1 = getWorkDoneDates(newTask)
+		-- Compare the schedules
+		local same = true
+		if not list1 or #list1 ~= #list then
+			same = false
+		else
+			for i = 1,#list do
+				if list[i] ~= list1[i] then
+					same = false
+					break
+				end
+			end
+		end
+		if not same then
+			-- Add the schedule here
+			if not newTask.Schedules then
+				newTask.Schedules = {}
+			end
+			if not newTask.Schedules[list.typeSchedule] then
+				-- Schedule type does not exist so create it
+				newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
+			end
+			-- Schedule type already exists so just add it to the next index
+			local newSched = {[0]=list.typeSchedule, Updated = todayDate}
+			local str = "WD"
+			-- Update the period
+			newSched.Period = {[0] = "Period", count = #list}
+			for i = 1,#list do
+				newSched.Period[i] = wdTaskTree.taskList[1].Planning.Period[i]
 			end
 			newTask.Schedules[list.typeSchedule][list.index] = newSched
 			newTask.Schedules[list.typeSchedule].count = list.index
@@ -488,29 +533,56 @@ function taskFormActivate(parent, callBack, task)
 		TSch = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
 			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
 				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
-				dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
-				startDate = dateStartPick:GetValue()
-				local month = wx.wxDateSpan(0,1,0,0)
-				dateFinPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
-				sizer2:Add(dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)
-				sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)
+					dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+					startDate = dateStartPick:GetValue()
+					local month = wx.wxDateSpan(0,1,0,0)
+					dateFinPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+					sizer2:Add(dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)
+					sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				local staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, "Work Done")
+					wdTaskTree = newGUITreeGantt()(TSch,true)
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
+					sizer3:Add(wdTaskTree.horSplitWin, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+					sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+					sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)
+					local wdDateLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Date: XX/XX/XXXX", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+					sizer4:Add(wdDateLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					local wdHourLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Hours: ", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+					sizer4:Add(wdHourLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					sizer2:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+					local wdCommentLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment: ", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+					sizer2:Add(wdCommentLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					local wdCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE + wx.wxTE_READONLY)
+					sizer2:Add(wdCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+					sizer3:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+					staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				sizer1:Add(staticBoxSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				
+				staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, "Schedules")
+				sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 				
 				taskTree = newGUITreeGantt()(TSch,true)
-				sizer1:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				sizer3:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				dateRangeChange()
 				taskTree:layout()
-				local localTask
+				wdTaskTree:layout()
+				local localTask1, localTask2
 				if not task.Title then
-					localTask = getEmptyTask()
+					localTask1 = getEmptyTask()
+					localTask2 = getEmptyTask()
 				else
-					localTask = copyTask(task)
+					localTask1 = copyTask(task)
+					localTask2 = copyTask(task)
 				end
 				-- Create the 1st row for the task
+			    wdTaskTree:Clear()
+			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}
+			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor
 			    taskTree:Clear()
-			    taskTree:AddNode{Key=localTask.TaskID, Text = localTask.Title, Task = localTask}
-			    taskTree.Nodes[localTask.TaskID].ForeColor = GUI.nodeForeColor
-			    local prevKey = localTask.TaskID
+			    taskTree:AddNode{Key=localTask2.TaskID, Text = localTask2.Title, Task = localTask2}
+			    taskTree.Nodes[localTask2.TaskID].ForeColor = GUI.nodeForeColor
+			    local prevKey = localTask1.TaskID
 				-- Get list of mock tasks with incremental schedule
 				if task and task.Schedules then
 					local taskList = task2IncSchTasks(task)
@@ -522,17 +594,25 @@ function taskFormActivate(parent, callBack, task)
 		            end
 				end
 				-- Enable planning mode for the task
-				taskTree:enablePlanningMode({localTask})
+				taskTree:enablePlanningMode({localTask2},"NORMAL")
+				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE")
 				-- Add the comment box
+				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
-				sizer1:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+				sizer4:Add(textLabel, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+				KeepPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, "Keep Planning", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				KeepPlanning:SetValue(true)
+				sizer4:Add(KeepPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
-				sizer1:Add(schCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+				sizer3:Add(schCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+				staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+				sizer1:Add(staticBoxSizer, 2, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
 				TSch:SetSizer(sizer1)
 			sizer1:SetSizeHints(TSch)
-		MainBook:AddPage(TSch, "Schedules")				
-
+		MainBook:AddPage(TSch, "Schedules")	
+		
 	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 	CancelButton = wx.wxButton(frame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
@@ -543,6 +623,182 @@ function taskFormActivate(parent, callBack, task)
 
 	frame:SetSizer(MainSizer)
 
+	-- Event handler for the Work Done elements
+	local workDoneHourCommentEntry = function(task,row,col,date)
+		-- First check whether the date is in the schedule
+		local exist = false
+		local prevHours, prevComment
+		if localTask1.Planning then
+			for i = 1,#localTask1.Planning.Period do
+				if date == localTask1.Planning.Period[i].Date then
+					prevHours = localTask1.Planning.Period[i].Hours or ""
+					prevComment = localTask1.Planning.Period[i].Comment or ""
+					exist = true
+					break
+				end
+			end
+		end
+		if exist then
+			local wdFrame = wx.wxFrame(frame, wx.wxID_ANY, "Work Done Details for date "..date, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxDEFAULT_FRAME_STYLE)
+			local wdSizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
+				-- Data entry UI
+				local wdSizer2 = wx.wxBoxSizer(wx.wxVERTICAL)
+					local wdSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+					wdTextLabel = wx.wxStaticText(wdFrame, wx.wxID_ANY, "Hours:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+					wdSizer3:Add(wdTextLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					local wdList = {"1", "2","3","4","5","6","7","8","9","10"}
+					local wdHours = wx.wxComboBox(wdFrame, wx.wxID_ANY,prevHours, wx.wxDefaultPosition, wx.wxDefaultSize,wdList)
+					wdSizer3:Add(wdHours, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					wdSizer2:Add(wdSizer3, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+					wdSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+					wdTextLabel = wx.wxStaticText(wdFrame, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+					wdSizer3:Add(wdTextLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					wdSizer2:Add(wdSizer3, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+					local w = 0.5*GUI.initFrameW
+					local l = 0.5*GUI.initFrameH
+					w = w - w%1
+					l = l - l%1
+					local wdComment = wx.wxTextCtrl(wdFrame, wx.wxID_ANY, prevComment, wx.wxDefaultPosition, wx.wxSize(w, l), wx.wxTE_MULTILINE)
+					wdSizer2:Add(wdComment, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				wdSizer1:Add(wdSizer2, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				-- Buttons
+				wdSizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+					local wdCancelButton = wx.wxButton(wdFrame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+					wdSizer2:Add(wdCancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+					local wdDoneButton = wx.wxButton(wdFrame, wx.wxID_ANY, "Done", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+					wdSizer2:Add(wdDoneButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				wdSizer1:Add(wdSizer2, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			wdFrame:SetSizer(wdSizer1)
+			wdSizer1:SetSizeHints(wdFrame)
+			wdCancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+				function (event)
+					wdFrame:Close()
+				end
+			)
+			wdDoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+				function (event)
+					setfenv(1,package.loaded[modname])
+					local hours = wdHours:GetValue()
+					local comment = wdComment:GetValue()
+					if tonumber(hours) then
+						hours = tostring(tonumber(hours))
+					else
+						hours = ""
+					end
+					if hours ~= "" or comment ~= "" then
+						-- Add the hours and Comment information to the task here
+						for i = 1,#localTask1.Planning.Period do
+							if localTask1.Planning.Period[i].Date == date then
+								if hours ~= "" then
+									localTask1.Planning.Period[i].Hours = hours
+								end
+								if comment ~= "" then
+									localTask1.Planning.Period[i].Comment = comment
+								end
+								break
+							end
+						end
+						-- Update the hours and comment box
+						wdDateLabel:SetLabel("Date: "..date:sub(-5,-4).."/"..date:sub(-2,-1).."/"..date:sub(1,4))
+						wdHourLabel:SetLabel("Hours: "..hours)
+						wdCommentBox:SetValue(comment)
+					end		-- if hours ~= "" or comment ~= "" then ends
+					wdFrame:Close()
+				end
+			)
+		    wdFrame:Layout() -- help sizing the windows before being shown
+		    wdFrame:Show(true)
+		end	-- if exist then ends		
+	end
+	
+	local prevDate, wdPlanning
+	wdPlanning = {Planning = {Type = "Actual", index = 1}}
+	
+	local function updateHoursComment(task,row,col,date)
+		if not prevDate then
+			prevDate = date
+		end
+		-- First check whether the date is in the schedule
+		local exist = false
+		local existwd = false
+		local perNum, wdNum
+		if localTask1.Planning then
+			for i = 1,#localTask1.Planning.Period do
+				if date == localTask1.Planning.Period[i].Date then
+					perNum = i
+					exist = true
+					break
+				end
+			end
+		end
+		if wdPlanning.Planning.Period then
+			for i = 1,#wdPlanning.Planning.Period do
+				if date == wdPlanning.Planning.Period[i].Date then
+					wdNum = i
+					existwd = true
+					break
+				end
+			end
+		end
+		
+		if exist then
+			if not existwd then
+				-- Add it to wdPlanning
+				if not wdPlanning.Planning.Period then
+					wdPlanning.Planning.Period = {}
+				end
+				wdPlanning.Planning.Period[#wdPlanning.Planning.Period + 1] = localTask1.Planning.Period[perNum]
+			end
+		else
+			if existwd then
+				if prevDate ~= date then
+					-- Add it back in the task
+					togglePlanningDate(localTask1,date,"WORKDONE")
+					for i = 1,#localTask1.Planning.Period do
+						if localTask1.Planning.Period[i].Date == date then
+							localTask1.Planning.Period[i].Hours = wdPlanning.Planning.Period[wdNum].Hours
+							localTask1.Planning.Period[i].Comment = wdPlanning.Planning.Period[wdNum].Comment
+							break
+						end
+					end
+					-- Update GUI
+					wdTaskTree:RefreshNode(localTask1)
+				else
+					-- Remove it from wdPlanning
+					for i = wdNum,#wdPlanning.Planning.Period - 1 do
+						wdPlanning.Planning.Period[i] = wdPlanning.Planning.Period[i+1]
+					end
+					wdPlanning.Planning.Period[#wdPlanning.Planning.Period] = nil
+				end
+			end
+		end
+		prevDate = date
+		local hours, comment
+		-- Extract the hours and comments
+		if localTask1.Planning then
+			for i = 1,#localTask1.Planning.Period do
+				if date == localTask1.Planning.Period[i].Date then
+					hours = localTask1.Planning.Period[i].Hours
+					comment = localTask1.Planning.Period[i].Comment
+					break
+				end
+			end
+		end
+		-- Update the hours and comment box
+		wdDateLabel:SetLabel("Date: "..date:sub(-5,-4).."/"..date:sub(-2,-1).."/"..date:sub(1,4))
+		if hours then
+			wdHourLabel:SetLabel("Hours: "..hours)
+		else
+			wdHourLabel:SetLabel("Hours: ")
+		end
+		if comment then
+			wdCommentBox:SetValue(comment)
+		else
+			wdCommentBox:SetValue("")
+		end		
+	end
+	
+	wdTaskTree:associateEventFunc({ganttCellDblClickCallBack = workDoneHourCommentEntry, ganttCellClickCallBack = updateHoursComment})
 	-- Connect event handlers to the buttons
 	RemoveAccButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
 		function(event)

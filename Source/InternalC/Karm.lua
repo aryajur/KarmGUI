@@ -91,7 +91,7 @@ do
 	
 	-- Function References
 	local onScrollTree, onScrollGantt, labelClick, cellClick, horSashAdjust, widgetResize, refreshGantt, dispTask, dispGantt
-	local cellClickCallBack, ganttCellClick, ganttLabelClick
+	local cellClickCallBack, ganttCellClick, ganttLabelClick, ganttCellDblClick
 
 	-- Function to return the iterator function to iterate over all taskTree Nodes 
 	-- This the function to be used in a Generic for
@@ -173,11 +173,11 @@ do
 	end
 	
 	local function associateEventFunc(taskTree,funcTable)
-		if funcTable.cellClickCallBack == 0 then
-			taskTreeINT[taskTree].cellClickCallBack = nil
-		else
-			taskTreeINT[taskTree].cellClickCallBack = funcTable.cellClickCallBack
-		end
+		taskTreeINT[taskTree].cellClickCallBack = funcTable.cellClickCallBack or taskTreeINT[taskTree].cellClickCallBack
+		taskTreeINT[taskTree].ganttCellClickCallBack = funcTable.ganttCellClickCallBack or taskTreeINT[taskTree].ganttCellClickCallBack
+		taskTreeINT[taskTree].rowLabelClickCallBack = funcTable.rowLabelClickCallBack or taskTreeINT[taskTree].rowLabelClickCallBack
+		taskTreeINT[taskTree].ganttRowLabelClickCallBack = funcTable.ganttRowLabelClickCallBack or taskTreeINT[taskTree].ganttRowLabelClickCallBack
+		taskTreeINT[taskTree].ganttCellDblClickCallBack = funcTable.ganttCellDblClickCallBack or taskTreeINT[taskTree].ganttCellDblClickCallBack
 	end
 
 	local function dateRangeChange(o,startDate,finDate)
@@ -217,32 +217,69 @@ do
 	    oTree.treeGrid:SetColSize(1,oTree.horSplitWin:GetSashPosition()-oTree.treeGrid:GetColSize(0)-oTree.treeGrid:GetRowLabelSize(0))	
 	end
 	
-	local function  enablePlanningMode(taskTree, taskList)
-		oTree = taskTreeINT[taskTree]
-		oTree.Planning = true
+	function taskTreeINT.disablePlanningMode(taskTree)
+		local oTree = taskTreeINT[taskTree]
+		oTree.Planning = nil
+		oTree.taskList = nil
+	end
+	
+	-- Function to enable the planning mode
+	-- Type = "NORMAL" - Planning for normal schedules
+	-- Type = "WORKDONE" - Planning for the actual work done schedule
+	local function enablePlanningMode(taskTree, taskList, type)
+		local oTree = taskTreeINT[taskTree]
+		if type ~= "NORMAL" and type ~= "WORKDONE" then
+			error("enablePlanningMode: Planning type should either be 'NORMAL' or 'WORKDONE'.",2)
+		end
+		oTree.Planning = type
 		if not oTree.taskList then
 			oTree.taskList = {}
+			-- Check if there are tasks with Planning
+			for i,v in taskTreeINT.tpairs(taskTree) do
+				if v.Task.Planning then
+					oTree.taskList[#oTree.taskList + 1] = v.Task
+				end
+			end		-- Looping through all the nodes ends
 		end
-		local count = 1
+		-- Refresh the existing tasks in the taskList
+		for j = 1,#oTree.taskList do
+			if oTree.Nodes[oTree.taskList[j].TaskID]:MakeVisible() then
+				dispGantt(taskTree,oTree.Nodes[oTree.taskList[j].TaskID].Row,false,oTree.Nodes[oTree.taskList[j].TaskID])
+			end
+		end
 		for i = 1,#taskList do
-			oTree.taskList[count] = taskList[i] 
-			if oTree.Nodes[taskList[i].TaskID]:MakeVisible() then
-				count = count + 1
-				-- Copy over the latest schedule to the planning period
-				local dateList = getLatestScheduleDates(taskList[i])
+			-- Check whether the task already exist in the taskList
+			local found = false
+			for j = 1,#oTree.taskList do
+				if oTree.taskList[j] == taskList[i] then
+					found = true
+					break
+				end
+			end
+			if not found then
+				oTree.taskList[#oTree.taskList + 1] = taskList[i] 
+				local dateList
+				if type == "NORMAL" then
+					-- Copy over the latest schedule to the planning period
+					dateList = getLatestScheduleDates(taskList[i])
+				else
+					-- Copy over the work done dates to the planning period
+					dateList = getWorkDoneDates(taskList[i])
+				end		-- if type == "NORMAL" then ends
 				if dateList then
-					togglePlanningType(taskList[i])
+					togglePlanningType(taskList[i],oTree.Planning)
 					taskList[i].Planning.Period = {[0]="Period",count=0}
 					for j=1,#dateList do
 						taskList[i].Planning.Period[j] = {[0]="DP",Date=dateList[j]}
 						taskList[i].Planning.Period.count = taskList[i].Planning.Period.count + 1
 					end
 				end
+			end		-- if not found then ends
+			if oTree.Nodes[taskList[i].TaskID]:MakeVisible() then
 				dispGantt(taskTree,oTree.Nodes[taskList[i].TaskID].Row,false,oTree.Nodes[taskList[i].TaskID])
 			end
-		end
-		oTree.taskList[count] = nil
-	end
+		end		-- for i = 1,#taskList do ends
+	end		-- local function enablePlanningMode(taskTree, taskList, type)ends
 	
 	local function getPlanningTasks(taskTree)
 		oTree = taskTreeINT[taskTree]
@@ -349,6 +386,9 @@ do
 
 		-- Gantt Grid Cell left click event
 		oTree.ganttGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,ganttCellClick)
+		
+		-- Gantt Cell double click event
+		oTree.ganttGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_DCLICK,ganttCellDblClick)
 		
 		-- TreeGrid left click on cell event
 		oTree.treeGrid:Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,cellClick)
@@ -927,7 +967,12 @@ do
 		end		-- if not nodeMeta[node1].Task then ends
 	end
 
-	-- Updates a node with the key same as the given task's TaskID
+	-- Refreshes a node with the key same as the given task's TaskID
+	-- This is a total refresh of the task name and also the schedule
+	function taskTreeINT.RefreshNode(taskTree,task)
+		return taskTreeINT.UpdateNode(taskTree,task)
+	end
+	
 	function taskTreeINT.UpdateNode(taskTree,task)
 		local oTree = taskTreeINT[taskTree]
 		local node = oTree.Nodes[task.TaskID]
@@ -1587,27 +1632,49 @@ do
 				end
 			end
 		end		
+		if taskTreeINT[obj].rowLabelClickCallBack then
+			local taskNode
+			-- Find the task associated with the row
+			for i,v in taskTreeINT.tvpairs(obj) do
+				if v.Row == row+1 then
+					taskNode = v
+					break
+				end
+			end		-- Looping through all the nodes ends
+			taskTreeINT[obj].rowLabelClickCallBack(taskNode.Task, row, -1)
+		end
 		--event:Skip()
 	end
 	
 	local function ganttLabelClickFunc(event)
 		-- Find the row of the click
 		local obj = IDMap[event:GetId()]
+		local row = event:GetRow()
+		local col = event:GetCol()
 		if taskTreeINT[obj].Planning then
 			local oTree = taskTreeINT[obj]
-			local row = event:GetRow()
-			local col = event:GetCol()
 			if row > -1 then
 				for i = 1,#oTree.taskList do
 					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
 						-- This is the task modify/add the planning schedule
-						togglePlanningType(oTree.taskList[i])
+						togglePlanningType(oTree.taskList[i],oTree.Planning)
 						dispGanttFunc(obj,row+1,false,oTree.Nodes[oTree.taskList[i].TaskID])
 						break
 					end
 				end
 			end		-- if row > -1 then ends
 		end		-- if taskTreeINT[obj].Planning then ends
+		if taskTreeINT[obj].ganttRowLabelClickCallBack then
+			local taskNode
+			-- Find the task associated with the row
+			for i,v in taskTreeINT.tvpairs(obj) do
+				if v.Row == row+1 then
+					taskNode = v
+					break
+				end
+			end		-- Looping through all the nodes ends
+			taskTreeINT[obj].ganttRowLabelClickCallBack(taskNode.Task, row, -1)
+		end
 		--event:Skip()
 	end
 
@@ -1708,7 +1775,7 @@ do
 				taskNode.Selected = true
 				taskTreeINT[obj].Selected = {taskNode,Latest=1}
 				if taskTreeINT[obj].cellClickCallBack then
-					taskTreeINT[obj].cellClickCallBack(taskNode.Task)
+					taskTreeINT[obj].cellClickCallBack(taskNode.Task, row, col)
 				end
 			else
 				taskTreeINT[obj].Selected = {}
@@ -1719,23 +1786,48 @@ do
 		--event:Skip()
 	end
 	
+	local function ganttCellDblClickFunc(event)
+		local obj = IDMap[event:GetId()]
+		local oTree = taskTreeINT[obj]
+		local row = event:GetRow()
+		local col = event:GetCol()
+		-- Find the date on which clicked
+		local colCount = 0					
+		local stepDate = XMLDate2wxDateTime(toXMLDate(taskTreeINT[obj].startDate:Format("%m/%d/%Y")))
+		while colCount < col do
+			stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
+			colCount = colCount + 1
+		end
+		if oTree.ganttCellDblClickCallBack then
+			local taskNode
+			-- Find the task associated with the row
+			for i,v in taskTreeINT.tvpairs(obj) do
+				if v.Row == row+1 then
+					taskNode = v
+					break
+				end
+			end		-- Looping through all the nodes ends
+			oTree.ganttCellDblClickCallBack(taskNode.Task, row, col, toXMLDate(stepDate:Format("%m/%d/%Y")))
+		end
+	end
+	
 	local function ganttCellClickFunc(event)
 		local obj = IDMap[event:GetId()]
 		local oTree = taskTreeINT[obj]
 		local row = event:GetRow()
 		local col = event:GetCol()
+		local colCount = 0					
+		local stepDate = XMLDate2wxDateTime(toXMLDate(taskTreeINT[obj].startDate:Format("%m/%d/%Y")))
+		while colCount < col do
+			stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
+			colCount = colCount + 1
+		end
 		if taskTreeINT[obj].Planning then
 			if row > -1 then
 				for i = 1,#oTree.taskList do
 					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
 						-- This is the task modify/add the planning schedule
-						local colCount = 0					
-						local stepDate = XMLDate2wxDateTime(toXMLDate(taskTreeINT[obj].startDate:Format("%m/%d/%Y")))
-						while colCount < col do
-							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
-							colCount = colCount + 1
-						end
-						togglePlanningDate(oTree.taskList[i],toXMLDate(stepDate:Format("%m/%d/%Y")))
+						togglePlanningDate(oTree.taskList[i],toXMLDate(stepDate:Format("%m/%d/%Y")),oTree.Planning)
 						dispGanttFunc(obj,row+1,false,oTree.Nodes[oTree.taskList[i].TaskID])
 						break
 					end
@@ -1743,10 +1835,22 @@ do
 			end		-- if row > -1 then ends
 		end		-- if taskTreeINT[obj].Planning then ends
 		oTree.ganttGrid:SetGridCursor(event:GetRow(),event:GetCol())
+		if taskTreeINT[obj].ganttCellClickCallBack then
+			local taskNode
+			-- Find the task associated with the row
+			for i,v in taskTreeINT.tvpairs(obj) do
+				if v.Row == row+1 then
+					taskNode = v
+					break
+				end
+			end		-- Looping through all the nodes ends
+			taskTreeINT[obj].ganttCellClickCallBack(taskNode.Task, row, col, toXMLDate(stepDate:Format("%m/%d/%Y")))
+		end
 		cellClickFunc(wx.wxGridEvent(event:GetId(),wx.wxEVT_GRID_CELL_LEFT_CLICK,oTree.treeGrid,event:GetRow(),1))
 	end		-- local function ganttCellClickFunc(event) ends
 	
 	ganttCellClick = ganttCellClickFunc
+	ganttCellDblClick = ganttCellDblClickFunc
 	ganttLabelClick = ganttLabelClickFunc
 	cellClick = cellClickFunc
 	widgetResize = widgetResizeFunc
