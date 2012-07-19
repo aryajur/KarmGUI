@@ -21,21 +21,33 @@ Spores = {
 setfenv(1,GUI)
 --initFrameH = 800
 --initFrameW = 900
---MainMenu = {
---				-- 1st Menu
---				{	
---					Text = "&File", Menu = {
---											{Text = "&Open\tCtrl-O", HelpText = "Open a Spore", Code = "openKarmSpore()"},
---											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "GUI.frame:Close()"}
---									}
---				},
---				-- 2nd Menu
---				{	
---					Text = "&Help", Menu = {
---											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,GUI.frame)"}
---									}
---				}
---}
+MainMenu = {
+				-- 1st Menu
+				{	
+					Text = "&File", Menu = {
+											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "GUI.frame:Close(true)"}
+									}
+				},
+				-- 2nd Menu
+				{	
+					Text = "&Tools", Menu = {
+											{Text = "&Planning Mode\tCtrl-P", HelpText = "Turn on Planning mode", Code = [[local menuItems = GUI.menuBar:GetMenu(1):GetMenuItems() 
+if menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
+	-- Enable Planning Mode 
+	GUI.taskTree:enablePlanningMode() 
+else 
+	-- Disable Planning Mode 
+	GUI.taskTree:disablePlanningMode() 
+end]] , ItemKind = wx.wxITEM_CHECK}
+									}
+				},
+				-- 3rd Menu
+				{	
+					Text = "&Help", Menu = {
+											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,GUI.frame)"}
+									}
+				}
+}
 setfenv(1,_G)
 -- print(Spores)
 

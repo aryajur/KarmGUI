@@ -178,52 +178,56 @@ local function makeTask(task)
 		newTask.Tags = nil
 	end		
 	-- Normal Schedule
-	list = getLatestScheduleDates(taskTree.taskList[1],true)
-	if list then
-		local list1 = getLatestScheduleDates(newTask)
-		-- Compare the schedules
-		local same = true
-		if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and 
-		  not(list1.typeSchedule=="Commit" and list.typeSchedule == "Revs")) then
-			same = false
-		else
-			for i = 1,#list do
-				if list[i] ~= list1[i] then
-					same = false
-					break
-				end
-			end
-		end
-		if not same then
-			-- Add the schedule here
-			if not newTask.Schedules then
-				newTask.Schedules = {}
-			end
-			if not newTask.Schedules[list.typeSchedule] then
-				-- Schedule type does not exist so create it
-				newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
-			end
-			-- Schedule type already exists so just add it to the next index
-			local newSched = {[0]=list.typeSchedule}
-			local str = "WD"
-			if list.typeSchedule ~= "Actual" then
-				if schCommentBox:GetValue() ~= "" then
-					newSched.Comment = schCommentBox:GetValue()
-				end
-				newSched.Updated = todayDate
-				str = "DP"
+	if HoldPlanning:GetValue() then
+		newTask.Planning = taskTree.taskList[1].Planning
+	else
+		list = getLatestScheduleDates(taskTree.taskList[1],true)
+		if list then
+			local list1 = getLatestScheduleDates(newTask)
+			-- Compare the schedules
+			local same = true
+			if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and 
+			  not(list1.typeSchedule=="Commit" and list.typeSchedule == "Revs")) then
+				same = false
 			else
-				error("Got Actual schedule type while processing schedule.")
+				for i = 1,#list do
+					if list[i] ~= list1[i] then
+						same = false
+						break
+					end
+				end
 			end
-			-- Update the period
-			newSched.Period = {[0] = "Period", count = #list}
-			for i = 1,#list do
-				newSched.Period[i] = {[0] = str, Date = list[i]}
+			if not same then
+				-- Add the schedule here
+				if not newTask.Schedules then
+					newTask.Schedules = {}
+				end
+				if not newTask.Schedules[list.typeSchedule] then
+					-- Schedule type does not exist so create it
+					newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
+				end
+				-- Schedule type already exists so just add it to the next index
+				local newSched = {[0]=list.typeSchedule}
+				local str = "WD"
+				if list.typeSchedule ~= "Actual" then
+					if schCommentBox:GetValue() ~= "" then
+						newSched.Comment = schCommentBox:GetValue()
+					end
+					newSched.Updated = todayDate
+					str = "DP"
+				else
+					error("Got Actual schedule type while processing schedule.")
+				end
+				-- Update the period
+				newSched.Period = {[0] = "Period", count = #list}
+				for i = 1,#list do
+					newSched.Period[i] = {[0] = str, Date = list[i]}
+				end
+				newTask.Schedules[list.typeSchedule][list.index] = newSched
+				newTask.Schedules[list.typeSchedule].count = list.index
 			end
-			newTask.Schedules[list.typeSchedule][list.index] = newSched
-			newTask.Schedules[list.typeSchedule].count = list.index
-		end
-	end		-- if list ends here
+		end		-- if list ends here
+	end		-- if HoldPlanning.GetValue() then ends
 	-- Work done Schedule
 	list = getLatestScheduleDates(wdTaskTree.taskList[1],true)
 	if list then
@@ -576,6 +580,7 @@ function taskFormActivate(parent, callBack, task)
 					localTask2 = copyTask(task)
 				end
 				-- Create the 1st row for the task
+				localTask1.Planning = nil	-- Since we will use this task for Work Done Entry and Work done never maintains the Planning
 			    wdTaskTree:Clear()
 			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}
 			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor
@@ -588,6 +593,7 @@ function taskFormActivate(parent, callBack, task)
 					local taskList = task2IncSchTasks(task)
 					-- Now add these tasks
 					for i = 1,#taskList do
+						taskList[i].Planning = nil	-- To make sure that a task already having Planning does not propagate that in successive schedules
 		            	taskTree:AddNode{Relative=prevKey, Relation="Next Sibling", Key=taskList[i].TaskID, Text=taskList[i].Title, Task = taskList[i]}
 		            	taskTree.Nodes[taskList[i].TaskID].ForeColor = GUI.nodeForeColor
 		            	prevKey = taskList[i].TaskID
@@ -600,9 +606,9 @@ function taskFormActivate(parent, callBack, task)
 				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
 				sizer4:Add(textLabel, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
-				KeepPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, "Keep Planning", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-				KeepPlanning:SetValue(true)
-				sizer4:Add(KeepPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				HoldPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, "Hold Planning", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				HoldPlanning:SetValue(true)
+				sizer4:Add(HoldPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
 				sizer3:Add(schCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)

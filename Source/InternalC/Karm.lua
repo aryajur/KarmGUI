@@ -91,7 +91,7 @@ do
 	
 	-- Function References
 	local onScrollTree, onScrollGantt, labelClick, cellClick, horSashAdjust, widgetResize, refreshGantt, dispTask, dispGantt
-	local cellClickCallBack, ganttCellClick, ganttLabelClick, ganttCellDblClick
+	local cellClickCallBack, ganttCellClick, ganttLabelClick, ganttCellDblClick, onRowResizeGantt, onRowResizeTree
 
 	-- Function to return the iterator function to iterate over all taskTree Nodes 
 	-- This the function to be used in a Generic for
@@ -220,6 +220,12 @@ do
 	function taskTreeINT.disablePlanningMode(taskTree)
 		local oTree = taskTreeINT[taskTree]
 		oTree.Planning = nil
+		-- Update all the tasks in the planning mode in the UI to remove the planning schedule
+		for i = 1,#oTree.taskList do
+			if oTree.Nodes[oTree.taskList[i].TaskID].Row then
+				dispGantt(taskTree,oTree.Nodes[oTree.taskList[i].TaskID].Row,false,oTree.Nodes[oTree.taskList[i].TaskID])
+			end
+		end 
 		oTree.taskList = nil
 	end
 	
@@ -228,6 +234,8 @@ do
 	-- Type = "WORKDONE" - Planning for the actual work done schedule
 	local function enablePlanningMode(taskTree, taskList, type)
 		local oTree = taskTreeINT[taskTree]
+		taskList = taskList or {}
+		type = type or "NORMAL"
 		if type ~= "NORMAL" and type ~= "WORKDONE" then
 			error("enablePlanningMode: Planning type should either be 'NORMAL' or 'WORKDONE'.",2)
 		end
@@ -236,7 +244,7 @@ do
 			oTree.taskList = {}
 			-- Check if there are tasks with Planning
 			for i,v in taskTreeINT.tpairs(taskTree) do
-				if v.Task.Planning then
+				if v.Task and v.Task.Planning then
 					oTree.taskList[#oTree.taskList + 1] = v.Task
 				end
 			end		-- Looping through all the nodes ends
@@ -376,6 +384,12 @@ do
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, f)
+		
+		-- Row Resize event
+		f = onRowResizeTree(taskTree)
+		oTree.treeGrid:Connect(wx.wxEVT_GRID_ROW_SIZE,f)
+		f = onRowResizeGantt(taskTree)
+		oTree.ganttGrid:Connect(wx.wxEVT_GRID_ROW_SIZE,f)
 		
 		-- The TreeGrid label click event
 		oTree.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,labelClick)
@@ -674,15 +688,15 @@ do
 				taskTreeINT[taskTree].treeGrid:SetRowLabelValue(i,taskTreeINT[taskTree].treeGrid:GetRowLabelValue(i-1))
 			end
 		end
+		taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
+		taskTreeINT[taskTree].treeGrid:SetCellAlignment(row-1,1,wx.wxALIGN_LEFT, wx.wxALIGN_CENTRE)
 		if taskNode.Children > 0 then
-			taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
 			if taskNode.Expanded then
 				taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1,"-")
 			else
 				taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1,"+")
 			end
 		else
-			taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,1,string.rep(" ",hierLevel*4)..taskNode.Title)
 			taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1," ")
 		end
 		if taskNode.Task and taskNode.Task.Status and string.upper(taskNode.Task.Status) == "DONE" then
@@ -1692,7 +1706,29 @@ do
 --			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
 --			event:Skip()
 --		end
+	local function onRowResizeGanttFunc(obj)
+		return function(event)
+			event:Skip()
+			oTree = taskTreeINT[obj]
+			local row = event:GetRowOrCol()
+			oTree.treeGrid:SetRowSize(row,oTree.ganttGrid:GetRowSize(row))
+			oTree.treeGrid:ForceRefresh()
+		end
+	end
 	
+	onRowResizeGantt = onRowResizeGanttFunc
+	
+	local function onRowResizeTreeFunc(obj)
+		return function(event)
+			event:Skip()
+			oTree = taskTreeINT[obj]
+			local row = event:GetRowOrCol()
+			oTree.ganttGrid:SetRowSize(row,oTree.treeGrid:GetRowSize(row))
+			oTree.ganttGrid:ForceRefresh()
+		end	
+	end
+	
+	onRowResizeTree = onRowResizeTreeFunc
 	
 	local function onScrollGanttFunc(obj)
 		return function(event)
@@ -3071,7 +3107,7 @@ function main()
 		for j = 1,#menuTable do
 			if menuTable[j].Text and menuTable[j].HelpText and (menuTable[j].Code or menuTable[j].File) then
 				local ID = NewID()
-				newMenu:Append(ID,menuTable[j].Text,menuTable[j].HelpText)
+				newMenu:Append(ID,menuTable[j].Text,menuTable[j].HelpText, menuTable[j].ItemKind or wx.wxITEM_NORMAL)
 				-- Connect the event for this
 				GUI.frame:Connect(ID, wx.wxEVT_COMMAND_MENU_SELECTED,menuEventHandlerFunction(ID,menuTable[j].Code,menuTable[j].File))
 			elseif menuTable[j].Text and menuTable[j].Menu then
@@ -3191,7 +3227,7 @@ function main()
 	GUI.frame:Connect(wx.wxEVT_SIZE, GUI.frameResize)
 	
 	-- Task Details click event
-	GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print("clicked") end)
+	GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print(menuItems) end)
 	
 	-- Toolbar button events
 	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadXML)

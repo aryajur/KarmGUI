@@ -132,6 +132,7 @@ end
 		Boolean expression different schedule criterias together 
 		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Globals.NoDateStr"
 		Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
+13. Planning - If task is in Planning mode - NOT IMPLEMENTED YET
 ]]
 
 -- Function to validate a given task
@@ -500,7 +501,7 @@ function validateTask(filter, task)
 		for sch in string.gmatch(filter.Schedules,"%'(.-)%'") do
 			-- Check if this schedule chunk passes in the task
 			-- "'Full,Estimate,12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012'"
-			local typeMatch, typeSchedule, ranges, rangeStr, index
+			local typeMatch, typeSchedule, ranges, rangeStr, index, result
 			local firstComma = string.find(sch,",")
 			local secondComma = string.find(sch,",",firstComma + 1)
 			typeMatch = string.sub(sch,1,firstComma-1)
@@ -536,6 +537,8 @@ function validateTask(filter, task)
 							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						elseif task.Schedules.Estimate then
 							index = #task.Schedules.Estimate
+						else
+							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						end			
 					end
 					typeSchedule = "Estimate"
@@ -553,6 +556,8 @@ function validateTask(filter, task)
 							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						elseif task.Schedules.Revs then
 							index = #task.Schedules.Revs
+						else
+							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						end			
 					end
 					typeSchedule = "Revs"

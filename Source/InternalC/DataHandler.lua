@@ -466,7 +466,7 @@ function tableToString(t)
 					rL[rL.cL].str = rL[rL.cL].str..","
 					--print(k,"=",v)
 				else
-					rL[rL.cL].str = rL[rL.cL].str.."\""..tostring(v).."\""
+					rL[rL.cL].str = rL[rL.cL].str..string.format("%q",tostring(v))
 					rL[rL.cL].str = rL[rL.cL].str..","
 					--print(k,"=",v)
 				end		-- if type(v) == "table" then ends
