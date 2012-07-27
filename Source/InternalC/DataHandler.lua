@@ -399,6 +399,18 @@ function getTaskSummary(task)
 	end
 end
 
+function validateSpore(Spore)
+	if not Spore then
+		return nil
+	elseif type(Spore) ~= "table" then
+		return nil
+	elseif Spore[0] ~= "Task_Spore" then
+		return nil
+	end
+	return true
+end
+
+
 function getWorkDoneDates(task)
 	if task.Schedules then
 		if task.Schedules.Actual then
@@ -937,7 +949,9 @@ end
 -- Planning  
 
 -- 1st 5 are made a copy of
--- Parent, DBDATA and SubTasks are the same linked tables
+-- Parent is the same linked tables
+-- If copySubTasks is true then SubTasks are made a copy as well with the same parameters otherwise it is the same linked SubTask table
+-- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table
 -- Planning is not copied over
 function copyTask(task, copySubTasks, removeDBDATA)
 	if not task then
@@ -949,7 +963,22 @@ function copyTask(task, copySubTasks, removeDBDATA)
 			if k ~= "Who" and k ~= "Schedules" and k~= "Tags" and k ~= "Access" and k ~= "Assignee" and not (k == "SubTasks" and copySubTasks)then
 				nTask[k] = task[k]
 			else
-				nTask[k] = copyTable(task[k],true)
+				if k == "SubTasks" then
+					-- This has to be copied in 2 steps
+					local parent
+					if task.Parent then
+						parent = task.Parent.SubTasks
+					else
+						-- Must be a root node in a Spore so take the Spore table as the parent itself
+						parent = task.SubTasks.parent
+					end
+					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]="SubTasks"}
+					for i = 1,#task.SubTasks do
+						nTask.SubTasks[i] = copyTask(task.SubTasks[i],true,removeDBDATA)
+					end
+				else
+					nTask[k] = copyTable(task[k],true)
+				end
 			end
 		end
 	end		-- for k,v in pairs(task) do ends
@@ -1400,7 +1429,7 @@ end
 --	Access.
 --	Assignee.
 --	Status
---	Parent. = Pointer to the Task to which this is a sub task
+--	Parent. = Pointer to the Task to which this is a sub task (Nil for root tasks in a Spore)
 --	Priority
 --	Due
 --	Comments
@@ -1419,7 +1448,7 @@ end
 --		Actual
 --	SubTasks.
 --		[0] = "SubTasks"
---		parent  = pointer to the array containing the list of tasks having the task whose SubTask this is 
+--		parent  = pointer to the array containing the list of tasks having the task whose SubTask Node this is (Points to Spore table for root tasks of a Spore)
 --		tasks = count of number of subtasks
 --		[i] = Task table like this one repeated for sub tasks
 

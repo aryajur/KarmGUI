@@ -78,7 +78,6 @@ end
 -- Karm files
 require("Filter")
 require("DataHandler")
-require("Validator")
 GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
 GUI.TaskForm = require("TaskForm")		-- Containing all Task Form GUI code
 

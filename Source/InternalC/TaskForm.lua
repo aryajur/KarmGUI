@@ -32,7 +32,10 @@ local copyTask = copyTask
 local addItemToArray = addItemToArray
 local collectFilterDataHier = collectFilterDataHier
 local togglePlanningDate = togglePlanningDate
-local checkTask = checkTask
+local type = type
+local checkTask = function() 
+					return checkTask
+				end
 local newGUITreeGantt = function() 
 		return newGUITreeGantt 
 	end
@@ -274,11 +277,14 @@ local function makeTask(task)
 	end		-- if list ends here
 --	print(tableToString(list))
 --	print(tableToString(newTask))
-	local err,msg = checkTask(newTask)
-	if not err then
-		msg = msg or "Error in the task. Please review."
-		wx.wxMessageBox(msg, "Task Error",wx.wxOK + wx.wxCENTRE, frame)
-		return nil
+	local chkTask = checkTask()
+	if type(chkTask) == "function" then
+		local err,msg = chkTask(newTask)
+		if not err then
+			msg = msg or "Error in the task. Please review."
+			wx.wxMessageBox(msg, "Task Error",wx.wxOK + wx.wxCENTRE, frame)
+			return nil
+		end
 	end
 	return newTask
 end

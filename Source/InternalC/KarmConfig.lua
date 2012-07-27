@@ -122,7 +122,8 @@ Globals.Resources = {
 Globals.User = "milind.gupta"
 Globals.UserIDPattern = "%'([%w%.%_%,% ]+)%'"
 
-Globals.safeenv = {os=os}
+Globals.safeenv = {}
+setmetatable(Globals.safeenv,{__index = _G})
 --[[
 function AutoFillTask(task)
 	task.Who[#task.Who + 1] = {ID = "deepshikha.dandora", Status = "Inactive"}
