@@ -32,6 +32,7 @@ local copyTask = copyTask
 local addItemToArray = addItemToArray
 local collectFilterDataHier = collectFilterDataHier
 local togglePlanningDate = togglePlanningDate
+local checkTask = checkTask
 local newGUITreeGantt = function() 
 		return newGUITreeGantt 
 	end
@@ -82,6 +83,10 @@ local function makeTask(task)
 		newTask.Private = true
 	end 
 	newTask.Title = titleBox:GetValue()
+	if newTask.Title == "" then
+		wx.wxMessageBox("The task Title cannot be blank. Please enter a title", "No Title Entered",wx.wxOK + wx.wxCENTRE, frame)
+	    return nil
+	end
 	newTask.Start = toXMLDate(dateStarted:GetValue():Format("%m/%d/%Y"))
 	-- newTask.TaskID = task.TaskID -- Already has task ID from copyTask
 	-- Status
@@ -115,7 +120,8 @@ local function makeTask(task)
 		end
 		newTask.Who = WhoTable
 	else
-		newTask.Who = nil
+		wx.wxMessageBox("The task should be assigned to someone. It cannot be blank. Please choose the people responsible.", "Task not assigned",wx.wxOK + wx.wxCENTRE, frame)
+	    return nil
 	end
 	-- Access List
 	list = accList:getAllItems()
@@ -227,6 +233,7 @@ local function makeTask(task)
 				newTask.Schedules[list.typeSchedule].count = list.index
 			end
 		end		-- if list ends here
+		newTask.Planning = nil
 	end		-- if HoldPlanning.GetValue() then ends
 	-- Work done Schedule
 	list = getLatestScheduleDates(wdTaskTree.taskList[1],true)
@@ -267,6 +274,12 @@ local function makeTask(task)
 	end		-- if list ends here
 --	print(tableToString(list))
 --	print(tableToString(newTask))
+	local err,msg = checkTask(newTask)
+	if not err then
+		msg = msg or "Error in the task. Please review."
+		wx.wxMessageBox(msg, "Task Error",wx.wxOK + wx.wxCENTRE, frame)
+		return nil
+	end
 	return newTask
 end
 
@@ -449,9 +462,17 @@ function taskFormActivate(parent, callBack, task)
 				resourceList = wx.wxListCtrl(TPeople, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)
 				resourceList:InsertColumn(0,"Options")
 				-- Populate the resources
+				if not Globals.Resources or #Globals.Resources == 0 then
+					wx.wxMessageBox("There are no people in the Globals.Resources setting. Please add a list of people to which task can be assigned", "No People found",wx.wxOK + wx.wxCENTRE, frame) 
+					frame:Close()
+					callBack(nil)
+					return
+				end
+				
 				for i = 1,#Globals.Resources do
 					CW.InsertItem(resourceList,Globals.Resources[i])
 				end
+				CW.InsertItem(resourceList,Globals.User)
 				sizer2:Add(resourceList, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				-- Selection boxes and buttons
@@ -607,7 +628,7 @@ function taskFormActivate(parent, callBack, task)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
 				sizer4:Add(textLabel, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				HoldPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, "Hold Planning", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-				HoldPlanning:SetValue(true)
+				HoldPlanning:SetValue(false)
 				sizer4:Add(HoldPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
@@ -896,8 +917,10 @@ function taskFormActivate(parent, callBack, task)
 		function(event)
 			setfenv(1,package.loaded[modname])
 			local newTask = makeTask(task)
-			callBack(newTask)
-			frame:Close()
+			if newTask then
+				callBack(newTask)
+				frame:Close()
+			end
 		end		
 	)
 	

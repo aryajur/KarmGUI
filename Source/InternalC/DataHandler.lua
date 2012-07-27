@@ -268,6 +268,44 @@ local function convertBoolStr2Tab(str)
 	return boolTab
 end		-- function convertBoolStr2Tab(str) ends
 
+-- Task structure
+-- Task.
+--	Planning
+--	[0] = Task
+-- 	SporeFile
+--	Title
+--	Modified
+--	DBDATA
+--	TaskID
+--	Start
+--	Fin
+--	Private
+--	Who
+--	Access
+--	Assignee
+--	Status
+--	Parent = Pointer to the Task to which this is a sub task
+--	Priority
+--	Due
+--	Comments
+--	Cat
+--	SubCat
+--	Tags
+--	Schedules.
+--		[0] = "Schedules"
+--		Estimate.
+--			[0] = "Estimate"
+--			count
+--			[i] = 
+--		Commit.
+--			[0] = "Commit"
+--		Revs
+--		Actual
+--	SubTasks.
+--		[0] = "SubTasks"
+--		parent  = pointer to the array containing the list of tasks having the task whose SubTask this is 
+--		tasks = count of number of subtasks
+--		[i] = Task table like this one repeated for sub tasks
 function getTaskSummary(task)
 	if task then
 		local taskSummary = ""
@@ -282,6 +320,9 @@ function getTaskSummary(task)
 		end
 		if task.Fin then
 			taskSummary = taskSummary.."\nFINISH DATE: "..task.Fin
+		end
+		if task.Due then
+			taskSummary = taskSummary.."\nDUE DATE: "..task.Due
 		end
 		if task.Status then
 			taskSummary = taskSummary.."\nSTATUS: "..task.Status
@@ -323,11 +364,31 @@ function getTaskSummary(task)
 				taskSummary = taskSummary.."\n   READ/WRITE ACCESS PEOPLE: "..string.sub(RWA,2,-1)
 			end
 		end
+		if task.Assignee then
+			taskSummary = taskSummary.."\nASSIGNEE: "
+			for i = 1,#task.Assignee do
+				taskSummary = taskSummary..task.Assignee[i].ID..","
+			end
+			taskSummary = taskSummary:sub(1,-2)
+		end
+		if task.Priority then
+			taskSummary = taskSummary.."\nPRIORITY: "..task.Priority
+		end
+		if task.Private then
+			taskSummary = taskSummary.."\nPRIVATE TASK"
+		end
 		if task.Cat then
 			taskSummary = taskSummary.."\nCATEGORY: "..task.Cat
 		end
 		if task.SubCat then
 			taskSummary = taskSummary.."\nSUB-CATEGORY: "..task.SubCat
+		end
+		if task.Tags then
+			taskSummary = taskSummary.."\nTAGS: "
+			for i = 1,#task.Tags do
+				taskSummary = taskSummary..task.Tags[i]..","
+			end
+			taskSummary = taskSummary:sub(1,-2)
 		end
 		if task.Comments then
 			taskSummary = taskSummary.."\nCOMMENTS:\n"..task.Comments
@@ -863,18 +924,33 @@ function copyTable(t, deep, seen)
     return nt
 end
 
--- Function to make a copy of a task (Sub tasks are not copied they are still the same tables)
--- DBDATA table is also the same linked table
-function copyTask(task)
+-- Function to make a copy of a task
+-- Each task has at most 9 tables:
+-- Who
+-- Access
+-- Assignee
+-- Schedules
+-- Tags
+-- Parent
+-- SubTasks
+-- DBDATA
+-- Planning  
+
+-- 1st 5 are made a copy of
+-- Parent, DBDATA and SubTasks are the same linked tables
+-- Planning is not copied over
+function copyTask(task, copySubTasks, removeDBDATA)
 	if not task then
 		return
 	end
 	local nTask = {}
 	for k,v in pairs(task) do
-		if k ~= "Who" and k ~= "Schedules" and k~= "Tags" and k ~= "Access" and k ~= "Assignee" then
-			nTask[k] = task[k]
-		else
-			nTask[k] = copyTable(task[k],true)
+		if k ~= "Planning" and not (k == "DBDATA" and removeDBDATA)then
+			if k ~= "Who" and k ~= "Schedules" and k~= "Tags" and k ~= "Access" and k ~= "Assignee" and not (k == "SubTasks" and copySubTasks)then
+				nTask[k] = task[k]
+			else
+				nTask[k] = copyTable(task[k],true)
+			end
 		end
 	end		-- for k,v in pairs(task) do ends
 	return nTask
@@ -1310,27 +1386,27 @@ end
 -- Function to convert XML data from a single spore to internal data structure
 -- Task structure
 -- Task.
---	Planning
+--	Planning.
 --	[0] = Task
 -- 	SporeFile
 --	Title
 --	Modified
---	DBDATA
+--	DBDATA.
 --	TaskID
 --	Start
 --	Fin
 --	Private
---	Who
---	Access
---	Assignee
+--	Who.
+--	Access.
+--	Assignee.
 --	Status
---	Parent = Pointer to the Task to which this is a sub task
+--	Parent. = Pointer to the Task to which this is a sub task
 --	Priority
 --	Due
 --	Comments
 --	Cat
 --	SubCat
---	Tags
+--	Tags.
 --	Schedules.
 --		[0] = "Schedules"
 --		Estimate.

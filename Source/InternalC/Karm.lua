@@ -23,10 +23,10 @@ initFrameW = initFrameW - initFrameW%1
 initFrameH = initFrameH - initFrameH%1
 nodeForeColor = {Red=0,Green=0,Blue=0}
 nodeBackColor = {Red=255,Green=255,Blue=255}
-noScheduleColor = {Red=170,Green=170,Blue=170}
-ScheduleColor = {Red=143,Green=62,Blue=215}
+noScheduleColor = {Red=210,Green=210,Blue=210}
+ScheduleColor = {Red=0,Green=180,Blue=215}
 emptyDayColor = {Red=255,Green=255,Blue=255}
-sunDayOffset = {Red = 50, Green=50, Blue = 50}
+sunDayOffset = {Red = 30, Green=30, Blue = 30}
 defaultColor = {Red=0,Green=0,Blue=0}
 highLightColor = {Red=120,Green=120,Blue=120}
 
@@ -52,7 +52,7 @@ setfenv(1,_G)
 -- Global Declarations
 Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.07.01",
+	KARM_VERSION = "1.12.07.25",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	NoDateStr = "__NO_DATE__",
@@ -64,7 +64,8 @@ Globals = {
 	__DEBUG = true,		-- For debug mode
 	PlanningMode = false,	-- Flag to indicate Schedule Planning mode is on.
 	unsavedSpores = {},	-- To store list of unsaved Spores
-	safeenv = {}
+	safeenv = {},
+	UserIDPattern = "%'([%w%.%_%,]+)%'"
 }
 
 -- Generate a unique new wxWindowID
@@ -308,7 +309,7 @@ do
 		-- Main table to store the task tree that is on display
 		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, Planning = nil, taskList = nil, Selected = {},
 		   dateRangeChange = dateRangeChange, layout = layout, associateEventFunc = associateEventFunc, enablePlanningMode = enablePlanningMode,
-		   getPlanningTasks = getPlanningTasks, getSelectedTask = getSelectedTask}
+		   getPlanningTasks = getPlanningTasks, getSelectedTask = getSelectedTask, ShowActual = nil}
 		-- A task in Nodes or Roots will have the following attributes:
 		-- Expanded = if has children then true means it is expanded in the GUI
 		-- MakeVisible = Function to make sure the task is visible
@@ -772,7 +773,12 @@ do
 					end
 				end
 			end
-			local dateList = getLatestScheduleDates(taskNode.Task,planning)
+			local dateList
+			if taskTreeINT[taskTree].ShowActual then
+				dateList = getWorkDoneDates(taskNode.Task)
+			else
+				dateList = getLatestScheduleDates(taskNode.Task,planning)
+			end
 			if not dateList then
 				-- No task associated with the node so color the cells to show no schedule
 				if planning then
@@ -993,29 +999,31 @@ do
 		
 		nodeMeta[node].Task = task
 		nodeMeta[node].Title = task.Title
-
-		-- Calculate the hierLevel
-		local hierLevel = 0
-		local currNode = node
-		while nodeMeta[currNode].Parent do
-			hierLevel = hierLevel + 1
-			currNode = nodeMeta[currNode].Parent
-		end
-
-		if oTree.update then
-			dispTask(taskTree,nodeMeta[node].Row,false,node,hierLevel)
-			dispGantt(taskTree,nodeMeta[node].Row,false,node)
-			if #oTree.Selected > 0 then
-				oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+		
+		if nodeMeta[node].Row then
+			-- Calculate the hierLevel
+			local hierLevel = 0
+			local currNode = node
+			while nodeMeta[currNode].Parent do
+				hierLevel = hierLevel + 1
+				currNode = nodeMeta[currNode].Parent
 			end
-		else
-			-- Add to actionQ
-			oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
-				string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."],"..tostring(hierLevel)..")"
-			oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes["..
-				string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."])"				
-			oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
-		end
+	
+			if oTree.update then
+				dispTask(taskTree,nodeMeta[node].Row,false,node,hierLevel)
+				dispGantt(taskTree,nodeMeta[node].Row,false,node)
+				if #oTree.Selected > 0 then
+					oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+				end
+			else
+				-- Add to actionQ
+				oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
+					string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."],"..tostring(hierLevel)..")"
+				oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes["..
+					string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."])"				
+				oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+			end
+		end		-- if nodeMeta[node].Row then ends
 	end
 	
 	function taskTreeINT.DeleteTree(taskTree,Key)
@@ -1708,11 +1716,11 @@ do
 --		end
 	local function onRowResizeGanttFunc(obj)
 		return function(event)
-			event:Skip()
 			oTree = taskTreeINT[obj]
 			local row = event:GetRowOrCol()
 			oTree.treeGrid:SetRowSize(row,oTree.ganttGrid:GetRowSize(row))
 			oTree.treeGrid:ForceRefresh()
+			event:Skip()
 		end
 	end
 	
@@ -1720,11 +1728,11 @@ do
 	
 	local function onRowResizeTreeFunc(obj)
 		return function(event)
-			event:Skip()
 			oTree = taskTreeINT[obj]
 			local row = event:GetRowOrCol()
 			oTree.ganttGrid:SetRowSize(row,oTree.treeGrid:GetRowSize(row))
 			oTree.ganttGrid:ForceRefresh()
+			event:Skip()
 		end	
 	end
 	
@@ -1997,6 +2005,51 @@ end
 --@@END@@
 
 function Initialize()
+	-- Show the Splash Screen
+	wx.wxInitAllImageHandlers()
+	local splash = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm", wx.wxDefaultPosition, wx.wxSize(400, 300),
+                        wx.wxSTAY_ON_TOP + wx.wxFRAME_NO_TASKBAR)
+    local sizer = wx.wxBoxSizer(wx.wxVERTICAL)
+    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    local dc = wx.wxPaintDC(textBox)
+    local wid,height
+    textBox:SetFont(wx.wxFont(30, wx.wxFONTFAMILY_SWISS, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD))
+    wid,height = dc:GetTextExtent("Karm",wx.wxFont(30, wx.wxFONTFAMILY_ROMAN, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD) )
+    local textAttr = wx.wxTextAttr()
+    textBox:WriteText("Karm")
+    sizer:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    local panel = wx.wxPanel(splash, wx.wxID_ANY)
+	local image = wx.wxImage("images/SplashImage.bmp",wx.wxBITMAP_TYPE_BMP)
+	image = image:Scale(100,100)
+    sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    panel:Connect(wx.wxEVT_PAINT,function(event)
+		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))
+		    cdc:DrawBitmap(wx.wxBitmap(image),150,0,false)
+		    cdc:delete()
+	    end
+	)
+    splash:SetSizer(sizer)
+    splash:Centre()
+    splash:Layout()
+    splash:SetBackgroundColour( wx.wxColour( 255, 255, 255 ) )
+    splash:Show(true)
+    local timer = wx.wxTimer(splash)
+    splash:Connect(wx.wxEVT_TIMER,function(event)
+    							splash:Close()
+    							timer:Stop()
+								-- Get the user ID
+								if not Globals.User then
+									local user = ""
+									while user == "" do
+										user = wx.wxGetTextFromUser("Enter the user ID", "User ID", "")
+									end
+									Globals.User = user
+								end
+    						end)
+    timer:Start(3000, true)
+    
 	configFile = "KarmConfig.lua"
 	local f=io.open(configFile,"r")
 	if f~=nil then 
@@ -2048,8 +2101,13 @@ function GUI.dateRangeChange()
 	GUI.taskTree:dateRangeChange(startDate,finDate)
 end
 
-function createNewSpore()
-	local SporeName = wx.wxGetTextFromUser("Enter the New Spore File name under which to move the task (Blank to cancel):", "New Spore", "")
+function createNewSpore(title)
+	local SporeName
+	if title then
+		SporeName = title
+	else
+		SporeName = wx.wxGetTextFromUser("Enter the New Spore File name under which to move the task (Blank to cancel):", "New Spore", "")
+	end
 	if SporeName == "" then
 		return
 	end
@@ -2057,6 +2115,7 @@ function createNewSpore()
 	SporeData[SporeName].Modified = "YES"
 	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
 	GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor
+	Globals.unsavedSpores[SporeName] = SporeData[SporeName].Title
 	return Globals.ROOTKEY..SporeName
 end
 
@@ -2347,6 +2406,9 @@ end
 -- Relation = relation of this new node to the Relative. This can be "Child", "Next Sibling", "Prev Sibling" 
 function NewTaskCallBack(task)
 	if task then
+		if AutoFillTask then
+			AutoFillTask(task)
+		end
 		if GUI.TaskWindowOpen.Spore then
 			-- Add child to Spore i.e. Create a new root task in the spore
 			-- Add the task to the SporeData
@@ -2510,7 +2572,7 @@ function MoveTaskToggle(event)
 		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
 		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
 		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
-        wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Just select a single task to move.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
         return
 	end	
 	if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
@@ -2593,7 +2655,7 @@ function EditTask(event)
 	end
 end
 
-function NewTask(event)
+function NewTask(event, title)
 	-- Reset any toggle tools
 	ResetToggleTools()
 	if not GUI.TaskWindowOpen then
@@ -2621,11 +2683,16 @@ function NewTask(event)
 	            return
 			end						
 			-- This is the root so the request is to create a new spore
-			createNewSpore()
+			createNewSpore(title)
 		elseif relativeID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
 			-- 2. Spore Node
 			if event:GetId() == GUI.ID_NEW_PREV_TASK or event:GetId() == GUI.ID_NEW_NEXT_TASK then
-				local SporeName = wx.wxGetTextFromUser("Enter the Spore File name (Blank to cancel):", "New Spore", "")
+				local SporeName
+				if title then
+					SporeName = title
+				else
+					SporeName = wx.wxGetTextFromUser("Enter the Spore File name (Blank to cancel):", "New Spore", "")
+				end
 				if SporeName == "" then
 					return
 				end
@@ -2668,7 +2735,13 @@ function NewTask(event)
 				-- Parent of a root node is nil		
 				task.SporeFile = string.sub(GUI.taskTree.Nodes[relativeID].Key,#Globals.ROOTKEY+1,-1)
 				GUI.TaskWindowOpen = {Spore = true, Relative = relativeID, Relation = "Child"}
-				GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
+				if title then
+					task.Title = title
+					task.Who = {[0]="Who", count = 1, [1] = {ID = Globals.User, Status = "Active"}}
+					NewTaskCallBack(task)
+				else
+					GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
+				end
 			end
 		else
 			-- 3. Root task node in a Spore
@@ -2719,9 +2792,14 @@ function NewTask(event)
 				end
 			end
 			task.SporeFile = GUI.taskTree.Nodes[relativeID].Task.SporeFile
-			GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
+			if title then
+				task.Title = title
+				task.Who = {[0]="Who", count = 1, [1] = {ID = Globals.User, Status = "Active"}}
+				NewTaskCallBack(task)
+			else
+				GUI.TaskForm.taskFormActivate(GUI.frame, NewTaskCallBack,task)
+			end
 		end		-- if relativeID == Globals.ROOTKEY then ends
-		
 	else
 		GUI.TaskForm.frame:SetFocus()
 	end	
@@ -2871,7 +2949,8 @@ end
 function loadKarmSpore(file, commands)
 	local Spore
 	do
-		local safeenv = Globals.safeenv
+		local safeenv = {}
+		setmetatable(safeenv, {__index = Globals.safeenv})
 		local f,message = loadfile(file)
 		if not f then
 			error({msg = "loadKarmSpore:4 "..message, code = "loadKarmSpore:4"},2)
@@ -3032,8 +3111,90 @@ function menuEventHandlerFunction(ID, code, file)
 	return handler
 end
 
+function finalizePlanningAll(taskList)
+	for i = 1,#taskList do
+		finalizePlanning(taskList[i])
+	end
+end
+
+-- To finalize the planning of a task and convert it to a normal schedule
+function finalizePlanning(task)
+	if not task.Planning then
+		return
+	end
+	local list = getLatestScheduleDates(task,true)
+	if list then
+		local todayDate = wx.wxDateTime()
+		todayDate:SetToCurrent()
+		todayDate = toXMLDate(todayDate:Format("%m/%d/%Y"))	
+		local list1 = getLatestScheduleDates(task)
+		-- Compare the schedules
+		local same = true
+		if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and 
+		  not(list1.typeSchedule=="Commit" and list.typeSchedule == "Revs")) then
+			same = false
+		else
+			for i = 1,#list do
+				if list[i] ~= list1[i] then
+					same = false
+					break
+				end
+			end
+		end
+		if not same then
+			-- Add the schedule here
+			if not task.Schedules then
+				task.Schedules = {}
+			end
+			if not task.Schedules[list.typeSchedule] then
+				-- Schedule type does not exist so create it
+				task.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
+			end
+			-- Schedule type already exists so just add it to the next index
+			local newSched = {[0]=list.typeSchedule}
+			local str = "WD"
+			if list.typeSchedule ~= "Actual" then
+				newSched.Updated = todayDate
+				str = "DP"
+			else
+				error("Got Actual schedule type while processing schedule.")
+			end
+			-- Update the period
+			newSched.Period = {[0] = "Period", count = #list}
+			for i = 1,#list do
+				newSched.Period[i] = {[0] = str, Date = list[i]}
+			end
+			task.Schedules[list.typeSchedule][list.index] = newSched
+			task.Schedules[list.typeSchedule].count = list.index
+		end
+	end		-- if list ends here
+	task.Planning = nil	
+	if GUI.taskTree.taskList then
+		for i = 1,#GUI.taskTree.taskList do
+			if GUI.taskTree.taskList[i] == task then
+				-- Remove this one
+				for j = i,#GUI.taskTree.taskList - 1 do
+					GUI.taskTree.taskList[i] = GUI.taskTree.taskList[i + 1]
+				end
+				GUI.taskTree.taskList[#GUI.taskTree.taskList] = nil
+				break
+			end
+		end
+	end
+	-- Check if the task passes the filter now
+	local taskList = applyFilterList(Filter,{[1]=task})
+	if #taskList == 1 then
+		-- It passes the filter so update the task
+	    GUI.taskTree:UpdateNode(task)
+		taskInfoUpdate(task)
+    else
+    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
+    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
+    end
+end
+
 function main()
-    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
+    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm ("..Globals.User..")",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
 
@@ -3269,8 +3430,6 @@ end
 Initialize()
 
 main()
-
-
 
 -- refreshTree()
 -- fillDummyData()

@@ -18,11 +18,57 @@ function textSummary(filter)
 				filterSummary = filterSummary.." and Children"
 			end
 		end
+		filterSummary = filterSummary.."\n"
 	end
 	-- Who
 	if filter.Who then
-		filterSummary = filterSummary.."\n"
-		filterSummary = filterSummary.."PEOPLE: "..filter.Who
+		filterSummary = filterSummary.."PEOPLE: "..filter.Who.."\n"
+	end
+	-- Start Date
+	if filter.Start then
+		filterSummary = filterSummary.."START DATE: "..filter.Start.."\n"
+	end
+	-- Finish Date
+	if filter.Fin then
+		filterSummary = filterSummary.."FINISH DATE: "..filter.Fin.."\n"
+	end
+	-- Access IDs
+	if filter.Access then
+		filterSummary = filterSummary.."ACCESS: "..filter.Access.."\n"
+	end
+	-- Status
+	if filter.Status then
+		filterSummary = filterSummary.."STATUS: "..filter.Status.."\n"
+	end
+	-- Priority
+	if filter.Priority then
+		filterSummary = filterSummary.."PRIORITY: "..filter.Priority.."\n"
+	end
+	-- Due Date
+	if filter.Due then
+		filterSummary = filterSummary.."DUE DATE: "..filter.Due.."\n"
+	end
+	-- Category
+	if filter.Cat then
+		filterSummary = filterSummary.."CATEGORY: "..filter.Cat.."\n"
+	end
+	-- Sub-Category
+	if filter.SubCat then
+		filterSummary = filterSummary.."SUB-CATEGORY: "..filter.SubCat.."\n"
+	end
+	-- Tags
+	if filter.Tags then
+		filterSummary = filterSummary.."TAGS: "..filter.Tags.."\n"
+	end
+	-- Schedules
+	if filter.Schedules then
+		filterSummary = filterSummary.."SCHEDULES: "..filter.Schedules.."\n"
+	end
+	if filter.Script then
+		filterSummary = filterSummary.."CUSTOM SCRIPT APPLIED".."\n"
+	end
+	if filterSummary == "" then
+		filterSummary = "No Filtering"
 	end
 	return filterSummary
 end
@@ -132,7 +178,7 @@ end
 		Boolean expression different schedule criterias together 
 		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Globals.NoDateStr"
 		Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
-13. Planning - If task is in Planning mode - NOT IMPLEMENTED YET
+13. Script - The custom user script. task is passed in task variable. Executes in the Globals.safeenv environment. Final result (true or false) is present in the result variable
 ]]
 
 -- Function to validate a given task
@@ -283,7 +329,7 @@ function validateTask(filter, task)
 
 	-- Check if Access IDs pass
 	if filter.Access then
-		local pattern = "%'([%w%.%_%,]+)%'"
+		local pattern = Globals.UserIDPattern
 		local accStr = filter.Access
 		for id in string.gmatch(filter.Access,pattern) do
 			local result = false
@@ -299,20 +345,22 @@ function validateTask(filter, task)
 				idc = string.sub(idc,1,st-1)
 				
 				-- Check if the id exists in the task
-				for i = 1,#task.Access do
-					if task.Access[i].ID == idc then
-						if string.upper(perm) == "R" and string.upper(task.Access[i].Status) == "Read Only" then
-							result = true
+				if task.Access then
+					for i = 1,#task.Access do
+						if task.Access[i].ID == idc then
+							if string.upper(perm) == "R" and string.upper(task.Access[i].Status) == "READ ONLY" then
+								result = true
+								break
+							end
+							if string.upper(perm) =="W" and string.upper(task.Access[i].Status) =="READ/WRITE" then
+								result = true
+								break
+							end
+							result = false
 							break
-						end
-						if string.upper(perm) =="W" and string.upper(task.Access[i].Status) =="Read/Write" then
-							result = true
-							break
-						end
-						result = false
-						break
-					end		-- if task.Access[i].ID == idc then ends
-				end		-- for i = 1,#task.Access do ends
+						end		-- if task.Access[i].ID == idc then ends
+					end		-- for i = 1,#task.Access do ends
+				end
 				if not result then
 					-- Check for Read/Write access does the ID exist in the Who table
 					if string.upper(perm) == "W" then
@@ -645,6 +693,20 @@ function validateTask(filter, task)
 		end
 	end		-- if filter.Schedules then ends
 
+	if filter.Script then
+		local safeenv = {}
+		setmetatable(safeenv,{__index = Globals.safeenv})
+		local func,message = loadstring(filter.Script)
+		if not func then
+			return false
+		end
+		safeenv.task = task
+		setfenv(func,safeenv)
+		func()
+		if not safeenv.result then
+			return false
+		end
+	end
 	-- All pass
 	return true
 end		-- function validateTask(filter, task) ends

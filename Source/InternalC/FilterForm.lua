@@ -16,6 +16,7 @@ local bit = bit
 local GUI = GUI
 local tostring = tostring
 local loadfile = loadfile
+local loadstring = loadstring
 local setfenv = setfenv
 local string = string
 local Globals = Globals
@@ -232,6 +233,7 @@ local function initializeFilterForm(filterData)
 	SubCatCtrl:AddListData(filterData.SubCat)
 	PriCtrl:AddListData(filterData.Priority)
 	StatCtrl:AddListData(Globals.StatusList)
+	ScriptBox:Clear()
 	if filterData.Tags then
 		for i=1,#filterData.Tags do
 			CW.InsertItem(TagList,filterData.Tags[i])
@@ -443,6 +445,10 @@ local function setfilter(f)
 	if f.Schedules then
 		SchBoolCtrl:setExpression(f.Schedules)
 	end		-- if f.Schedules ends here
+	-- Custom Script
+	if f.Script then
+		ScriptBox:SetValue(f.Script)
+	end
 end
 
 local function synthesizeFilter()
@@ -540,13 +546,25 @@ local function synthesizeFilter()
 	end
 	-- Schedule
 	f.Schedules = SchBoolCtrl:BooleanExpression()
+	-- Custom Script
+	if ScriptBox:GetValue() ~= "" then
+		local script = ScriptBox:GetValue()
+		local result, msg = loadstring(script)
+		if not result then
+			wx.wxMessageBox("Unable to compile the script. Error: "..msg..".\n Please correct and try again.",
+                            "Script Compile Error",wx.wxOK + wx.wxCENTRE, frame)
+            return nil
+		end
+		f.Script = script
+	end
 	return f
 end
 
 local function loadFilter(event)
 	setfenv(1,package.loaded[modname])
 	local ValidFilter = function(file)
-		local safeenv = Globals.safeenv
+		local safeenv = {}
+		setmetatable(safeenv, {__index = Globals.safeenv})
 		local f,message = loadfile(file)
 		if not f then
 			return nil,message
@@ -554,6 +572,12 @@ local function loadFilter(event)
 		setfenv(f,safeenv)
 		f()
 		if safeenv.filter and type(safeenv.filter) == "table" then
+			if safeenv.filter.Script then
+				f, message = loadstring(safeenv.filter.Script)
+				if not f then
+					return nil,"Cannot compile custom script in filter. Error: "..message
+				end
+			end
 			return safeenv.filter
 		else
 			return nil,"Cannot find a valid filter in the file."
@@ -591,7 +615,10 @@ local function saveFilter(event)
                             "File Save Error",
                             wx.wxOK + wx.wxCENTRE, frame)
         else
-        	file:write("filter="..tableToString(synthesizeFilter()))
+        	local fil = synthesizeFilter()
+        	if fil then
+        		file:write("filter="..tableToString(fil))
+        	end
         	file:close()
         end
     end
@@ -950,6 +977,23 @@ function filterFormActivate(parent, callBack)
 			SchPanel:SetSizer(SchPanelSizer)
 			SchPanelSizer:SetSizeHints(SchPanel)
 		MainBook:AddPage(SchPanel, "Schedules")
+		
+		-- Custom Script Entry Page
+		ScriptPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local ScriptPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL) 
+			
+			-- Text Instruction
+			local InsLabel = wx.wxStaticText(ScriptPanel, wx.wxID_ANY, "Enter a custom script to filte out tasks additional to the Filter set in the form. The task would be present in the environment in the table called 'task'. Apart from that the environment is what is setup in Globals.safeenv. The 'result' variable should be updated to true if pass or false if does not pass.", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+			InsLabel:Wrap(frame:GetSize():GetWidth()-25)
+			ScriptPanelSizer:Add(InsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			ScriptBox = wx.wxTextCtrl(ScriptPanel, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)
+			ScriptPanelSizer:Add(ScriptBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			
+
+			ScriptPanel:SetSizer(ScriptPanelSizer)
+			ScriptPanelSizer:SetSizeHints(ScriptPanel)
+		MainBook:AddPage(ScriptPanel, "Custom Script")
+		
 
 	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	local ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
@@ -984,6 +1028,9 @@ function filterFormActivate(parent, callBack)
 		function(event)
 			setfenv(1,package.loaded[modname])
 			local f = synthesizeFilter()
+			if not f then
+				return
+			end
 			--print(tableToString(f))
 			frame:Close()
 			callBack(f)
@@ -999,6 +1046,14 @@ function filterFormActivate(parent, callBack)
 			setfenv(1,package.loaded[modname])
 			filter.TasksSet = nil
 			FilterTask:SetLabel("No Task Selected")
+		end
+	)
+	
+	frame:Connect(wx.wxEVT_SIZE,
+		function(event)
+			setfenv(1,package.loaded[modname])
+			InsLabel:Wrap(frame:GetSize():GetWidth())
+			event:Skip()
 		end
 	)
 
