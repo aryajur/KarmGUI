@@ -4,18 +4,9 @@ Spores = {
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Task Bank.ksf",type = "KSF"},
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Tasks.ksf",type = "KSF"},
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Home Tasks.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Maxim Tasks.ksf",type = "KSF"}
+		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Maxim Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\ExpressIndianRecipes Tasks.ksf",type = "KSF"}
 }
-
--- Initial Filter
-
---Filter = {
---	Tasks = {
---		{TaskID = "TechChores",	Children = true, Title = "Technical Work"}
---	},
---	Who = "'milind.gupta,A' and not('aryajur,A')"
---}
-
 
 -- GUI Settings
 setfenv(1,GUI)
@@ -135,5 +126,28 @@ function checkTask(task)
 	if task.SubCat and not task.Cat then
 		return nil, "Category cannot be blank if Sub-Category is set."
 	end
+	-- If there is a Due date and current date is larger than that then set Status to Behind
+	-- If there is a schedule and status is Not Started then set Status to On Track
 	return true
+end
+
+-- Initial Filter
+
+--Filter = {
+--	Tasks = {
+--		{TaskID = "TechChores",	Children = true, Title = "Technical Work"}
+--	},
+--	Who = "'milind.gupta,A' and not('aryajur,A')"
+--}
+do
+	local safeenv = {}
+	setmetatable(safeenv, {__index = Globals.safeenv})
+	local f,message = loadfile("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
+	if f then
+		setfenv(f,safeenv)
+		f()
+		if safeenv.filter and type(safeenv.filter) == "table" then
+			Filter = safeenv.filter
+		end
+	end
 end

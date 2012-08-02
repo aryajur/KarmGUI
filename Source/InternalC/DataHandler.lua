@@ -881,39 +881,86 @@ function addItemToArray(item,array)
 	return newarray
 end
 
+-- Function to apply a function to a task and its hierarchy
+-- The function should have the task as the 1st argument 
+-- and whatever it returns is passed to it it as the 2nd argument in the next call to it with the next task
+-- In the 1st call the second argument is passed if it is given as the 3rd argument to this function
+-- The last return from the function is returned by this function
+function applyFuncHier(task, func, initialValue)
+	local passedVar	= initialValue	-- Variable passed to the function
+	passedVar = func(task,initialValue)
+	if task.SubTasks then
+		-- Traverse the task hierarchy here
+		local hier = task.SubTasks
+		local hierCount = {}
+		hierCount[hier] = 0
+		while hierCount[hier] < #hier or hier.parent do
+			if not(hierCount[hier] < #hier) then
+				if hier == task.SubTasks then
+					-- Do not go above the passed task
+					break
+				end 
+				hier = hier.parent
+			else
+				-- Increment the counter
+				hierCount[hier] = hierCount[hier] + 1
+				passedVar = func(hier[hierCount[hier]],passedVar)
+				if hier[hierCount[hier]].SubTasks then
+					-- This task has children so go deeper in the hierarchy
+					hier = hier[hierCount[hier]].SubTasks
+					hierCount[hier] = 0
+				end
+			end
+		end		-- while hierCount[hier] < #hier or hier.parent do ends here
+	end
+	return passedVar
+end
+
 -- Function to collect and return all data from the task heirarchy on the basis of which task filtration criteria can be selected
 function collectFilterDataHier(filterData, taskHier)
 	local hier = taskHier
-	local hierCount = {}
 	-- Reset the hierarchy if not already done so
 	while hier.parent do
 		hier = hier.parent
 	end
-	-- Traverse the task hierarchy here
-	hierCount[hier] = 0
-	while hierCount[hier] < #hier or hier.parent do
-		if not(hierCount[hier] < #hier) then
-			if hier == taskHier then
-				-- Do not go above the passed task
-				break
-			end 
-			hier = hier.parent
-		else
-			-- Increment the counter
-			hierCount[hier] = hierCount[hier] + 1
-			collectFilterData(filterData,hier[hierCount[hier]])
-			if hier[hierCount[hier]].SubTasks then
-				-- This task has children so go deeper in the hierarchy
-				hier = hier[hierCount[hier]].SubTasks
-				hierCount[hier] = 0
-			end
-		end
-	end		-- while hierCount[hier] < #hier or hier.parent do ends here
+	for i = 1,#hier do
+		filterData = applyFuncHier(hier[i],collectFilterData,filterData)
+	end
 end
+
+-- Old version 
+--function collectFilterDataHier(filterData, taskHier)
+--	local hier = taskHier
+--	local hierCount = {}
+--	-- Reset the hierarchy if not already done so
+--	while hier.parent do
+--		hier = hier.parent
+--	end
+--	-- Traverse the task hierarchy here
+--	hierCount[hier] = 0
+--	while hierCount[hier] < #hier or hier.parent do
+--		if not(hierCount[hier] < #hier) then
+--			if hier == taskHier then
+--				-- Do not go above the passed task
+--				break
+--			end 
+--			hier = hier.parent
+--		else
+--			-- Increment the counter
+--			hierCount[hier] = hierCount[hier] + 1
+--			collectFilterData(hier[hierCount[hier]],filterData)
+--			if hier[hierCount[hier]].SubTasks then
+--				-- This task has children so go deeper in the hierarchy
+--				hier = hier[hierCount[hier]].SubTasks
+--				hierCount[hier] = 0
+--			end
+--		end
+--	end		-- while hierCount[hier] < #hier or hier.parent do ends here
+--end
 
 function collectFilterDataList(filterData,taskList)
 	for i=1,#taskList do
-		collectFilterData(filterData,taskList[i])
+		collectFilterData(taskList[i],filterData)
 	end
 end
 
@@ -1179,7 +1226,7 @@ end
 function addTask2Spore(task,dataStruct)
 	dataStruct.tasks = dataStruct.tasks + 1
 	dataStruct[dataStruct.tasks] = task 
-	--collectFilterData(dataStruct.filterData,task)
+	--collectFilterData(task,dataStruct.filterData)
 end
 
 function getNewChildTaskID(parent)
@@ -1227,32 +1274,71 @@ function updateTaskID(task,taskID)
 		error("Need a task and taskID for updateTaskID in DataHandler.lua",2)
 	end
 	local prevTaskID = task.TaskID
-	task.TaskID = taskID
-	if task.SubTasks then
-		local currNode = task.SubTasks
-		local hierCount = {}
-		-- Traverse the task hierarchy here
-		hierCount[currNode] = 0
-		while hierCount[currNode] < #currNode or currNode.parent do
-			if not(hierCount[currNode] < #currNode) then
-				if currNode == task.SubTasks then
-					-- Do not go above the passed task
-					break
-				end 
-				currNode = currNode.parent
-			else
-				-- Increment the counter
-				hierCount[currNode] = hierCount[currNode] + 1
-				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,task.TaskID)
-				if currNode[hierCount[currNode]].SubTasks then
-					-- This task has children so go deeper in the hierarchy
-					currNode = currNode[hierCount[currNode]].SubTasks
-					hierCount[currNode] = 0
-				end
-			end
-		end		-- while hierCount[hier] < #hier or hier.parent do ends here
-	end		-- if task.SubTasks then ends
+	applyFuncHier(task,function(task,taskIDs)
+							task.TaskID = task.TaskID:gsub("^"..taskIDs.prevTaskID,taskIDs.newTaskID)
+							return taskIDs
+						end, {prevTaskID = prevTaskID, newTaskID = taskID}
+	)
 end
+
+-- Function to get all dates for a task and color and type for each date
+-- This function is called by the taskTree UI element to display the Gantt chart
+-- mode can be 3 things:
+-- "BUBBLE" - bubbles up the latest schedule dates of the entire task hierarchy to this task
+-- "PLANNING" - Just returns the planning date list for this task
+-- "NORMAL" - Just returns the normal latest schedule dates for this task
+--
+-- The function returns a table in the following format
+-- Subtables starting from index 1 corresponding to each date
+-- Each subtable has the following keys:
+-- Date - XML format date 
+-- typeSchedule - Type of schedule the date comes from "Estimate", "Commit", "Revision", "Actual"
+-- typeIndex - the index of the schedule
+-- Bubbled - True/False - True if date is from a subtask 
+-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
+-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
+-- Text - Text to be written in the Gantt cell for the date
+function getTaskDates(task,mode)
+	if mode == "BUBBLE" then
+		-- Just get the latest dates for this task
+	elseif mode == "PLANNING" then
+	
+	elseif mode == "NORMAL" then
+	end
+end
+
+-- Old Version
+--function updateTaskID(task,taskID)
+--	if not(task and taskID) then
+--		error("Need a task and taskID for updateTaskID in DataHandler.lua",2)
+--	end
+--	local prevTaskID = task.TaskID
+--	task.TaskID = taskID
+--	if task.SubTasks then
+--		local currNode = task.SubTasks
+--		local hierCount = {}
+--		-- Traverse the task hierarchy here
+--		hierCount[currNode] = 0
+--		while hierCount[currNode] < #currNode or currNode.parent do
+--			if not(hierCount[currNode] < #currNode) then
+--				if currNode == task.SubTasks then
+--					-- Do not go above the passed task
+--					break
+--				end 
+--				currNode = currNode.parent
+--			else
+--				-- Increment the counter
+--				hierCount[currNode] = hierCount[currNode] + 1
+--				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub("^"..prevTaskID,task.TaskID)
+--				if currNode[hierCount[currNode]].SubTasks then
+--					-- This task has children so go deeper in the hierarchy
+--					currNode = currNode[hierCount[currNode]].SubTasks
+--					hierCount[currNode] = 0
+--				end
+--			end
+--		end		-- while hierCount[hier] < #hier or hier.parent do ends here
+--	end		-- if task.SubTasks then ends
+--end
 
 -- Function to move the task before/after
 function bubbleTask(task,relative,beforeAfter,parent)

@@ -73,7 +73,7 @@ function textSummary(filter)
 	return filterSummary
 end
 
-function collectFilterData(filterData,task)
+function collectFilterData(task,filterData)
 	filterData = filterData or {}
 	filterData.Who = filterData.Who or {}
 	filterData.Access = filterData.Access or {}
@@ -109,43 +109,64 @@ function collectFilterData(filterData,task)
 			filterData.Tags = addItemToArray(task.Tags[i],filterData.Tags)
 		end
 	end
+	return filterData
 end
+
 
 -- Function to filter out tasks from the task hierarchy
 function applyFilterHier(filter, taskHier)
 	local hier = taskHier
-	local hierCount = {}
 	local returnList = {count = 0}
---[[	-- Reset the hierarchy if not already done so
-	while hier.parent do
-		hier = hier.parent
-	end]]
-	-- Traverse the task hierarchy here
-	hierCount[hier] = 0
-	while hierCount[hier] < #hier or hier.parent do
-		if not(hierCount[hier] < #hier) then
-			if hier == taskHier then
-				-- Do not go above the passed task
-				break
-			end 
-			hier = hier.parent
-		else
-			-- Increment the counter
-			hierCount[hier] = hierCount[hier] + 1
-			local passed = validateTask(filter,hier[hierCount[hier]])
-			if passed then
-				returnList.count = returnList.count + 1
-				returnList[returnList.count] = hier[hierCount[hier]]
-			end
-			if hier[hierCount[hier]].SubTasks then
-				-- This task has children so go deeper in the hierarchy
-				hier = hier[hierCount[hier]].SubTasks
-				hierCount[hier] = 0
-			end
-		end
-	end		-- while hierCount[hier] < #hier or hier.parent do ends here
-	return returnList
+	local data = {returnList = returnList, filter = filter}
+	for i = 1,#hier do
+		data = applyFuncHier(hier[i],function(task,data)
+							  	local passed = validateTask(data.filter,task)
+							  	if passed then
+							  		data.returnList.count = data.returnList.count + 1
+							  		data.returnList[data.returnList.count] = task
+							  	end
+							  	return data
+							  end, data
+		)
+	end
+	return data.returnList
 end
+
+-- Old Version
+--function applyFilterHier(filter, taskHier)
+--	local hier = taskHier
+--	local hierCount = {}
+--	local returnList = {count = 0}
+----[[	-- Reset the hierarchy if not already done so
+--	while hier.parent do
+--		hier = hier.parent
+--	end]]
+--	-- Traverse the task hierarchy here
+--	hierCount[hier] = 0
+--	while hierCount[hier] < #hier or hier.parent do
+--		if not(hierCount[hier] < #hier) then
+--			if hier == taskHier then
+--				-- Do not go above the passed task
+--				break
+--			end 
+--			hier = hier.parent
+--		else
+--			-- Increment the counter
+--			hierCount[hier] = hierCount[hier] + 1
+--			local passed = validateTask(filter,hier[hierCount[hier]])
+--			if passed then
+--				returnList.count = returnList.count + 1
+--				returnList[returnList.count] = hier[hierCount[hier]]
+--			end
+--			if hier[hierCount[hier]].SubTasks then
+--				-- This task has children so go deeper in the hierarchy
+--				hier = hier[hierCount[hier]].SubTasks
+--				hierCount[hier] = 0
+--			end
+--		end
+--	end		-- while hierCount[hier] < #hier or hier.parent do ends here
+--	return returnList
+--end
 
 -- Function to filter out tasks from a list of tasks
 function applyFilterList(filter, taskList)

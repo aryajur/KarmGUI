@@ -21,8 +21,10 @@ initFrameW = 0.75*initFrameW
 initFrameH = 0.75*initFrameH
 initFrameW = initFrameW - initFrameW%1
 initFrameH = initFrameH - initFrameH%1
+-- Node Colors
 nodeForeColor = {Red=0,Green=0,Blue=0}
 nodeBackColor = {Red=255,Green=255,Blue=255}
+-- Gantt Colors
 noScheduleColor = {Red=210,Green=210,Blue=210}
 ScheduleColor = {Red=0,Green=180,Blue=215}
 emptyDayColor = {Red=255,Green=255,Blue=255}
@@ -55,6 +57,23 @@ Globals = {
 	KARM_VERSION = "1.12.07.25",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
+	StatusNodeColor = {
+				{	ForeColor = {Red=100,Green=100,Blue=0},
+					BackColor = {Red=255,Green=200,Blue=255}
+				},
+				{	ForeColor = {Red=0,Green=0,Blue=0},
+					BackColor = {Red=255,Green=255,Blue=255}
+				},
+				{	ForeColor = {Red=230,Green=0,Blue=0},
+					BackColor = {Red=255,Green=255,Blue=255}
+				},
+				{	ForeColor = {Red=0,Green=0,Blue=230},
+					BackColor = {Red=255,Green=255,Blue=255}
+				},
+				{	ForeColor = {Red=200,Green=200,Blue=200},
+					BackColor = {Red=255,Green=255,Blue=255}
+				}
+	},
 	NoDateStr = "__NO_DATE__",
 	NoTagStr = "__NO_TAG__",
 	NoAccessIDStr = "__NO_ACCESS__",
@@ -708,7 +727,7 @@ do
 		taskTreeINT[taskTree].treeGrid:SetReadOnly(row-1,1)
 		-- Set the back ground color
 		if taskNode.BackColor then
-			taskTreeINT[taskTree].treeGrid.SetCellBackgroundColour(row-1,1,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
+			taskTreeINT[taskTree].treeGrid:SetCellBackgroundColour(row-1,1,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
 		end
 		if taskNode.ForeColor then
 			taskTreeINT[taskTree].treeGrid:SetCellTextColour(row-1,1,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
@@ -1285,6 +1304,9 @@ do
 				end
 				oTree.Selected[#oTree.Selected] = nil
 				if #oTree.Selected == 0 then
+					if not nextV then
+						nextV = parent
+					end
 					oTree.Selected[1] = nextV
 					oTree.Selected.Latest = 1
 					nextV.Selected = true
@@ -1904,17 +1926,46 @@ do
 	
 end	-- The custom tree and Gantt widget object for Karm ends here
 
+-- Function to get the node color of a TaskTree node
+function getNodeColor(node)
+	-- Get the node colors according to the status
+	if not node.Task then
+		return GUI.nodeForeColor, GUI.nodeBackColor
+	else
+		if Globals.StatusNodeColor then
+			for i = 1,#Globals.StatusList do
+				if node.Task.Status == Globals.StatusList[i] and Globals.StatusNodeColor[i] then
+					local foreColor = GUI.nodeForeColor
+					local backColor = GUI.nodeBackColor
+					if Globals.StatusNodeColor[i].ForeColor and Globals.StatusNodeColor[i].ForeColor.Red and 
+					  Globals.StatusNodeColor[i].ForeColor.Blue and Globals.StatusNodeColor[i].ForeColor.Green then
+						foreColor = Globals.StatusNodeColor[i].ForeColor
+					end
+					if Globals.StatusNodeColor[i].BackColor and Globals.StatusNodeColor[i].BackColor.Red and 
+					  Globals.StatusNodeColor[i].BackColor.Blue and Globals.StatusNodeColor[i].BackColor.Green then
+						backColor = Globals.StatusNodeColor[i].BackColor
+					end
+					return foreColor, backColor
+				end
+			end
+			return GUI.nodeForeColor, GUI.nodeBackColor
+		else
+			return GUI.nodeForeColor, GUI.nodeBackColor
+		end	
+	end
+end
+
 function addSporeToGUI(key,Spore)
 	-- Add the spore node
 	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..key, Text=Spore.Title, Task = Spore}
-	GUI.taskTree.Nodes[Globals.ROOTKEY..key].ForeColor = GUI.nodeForeColor
+	GUI.taskTree.Nodes[Globals.ROOTKEY..key].ForeColor,GUI.taskTree.Nodes[Globals.ROOTKEY..key].BackColor = getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY..key])
 	local taskList = applyFilterHier(Filter, Spore)
 	-- Now add the tasks under the spore in the TaskTree
 	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
 	    -- Add the 1st element under the spore
 	    local currNode = GUI.taskTree:AddNode{Relative=Globals.ROOTKEY..key, Relation="Child", Key=taskList[1].TaskID, 
 	    		Text=taskList[1].Title, Task=taskList[1]}
-		currNode.ForeColor = GUI.nodeForeColor
+		currNode.ForeColor, currNode.BackColor = getNodeColor(currNode)
 	    for intVar = 2,taskList.count do
 	    	local cond1 = currNode.Key ~= Globals.ROOTKEY..key
 	    	local cond2 = #taskList[intVar].TaskID > #currNode.Key
@@ -1929,7 +1980,7 @@ function addSporeToGUI(key,Spore)
 	    	-- Now currNode has the node which is the right parent
 	        currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
 	        		Text=taskList[intVar].Title, Task = taskList[intVar]}
-	    	currNode.ForeColor = nodeColor
+	    	currNode.ForeColor, currNode.BackColor = getNodeColor(currNode)
 	    end
 	end  -- if taskList.count > 0 then ends
 end
@@ -1962,7 +2013,7 @@ function fillTaskTree()
 -- Clear the treeview and add the root element
     GUI.taskTree:Clear()
     GUI.taskTree:AddNode{Key=Globals.ROOTKEY, Text = "Task Spores"}
-    GUI.taskTree.Nodes[Globals.ROOTKEY].ForeColor = GUI.nodeForeColor
+    GUI.taskTree.Nodes[Globals.ROOTKEY].ForeColor, GUI.taskTree.Nodes[Globals.ROOTKEY].BackColor = getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY])
 
     if SporeData[0] > 0 then
 -- Populate the tree control view
@@ -2113,104 +2164,116 @@ function createNewSpore(title)
 	SporeData[SporeName] = XML2Data({[0]="Task_Spore"}, SporeName)
 	SporeData[SporeName].Modified = "YES"
 	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
-	GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor
+	GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor, GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].BackColor = getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName])
 	Globals.unsavedSpores[SporeName] = SporeData[SporeName].Title
 	return Globals.ROOTKEY..SporeName
 end
 
-
-function taskInfoUpdate(task)
-	GUI.taskDetails:SetValue(getTaskSummary(task))
-	if GUI.MoveTask then
-		-- Do the move task here
-		-- Get the selected task
-		local taskList = GUI.taskTree.Selected
-		if #taskList == 0 then
-			-- Cancel the move
-			GUI.statusBar:SetStatusText("",0)
-			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-			GUI.MoveTask = nil
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
-            return
-		end			
-		if #taskList > 1 then
-			GUI.statusBar:SetStatusText("",0)
-			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-			GUI.MoveTask = nil
-			-- Cancel the move
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
-            return
-		end		
-		if taskList[1].Task ~= GUI.MoveTask.task then
-			-- Start the move
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)			
-			if taskList[1].Key == Globals.ROOTKEY then
-				-- Relative is Root node
-				if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW then
-					wx.wxMessageBox("Can only move a task under the root task!","Illegal Move", wx.wxOK + wx.wxCENTRE, GUI.frame)
-					GUI.statusBar:SetStatusText("",0)
-					GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-					GUI.MoveTask = nil
-					Globals.unsavedSpores[taskList[1].Task.SporeFile] = SporeData[taskList[1].Task.SporeFile].Title
-					Globals.unsavedSpores[GUI.MoveTask.task.SporeFile] = SporeData[GUI.MoveTask.task.SporeFile].Title
-					return
-				end
-				-- This is to move the task into a new Spore
-				-- Create a new Spore here
+-- For MoveTask it needs the following information
+--	GUI.MoveTask.action = ID
+--	GUI.MoveTask.task = taskList[1].Task
+-- For CopyTask it needs the following information
+--	GUI.CopyTask.action = ID
+--	GUI.CopyTask.task = taskList[1].Task
+function moveCopyTask(task)
+	-- Do the move/copy task here
+	-- Get the selected task
+	local taskList = GUI.taskTree.Selected
+	if #taskList == 0 then
+		-- Cancel the move/copy
+		GUI.statusBar:SetStatusText("",0)
+		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+		GUI.MoveTask = nil
+		GUI.CopyTask = nil
+		ResetMoveTools()
+		ResetCopyTools()
+        return
+	end			
+	if #taskList > 1 then
+		GUI.statusBar:SetStatusText("",0)
+		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+		GUI.MoveTask = nil
+		GUI.CopyTask = nil
+		-- Cancel the move/copy
+		ResetMoveTools()
+		ResetCopyTools()
+        return
+	end		
+	if GUI.MoveTask and taskList[1].Task ~= GUI.MoveTask.task or GUI.CopyTask and taskList[1].Task ~= GUI.CopyTask.task then
+		-- Start the move/copy
+		if taskList[1].Key == Globals.ROOTKEY then
+			-- Relative is the Root node
+			if GUI.MoveTask and (GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW) then
+				wx.wxMessageBox("Can only move a task under the root task!","Illegal Move", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				return
+			end
+			if GUI.CopyTask and (GUI.CopyTask.action == GUI.ID_COPY_ABOVE or GUI.CopyTask.action == GUI.ID_COPY_BELOW) then
+				wx.wxMessageBox("Can only copy a task under the root task!","Illegal Copy", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				return
+			end
+			-- This is to move/copy the task into a new Spore
+			-- Create a new Spore here and make that the target parent instead of the root node
+			taskList[1] = GUI.taskTree.Nodes[createNewSpore()]
+		end
+		local task, str 
+		if GUI.MoveTask then
+			task = GUI.MoveTask.task
+			str = "Move"
+		else
+			-- Make a copy of the task and all its sub tasks and remove any DBDATA from the task to make a new task
+			task = copyTask(GUI.CopyTask.task, true, true)
+			str = "Copy"
+		end
+		if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			-- Relative is Spore
+			if (GUI.MoveTask and (GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW))
+			  or (GUI.CopyTask and (GUI.CopyTask.action == GUI.ID_COPY_ABOVE or GUI.CopyTask.action == GUI.ID_COPY_BELOW)) then
+				-- Create a new spore and move/copy it under there (set that the new target parent)
 				taskList[1] = GUI.taskTree.Nodes[createNewSpore()]
 			end
-			local task = GUI.MoveTask.task
-			if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
-				-- Relative is Spore
-				if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW then
-					-- Create a new spore and move it under there
-					taskList[1] = GUI.taskTree.Nodes[createNewSpore()]
-				end
-				-- This is to move the task into this spore
-				local taskID
-				-- Get a new task ID
-				taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "Move Task Under Spore", "")
-				if taskID == "" then
-					-- Cancel the move
-					GUI.statusBar:SetStatusText("",0)
-					GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-					GUI.MoveTask = nil
-					return
-				end
-				-- Check if the task ID exists in all the loaded spores
-				while true do
-					local redo = nil
-					for k,v in pairs(SporeData) do
-	        			if k~=0 then
-							local list = applyFilterHier({Tasks={[1]={TaskID=taskID}}}, v)
-							if #list > 0 then
-								redo = true
-								break
-							end
+			-- This is to move/copy the task into this spore
+			local taskID
+			-- Get a new task ID
+			taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", str.." Task Under Spore", "")
+			if taskID == "" then
+				-- Cancel the move/copy
+				GUI.statusBar:SetStatusText("",0)
+				GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+				GUI.MoveTask = nil
+				GUI.CopyTask = nil
+				return
+			end
+			-- Check if the task ID exists in all the loaded spores
+			while true do
+				local redo = nil
+				for k,v in pairs(SporeData) do
+        			if k~=0 then
+						local list = applyFilterHier({Tasks={[1]={TaskID=taskID}}}, v)
+						if #list > 0 then
+							redo = true
+							break
 						end
 					end
-					if redo then
-						taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "Move Task Under Spore", "")
-						if taskID == "" then
-							-- Cancel the move
-							GUI.statusBar:SetStatusText("",0)
-							GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-							GUI.MoveTask = nil
-							return
-						end
-					else
-						break
+				end
+				if redo then
+					taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", str.." Task Under Spore", "")
+					if taskID == "" then
+						-- Cancel the move/copy
+						GUI.statusBar:SetStatusText("",0)
+						GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+						GUI.MoveTask = nil
+						GUI.CopyTask = nil
+						return
 					end
-				end		
-				-- Parent of a root node is nil	
+				else
+					break
+				end
+			end		
+			
+			if GUI.MoveTask then	
 				-- Delete it from db
 				-- Delete from Spores
+				-- Parent of a root node is nil
 				if task.Parent then
 					-- This is a internal hierarchy task
 					DeleteTaskDB(task)
@@ -2220,169 +2283,191 @@ function taskInfoUpdate(task)
 				end
 				-- Delete from task Tree GUI
 				GUI.taskTree:DeleteTree(task.TaskID)
+			end
+			updateTaskID(task,taskID)
+			task.Parent = nil
+			task.SporeFile = string.sub(taskList[1].Key,#Globals.ROOTKEY+1,-1)
+			GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
+			NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
+			if task.SubTasks then
+				-- Update the SubTasks parent
+				task.SubTasks.parent = SporeData[task.SporeFile]
+				-- Update the Spore file in all sub tasks
+				local list1 = applyFilterHier(nil,SporeData[task.SporeFile])
+				if #list1 > 0 then
+					for i = 1,#list1 do
+						list1[i].SporeFile = task.SporeFile
+					end
+				end					
+				-- Now add all the Child hierarchy of the moved task to the GUI
+				local addList = applyFilterHier(Filter, task.SubTasks)
+				-- Now add the tasks under the spore in the TaskTree
+            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
+    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
+	                for intVar = 1,addList.count do
+	                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+	                	local cond2 = #addList[intVar].TaskID > #currNode.Key
+	                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+                    	while cond1 and not (cond2 and cond3) do
+                        	-- Go up the hierarchy
+                        	currNode = currNode.Parent
+		                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+		                	cond2 = #addList[intVar].TaskID > #currNode.Key
+		                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+                        end
+                    	-- Now currNode has the node which is the right parent
+	                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
+	                    		Text=addList[intVar].Title, Task = addList[intVar]}
+                    	currNode.ForeColor, currNode.BackColor = getNodeColor(currNode)
+                    end
+	            end  -- if addList.count > 0 then ends
+			end		-- if task.SubTasks then ends
+		else		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			-- This is to move/copy the task in relation to this task
+			-- This relative might be a Spore root task or a normal hierarchy task
+			if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_UNDER or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_UNDER then
+				-- Sub task handling is same in both cases
+				if GUI.MoveTask then
+					-- Delete it from db
+					-- Delete from Spores
+					if task.Parent then
+						-- This is a internal hierarchy task
+						DeleteTaskDB(task)
+					else
+						-- This is a root task in a Spore
+						DeleteTaskFromSpore(task,SporeData[task.SporeFile])
+					end
+					-- Delete from task Tree GUI
+					GUI.taskTree:DeleteTree(task.TaskID)
+				end
+				updateTaskID(task, getNewChildTaskID(taskList[1].Task))
+				task.Parent = taskList[1].Task
+				GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "Child"}
+			else		-- if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_UNDER or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_UNDER then else
+				local parent, taskID
+				if not taskList[1].Task.Parent then
+					-- This is a spore root node so will have to ask for the task ID from the user
+					taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", str.." Task", "")
+					if taskID == "" then
+						-- Cancel the move
+						GUI.statusBar:SetStatusText("",0)
+						GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+						GUI.MoveTask = nil
+						GUI.CopyTask = nil
+						return
+					end
+					-- Check if the task ID exists in all the loaded spores
+					while true do
+						local redo = nil
+						for k,v in pairs(SporeData) do
+		        			if k~=0 then
+								local list = applyFilterHier({Tasks={[1]={TaskID=taskID}}}, v)
+								if #list > 0 then
+									redo = true
+									break
+								end
+							end
+						end
+						if redo then
+							taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", str.." Task", "")
+							if taskID == "" then
+								-- Cancel the move
+								GUI.statusBar:SetStatusText("",0)
+								GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+								GUI.MoveTask = nil
+								GUI.CopyTask = nil
+								return
+							end
+						else
+							break
+						end
+					end		
+					-- Parent of a root node is nil	
+				else				
+					taskID = getNewChildTaskID(taskList[1].Task.Parent)
+					parent = taskList[1].Task.Parent
+				end		-- if not taskList[1].Task.Parent then ends
+				if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_ABOVE then
+					-- Move/Copy Above
+					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "PREV SIBLING"}
+				else
+					-- Move?Copy Below
+					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "NEXT SIBLING"}
+				end
+				if GUI.MoveTask then
+					-- Delete it from db
+					-- Delete from Spores
+					if task.Parent then
+						-- This is a internal hierarchy task
+						DeleteTaskDB(task)
+					else
+						-- This is a root task in a Spore
+						DeleteTaskFromSpore(task,SporeData[task.SporeFile])
+					end
+					-- Delete from task Tree GUI
+					GUI.taskTree:DeleteTree(task.TaskID)
+				end
 				updateTaskID(task,taskID)
-				task.Parent = nil
-				task.SporeFile = string.sub(taskList[1].Key,#Globals.ROOTKEY+1,-1)
-				GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
-				NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
-				if task.SubTasks then
-					-- Update the SubTasks parent
-					task.SubTasks.parent = SporeData[task.SporeFile]
-					-- Update the Spore file in all sub tasks
-					local list1 = applyFilterHier(nil,SporeData[task.SporeFile])
-					if #list1 > 0 then
-						for i = 1,#list1 do
-							list1[i].SporeFile = task.SporeFile
-						end
-					end					
-					-- Now add all the Child hierarchy of the moved task to the GUI
-					local addList = applyFilterHier(Filter, task.SubTasks)
-					-- Now add the tasks under the spore in the TaskTree
-	            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
-	    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
-		                for intVar = 1,addList.count do
-		                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
-		                	local cond2 = #addList[intVar].TaskID > #currNode.Key
-		                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-	                    	while cond1 and not (cond2 and cond3) do
-	                        	-- Go up the hierarchy
-	                        	currNode = currNode.Parent
-			                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
-			                	cond2 = #addList[intVar].TaskID > #currNode.Key
-			                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-	                        end
-	                    	-- Now currNode has the node which is the right parent
-		                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
-		                    		Text=addList[intVar].Title, Task = addList[intVar]}
-	                    	currNode.ForeColor = nodeColor
-	                    end
-		            end  -- if addList.count > 0 then ends
-				end		-- if task.SubTasks then ends
-			else		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
-				-- This is to move the task in relation to this task
-				-- This relative might be a Spore root task or a normal hierarchy task
-				if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then
-					-- Sub task handling is same in both cases
-					-- Delete it from db
-					-- Delete from Spores
-					if task.Parent then
-						-- This is a internal hierarchy task
-						DeleteTaskDB(task)
-					else
-						-- This is a root task in a Spore
-						DeleteTaskFromSpore(task,SporeData[task.SporeFile])
+				task.Parent = parent
+			end		-- if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_UNDER or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_UNDER then ends				
+			task.SporeFile = taskList[1].Task.SporeFile
+			NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
+			if task.SubTasks then
+				-- update the SubTasks parent
+				task.SubTasks.parent = taskList[1].Task.SubTasks
+				-- Update the Spore file in all sub tasks
+				local list1 = applyFilterHier(nil,SporeData[task.SporeFile])
+				if #list1 > 0 then
+					for i = 1,#list1 do
+						list1[i].SporeFile = task.SporeFile
 					end
-					-- Delete from task Tree GUI
-					GUI.taskTree:DeleteTree(task.TaskID)
-					updateTaskID(task, getNewChildTaskID(taskList[1].Task))
-					task.Parent = taskList[1].Task
-					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "Child"}
-				else		-- if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then else
-					local parent, taskID
-					if not taskList[1].Task.Parent then
-						-- This is a spore root node so will have to ask for the task ID from the user
-						taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "Move Task", "")
-						if taskID == "" then
-							-- Cancel the move
-							GUI.statusBar:SetStatusText("",0)
-							GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-							GUI.MoveTask = nil
-							return
-						end
-						-- Check if the task ID exists in all the loaded spores
-						while true do
-							local redo = nil
-							for k,v in pairs(SporeData) do
-			        			if k~=0 then
-									local list = applyFilterHier({Tasks={[1]={TaskID=taskID}}}, v)
-									if #list > 0 then
-										redo = true
-										break
-									end
-								end
-							end
-							if redo then
-								taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", "Move Task", "")
-								if taskID == "" then
-									-- Cancel the move
-									GUI.statusBar:SetStatusText("",0)
-									GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-									GUI.MoveTask = nil
-									return
-								end
-							else
-								break
-							end
-						end		
-						-- Parent of a root node is nil	
-					else				
-						taskID = getNewChildTaskID(taskList[1].Task.Parent)
-						parent = taskList[1].Task.Parent
-					end		-- if not taskList[1].Task.Parent then ends
-					if GUI.MoveTask.action == GUI.ID_MOVE_ABOVE then
-						GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "PREV SIBLING"}
-					else
-						GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "NEXT SIBLING"}
-					end
-					-- Delete it from db
-					-- Delete from Spores
-					if task.Parent then
-						-- This is a internal hierarchy task
-						DeleteTaskDB(task)
-					else
-						-- This is a root task in a Spore
-						DeleteTaskFromSpore(task,SporeData[task.SporeFile])
-					end
-					-- Delete from task Tree GUI
-					GUI.taskTree:DeleteTree(task.TaskID)
-					updateTaskID(task,taskID)
-					task.Parent = parent
-				end		-- if GUI.MoveTask.action == GUI.ID_MOVE_UNDER then ends				
-				task.SporeFile = taskList[1].Task.SporeFile
-				NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
-				if task.SubTasks then
-					-- update the SubTasks parent
-					task.SubTasks.parent = taskList[1].Task.SubTasks
-					-- Update the Spore file in all sub tasks
-					local list1 = applyFilterHier(nil,SporeData[task.SporeFile])
-					if #list1 > 0 then
-						for i = 1,#list1 do
-							list1[i].SporeFile = task.SporeFile
-						end
-					end										
-					-- Now add all the Child hierarchy of the moved task to the GUI
-					local addList = applyFilterHier(Filter, task.SubTasks)
-					-- Now add the tasks under the spore in the TaskTree
-	            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
-	    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
-		                for intVar = 1,addList.count do
-		                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
-		                	local cond2 = #addList[intVar].TaskID > #currNode.Key
-		                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-	                    	while cond1 and not (cond2 and cond3) do
-	                        	-- Go up the hierarchy
-	                        	currNode = currNode.Parent
-			                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
-			                	cond2 = #addList[intVar].TaskID > #currNode.Key
-			                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-	                        end
-	                    	-- Now currNode has the node which is the right parent
-		                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
-		                    		Text=addList[intVar].Title, Task = addList[intVar]}
-	                    	currNode.ForeColor = nodeColor
-	                    end
-		            end  -- if addList.count > 0 then ends
-				end		-- if task.SubTasks then ends
-			end		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then ends
-			Globals.unsavedSpores[taskList[1].Task.SporeFile] = SporeData[taskList[1].Task.SporeFile].Title
+				end										
+				-- Now add all the Child hierarchy of the moved task to the GUI
+				local addList = applyFilterHier(Filter, task.SubTasks)
+				-- Now add the tasks under the spore in the TaskTree
+            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
+    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
+	                for intVar = 1,addList.count do
+	                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+	                	local cond2 = #addList[intVar].TaskID > #currNode.Key
+	                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+                    	while cond1 and not (cond2 and cond3) do
+                        	-- Go up the hierarchy
+                        	currNode = currNode.Parent
+		                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+		                	cond2 = #addList[intVar].TaskID > #currNode.Key
+		                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
+                        end
+                    	-- Now currNode has the node which is the right parent
+	                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
+	                    		Text=addList[intVar].Title, Task = addList[intVar]}
+                    	currNode.ForeColor, currNode.BackColor = getNodeColor(currNode)
+                    end
+	            end  -- if addList.count > 0 then ends
+			end		-- if task.SubTasks then ends
+		end		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then ends
+		Globals.unsavedSpores[taskList[1].Task.SporeFile] = SporeData[taskList[1].Task.SporeFile].Title
+		if GUI.MoveTask then
 			Globals.unsavedSpores[GUI.MoveTask.task.SporeFile] = SporeData[GUI.MoveTask.task.SporeFile].Title
-			GUI.statusBar:SetStatusText("",0)
-			GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-			GUI.MoveTask = nil
-			-- Finish the move
-		end		-- if taskList[1] ~= GUI.MoveTask.task then ends
+		else
+			Globals.unsavedSpores[GUI.CopyTask.task.SporeFile] = SporeData[GUI.CopyTask.task.SporeFile].Title
+		end
+		GUI.statusBar:SetStatusText("",0)
+		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+		GUI.MoveTask = nil
+		GUI.CopyTask = nil
+		-- Finish the move
+		ResetMoveTools()
+		ResetCopyTools()
+	end		-- if GUI.MoveTask and taskList[1].Task ~= GUI.MoveTask.task or GUI.CopyTask and taskList[1].Task ~= GUI.CopyTask.task then ends
+end		-- function moveCopyTask ends
+
+function taskClicked(task)
+	GUI.taskDetails:SetValue(getTaskSummary(task))
+	if GUI.MoveTask or GUI.CopyTask then
+		moveCopyTask(task)
 	end		-- if GUI.MoveTask then ends here
-end		-- function taskInfoUpdate(task) ends here
+end		-- function taskClicked(task) ends here
 
 function SetFilterCallBack(filter)
 	GUI.FilterWindowOpen = false
@@ -2466,7 +2551,7 @@ function NewTaskCallBack(task)
 		local taskList = applyFilterList(Filter,{[1]=task})
 		if #taskList == 1 then
 		    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
-	    	GUI.taskTree.Nodes[task.TaskID].ForeColor = GUI.nodeForeColor
+	    	GUI.taskTree.Nodes[task.TaskID].ForeColor, GUI.taskTree.Nodes[task.TaskID].BackColor = getNodeColor(GUI.taskTree.Nodes[task.TaskID])
 	    end
 		Globals.unsavedSpores[task.SporeFile] = SporeData[task.SporeFile].Title
     end		-- if task then ends
@@ -2500,7 +2585,7 @@ function EditTaskCallBack(task)
 		if #taskList == 1 then
 			-- It passes the filter so update the task
 		    GUI.taskTree:UpdateNode(task)
-			taskInfoUpdate(task)
+			taskClicked(task)
 	    else
 	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
 	    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
@@ -2557,6 +2642,66 @@ function DeleteTask(event)
 	end
 end
 
+function CopyTaskToggle(event)
+	-- Get the selected task
+	local taskList = GUI.taskTree.Selected
+	if #taskList == 0 then
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end			
+	if #taskList > 1 then
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
+        wx.wxMessageBox("Just select a single task to copy.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        return
+	end	
+	if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
+		GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
+		wx.wxMessageBox("Cannot copy the root node or a Spore node. Please select a task to be copied.", "No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		return
+	end	
+	ResetMoveTools()
+	GUI.CopyTask = {}
+	-- Check if any other button is toggled then reset that button
+	local ID = event:GetId()
+	GUI.CopyTask.action = ID
+	GUI.CopyTask.task = taskList[1].Task
+	local ID1, ID2, status
+	if ID == GUI.ID_COPY_UNDER then
+		ID1 = GUI.ID_COPY_ABOVE
+		ID2 = GUI.ID_COPY_BELOW
+		status = "COPY TASK: Click task to copy this task under..."
+	elseif ID == GUI.ID_COPY_ABOVE then
+		ID1 = GUI.ID_COPY_UNDER
+		ID2 = GUI.ID_COPY_BELOW
+		status = "COPY TASK: Click task to copy this task above..."
+	else
+		ID1 = GUI.ID_COPY_ABOVE
+		ID2 = GUI.ID_COPY_UNDER
+		status = "COPY TASK: Click Task to copy this task below..."
+	end	
+	if GUI.toolbar:GetToolState(ID1) then
+		GUI.toolbar:ToggleTool(ID1,nil)
+	end
+	if GUI.toolbar:GetToolState(ID2) then
+		GUI.toolbar:ToggleTool(ID2,nil)
+	end
+	if not (GUI.toolbar:GetToolState(GUI.ID_COPY_ABOVE) or GUI.toolbar:GetToolState(GUI.ID_COPY_UNDER) or GUI.toolbar:GetToolState(GUI.ID_COPY_BELOW)) then
+		GUI.statusBar:SetStatusText("",0)
+		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
+		GUI.CopyTask = nil
+		return
+	end
+	GUI.frame:SetStatusText(status,0)
+	GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.highLightColor.Red,GUI.highLightColor.Green,GUI.highLightColor.Blue))
+end
+
 function MoveTaskToggle(event)
 	-- Get the selected task
 	local taskList = GUI.taskTree.Selected
@@ -2581,6 +2726,7 @@ function MoveTaskToggle(event)
 		wx.wxMessageBox("Cannot move the root node or a Spore node. Please select a task to be moved.", "No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
 		return
 	end	
+	ResetCopyTools()
 	GUI.MoveTask = {}
 	-- Check if any other button is toggled then reset that button
 	local ID = event:GetId()
@@ -2616,10 +2762,21 @@ function MoveTaskToggle(event)
 	GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.highLightColor.Red,GUI.highLightColor.Green,GUI.highLightColor.Blue))
 end
 
-function ResetToggleTools()
+function ResetCopyTools()
+	GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
+	GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
+	GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
+end
+
+function ResetMoveTools()
 	GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
 	GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
 	GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+end
+
+function ResetToggleTools()
+	ResetMoveTools()
+	ResetCopyTools()
 end
 
 function EditTask(event)
@@ -2703,7 +2860,7 @@ function NewTask(event, title)
 	            else
 	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="NEXT SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = SporeData[SporeName]}
 	            end
-	            GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor = GUI.nodeForeColor	
+	            GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor, GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].BackColor = getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName])	
 			else
 				-- This is a Spore so the request is to create a new root task in the spore
 				task.TaskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "New Task", "")
@@ -3173,7 +3330,7 @@ function finalizePlanning(task)
 			if GUI.taskTree.taskList[i] == task then
 				-- Remove this one
 				for j = i,#GUI.taskTree.taskList - 1 do
-					GUI.taskTree.taskList[i] = GUI.taskTree.taskList[i + 1]
+					GUI.taskTree.taskList[j] = GUI.taskTree.taskList[j + 1]
 				end
 				GUI.taskTree.taskList[#GUI.taskTree.taskList] = nil
 				break
@@ -3185,12 +3342,13 @@ function finalizePlanning(task)
 	if #taskList == 1 then
 		-- It passes the filter so update the task
 	    GUI.taskTree:UpdateNode(task)
-		taskInfoUpdate(task)
+		taskClicked(task)
     else
     	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
     	GUI.taskTree:DeleteSubUpdate(task.TaskID)
     end
-end
+    Globals.unsavedSpores[task.SporeFile] = SporeData[task.SporeFile].Title
+end		-- function finalizePlanning ends
 
 function main()
     GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm ("..Globals.User..")",
@@ -3219,30 +3377,53 @@ function main()
 	GUI.ID_MOVE_UNDER = NewID()
 	GUI.ID_MOVE_ABOVE = NewID()
 	GUI.ID_MOVE_BELOW = NewID()
-	GUI.ID_REPORT = NewID()
+	GUI.ID_COPY_UNDER = NewID()
+	GUI.ID_COPY_ABOVE = NewID()
+	GUI.ID_COPY_BELOW = NewID()
 	
-	
+	local bM
 	GUI.toolbar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
 	local toolBmpSize = GUI.toolbar:GetToolBitmapSize()
-	--local bM = wx.wxImage("images/LoadXML.gif",wx.wxBITMAP_TYPE_GIF)
-	--bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	--GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxBitmap(bM), "Load Spore from Disk")
 	GUI.toolbar:AddTool(GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
 	GUI.toolbar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
 	GUI.toolbar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
 	GUI.toolbar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
 	GUI.toolbar:AddSeparator()
-	GUI.toolbar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxArtProvider.GetBitmap(wx.wxART_HELP_SIDE_PANEL, wx.wxART_MENU, toolBmpSize),   "Set Filter Criteria")
-	GUI.toolbar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Sub-task")
-	GUI.toolbar:AddTool(GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat  Next task")
-	GUI.toolbar:AddTool(GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxArtProvider.GetBitmap(wx.wxART_ADD_BOOKMARK, wx.wxART_MENU, toolBmpSize),   "Creat Previous task")
+	bM = wx.wxImage("images/filter.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxBitmap(bM),   "Set Filter Criteria")
+	bM = wx.wxImage("images/new_under.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxBitmap(bM),   "Creat Sub-task")
+	bM = wx.wxImage("images/new_below.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxBitmap(bM),   "Creat  Next task")
+	bM = wx.wxImage("images/new_above.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxBitmap(bM),   "Creat Previous task")
 	GUI.toolbar:AddTool(GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
-	GUI.toolbar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxArtProvider.GetBitmap(wx.wxART_CROSS_MARK, wx.wxART_MENU, toolBmpSize),   "Delete Task")
-	GUI.toolbar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxArtProvider.GetBitmap(wx.wxART_GO_FORWARD, wx.wxART_MENU, toolBmpSize),   "Move Task Under...", wx.wxITEM_CHECK)
-	GUI.toolbar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxArtProvider.GetBitmap(wx.wxART_GO_UP, wx.wxART_MENU, toolBmpSize),   "Move task above...", wx.wxITEM_CHECK)
-	GUI.toolbar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DOWN, wx.wxART_MENU, toolBmpSize),   "Move task below...", wx.wxITEM_CHECK)
-	--GUI.toolbar:AddSeparator()
-	--GUI.toolbar:AddTool(GUI.ID_REPORT, "Report", wx.wxArtProvider.GetBitmap(wx.wxART_LIST_VIEW, wx.wxART_MENU, toolBmpSize),   "Generate Reports")
+	bM = wx.wxImage("images/delete.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxBitmap(bM),   "Delete Task")
+	bM = wx.wxImage("images/move_under.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxBitmap(bM),   "Move Task Under...", wx.wxITEM_CHECK)
+	bM = wx.wxImage("images/move_above.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxBitmap(bM),   "Move task above...", wx.wxITEM_CHECK)
+	bM = wx.wxImage("images/move_below.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxBitmap(bM),   "Move task below...", wx.wxITEM_CHECK)
+	GUI.toolbar:AddSeparator()
+	bM = wx.wxImage("images/copy_under.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_COPY_UNDER, "Copy Under", wx.wxBitmap(bM), "Copy Task Under...", wx.wxITEM_CHECK)
+	bM = wx.wxImage("images/copy_above.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_COPY_ABOVE, "Copy Above", wx.wxBitmap(bM), "Copy Task Above...", wx.wxITEM_CHECK)
+	bM = wx.wxImage("images/copy_below.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_COPY_BELOW, "Copy Below", wx.wxBitmap(bM), "Copy Task Below...", wx.wxITEM_CHECK)
 	GUI.toolbar:Realize()
 
 	-- Create status Bar in the window
@@ -3400,6 +3581,9 @@ function main()
 	GUI.frame:Connect(GUI.ID_MOVE_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
 	GUI.frame:Connect(GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
 	GUI.frame:Connect(GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,MoveTaskToggle)
+	GUI.frame:Connect(GUI.ID_COPY_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,CopyTaskToggle)
+	GUI.frame:Connect(GUI.ID_COPY_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,CopyTaskToggle)
+	GUI.frame:Connect(GUI.ID_COPY_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,CopyTaskToggle)
 	
 	GUI.frame:Connect(GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,SaveCurrSpore)
 	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,openKarmSpore)
@@ -3407,7 +3591,7 @@ function main()
 	GUI.frame:Connect(GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,SaveAllSpores)
 	
     -- Task selection in task tree
-    GUI.taskTree:associateEventFunc({cellClickCallBack = taskInfoUpdate})
+    GUI.taskTree:associateEventFunc({cellClickCallBack = taskClicked})
     -- *******************EVENTS FINISHED***************************************************************
     GUI.frame:Layout() -- help sizing the windows before being shown
     GUI.dateRangeChange()	-- To create the colums for the current date range in the GanttGrid
