@@ -1268,6 +1268,164 @@ function addTask2Parent(task, parent, Spore)
 	parent.SubTasks[parent.SubTasks.tasks] = task
 end
 
+-- Function to get all work done dates for a task and color and type for each date
+-- This function is called by the taskTree UI element to display the Gantt chart
+-- if bubble is true it bubbles up the latest schedule dates of the entire task hierarchy to this task
+--
+-- The function returns a table in the following format
+-- typeSchedule - Type of schedule for this task
+-- index - index of schedule for this task
+-- Subtables starting from index 1 corresponding to each date
+	-- Each subtable has the following keys:
+	-- Date - XML format date 
+	-- typeSchedule - Type of schedule the date comes from "Estimate", "Commit", "Revision", "Actual"
+	-- index - the index of the schedule
+	-- Bubbled - True/False - True if date is from a subtask 
+	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
+	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
+	-- Text - Text to be written in the Gantt cell for the date
+function getTaskWorkDates(task,bubble)
+	local updateDateTable = function(task,dateTable)
+		local dateList = getWorkDoneDates(task)
+		if dateList then
+			if not dateTable then
+				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
+			end
+			for i = 1,#dateList do
+				local found = false
+				local index = 0
+				for j = 1,#dateTable do
+					if dateTable[j].Date == dateList[i] then
+						found = true
+						break
+					end
+					if dateTable[j].Date > dateList[i] then
+						index = j
+						break
+					end
+				end
+				if not found then
+					-- Create a space at index
+					for j = #dateTable, index, -1 do
+						dateTable[j+1] = dateTable[j]
+					end
+					local newColor = {Red=GUI.ScheduleColor.Red - GUI.bubbleOffset.Red,Green=GUI.ScheduleColor.Green - GUI.bubbleOffset.Green,
+					Blue=GUI.ScheduleColor.Blue-GUI.bubbleOffset.Blue}
+					if newColor.Red < 0 then newColor.Red = 0 end
+					if newColor.Green < 0 then newColor.Green = 0 end
+					if newColor.Blue < 0 then newColor.Blue = 0 end
+					dateTable[index] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
+					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
+				end
+			end		-- for i = 1,#dateList do ends
+		end		-- if dateList then ends
+		return dateTable
+	end
+	if bubble then
+		local dateTable = applyFuncHier(task,updateDateTable)
+		return dateTable
+	else 
+		-- Just get the latest dates for this task
+		local dateList = getWorkDoneDates(task)
+		if dateList then
+			-- Convert the dateList to modified return table
+			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
+			for i = 1,#dateList do
+				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
+				  Bubbled = nil, BackColor = GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
+			end
+			return dateTable
+		else
+			return nil
+		end
+	end
+end
+
+-- Function to get all dates for a task and color and type for each date
+-- This function is called by the taskTree UI element to display the Gantt chart
+-- if bubble is true it bubbles up the latest schedule dates of the entire task hierarchy to this task
+-- if planning is true it returns the planning date list for this task
+--
+-- The function returns a table in the following format
+-- typeSchedule - Type of schedule for this task
+-- index - index of schedule for this task
+-- Subtables starting from index 1 corresponding to each date
+	-- Each subtable has the following keys:
+	-- Date - XML format date 
+	-- typeSchedule - Type of schedule the date comes from "Estimate", "Commit", "Revision", "Actual"
+	-- index - the index of the schedule
+	-- Bubbled - True/False - True if date is from a subtask 
+	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
+	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
+	-- Text - Text to be written in the Gantt cell for the date
+function getTaskDates(task,bubble,planning)
+	local plan = planning
+	local updateDateTable = function(task,dateTable)
+		local dateList = getLatestScheduleDates(task,plan)
+		if dateList then
+			if not dateTable then
+				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
+			end
+			for i = 1,#dateList do
+				local found = false
+				local index = 0
+				for j = 1,#dateTable do
+					if dateTable[j].Date == dateList[i] then
+						found = true
+						break
+					end
+					if dateTable[j].Date > dateList[i] then
+						index = j - 1
+						break
+					end
+				end
+				if not found then
+					-- Create a space at index + 1
+					for j = #dateTable, index+1, -1 do
+						dateTable[j+1] = dateTable[j]
+					end
+					local newColor = {Red=GUI.ScheduleColor.Red - GUI.bubbleOffset.Red,Green=GUI.ScheduleColor.Green - GUI.bubbleOffset.Green,
+					Blue=GUI.ScheduleColor.Blue-GUI.bubbleOffset.Blue}
+					if newColor.Red < 0 then newColor.Red = 0 end
+					if newColor.Green < 0 then newColor.Green = 0 end
+					if newColor.Blue < 0 then newColor.Blue = 0 end
+					dateTable[index+1] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
+					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = dateList.typeSchedule:sub(1,1)}
+				end
+			end		-- for i = 1,#dateList do ends
+		end		-- if dateList then ends
+		return dateTable
+	end
+	if bubble then
+		-- Main task schedule
+		local dateTable = updateDateTable(task)
+		if dateTable then
+			for i = 1,#dateTable do
+				dateTable[i].Bubbled = nil
+				dateTable[i].BackColor = GUI.ScheduleColor
+				dateTable[i].Text = ""
+			end
+		end
+		plan = nil
+		dateTable = applyFuncHier(task,updateDateTable,dateTable)
+		return dateTable
+	else 
+		-- Just get the latest dates for this task
+		local dateList = getLatestScheduleDates(task,planning)
+		if dateList then
+			-- Convert the dateList to modified return table
+			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
+			for i = 1,#dateList do
+				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
+				  Bubbled = nil, BackColor = GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
+			end
+			return dateTable
+		else
+			return nil
+		end
+	end
+end
+
 -- function to update the taskID in the whole hierarchy
 function updateTaskID(task,taskID)
 	if not(task and taskID) then
@@ -1279,32 +1437,6 @@ function updateTaskID(task,taskID)
 							return taskIDs
 						end, {prevTaskID = prevTaskID, newTaskID = taskID}
 	)
-end
-
--- Function to get all dates for a task and color and type for each date
--- This function is called by the taskTree UI element to display the Gantt chart
--- mode can be 3 things:
--- "BUBBLE" - bubbles up the latest schedule dates of the entire task hierarchy to this task
--- "PLANNING" - Just returns the planning date list for this task
--- "NORMAL" - Just returns the normal latest schedule dates for this task
---
--- The function returns a table in the following format
--- Subtables starting from index 1 corresponding to each date
--- Each subtable has the following keys:
--- Date - XML format date 
--- typeSchedule - Type of schedule the date comes from "Estimate", "Commit", "Revision", "Actual"
--- typeIndex - the index of the schedule
--- Bubbled - True/False - True if date is from a subtask 
--- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
--- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
--- Text - Text to be written in the Gantt cell for the date
-function getTaskDates(task,mode)
-	if mode == "BUBBLE" then
-		-- Just get the latest dates for this task
-	elseif mode == "PLANNING" then
-	
-	elseif mode == "NORMAL" then
-	end
 end
 
 -- Old Version

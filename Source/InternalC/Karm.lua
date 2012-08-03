@@ -29,6 +29,7 @@ noScheduleColor = {Red=210,Green=210,Blue=210}
 ScheduleColor = {Red=0,Green=180,Blue=215}
 emptyDayColor = {Red=255,Green=255,Blue=255}
 sunDayOffset = {Red = 30, Green=30, Blue = 30}
+bubbleOffset = {Red = 20, Green=20, Blue = 20}
 defaultColor = {Red=0,Green=0,Blue=0}
 highLightColor = {Red=120,Green=120,Blue=120}
 
@@ -618,7 +619,28 @@ do
 				-- Select the node in the GUI here
 				oTree.Selected = {oNode,Latest = 1}
 				oTree.treeGrid:SetGridCursor(oNode.Row-1,1)
-			end			
+			end	
+		elseif key == "ForeColor" or key == "BackColor" then
+			if type(val) == "table" and val.Red and type(val.Red) == "number" and val.Green and type(val.Green) == "number" and
+			  val.Blue and type(val.Blue) == "number" then
+				if oTree.update then
+					oNode[key] = val
+					if oNode.Row then
+						-- Calculate the hierLevel
+						local hierLevel = 0
+						local currNode = tab
+						while nodeMeta[currNode].Parent do
+							hierLevel = hierLevel + 1
+							currNode = nodeMeta[currNode].Parent
+						end
+	
+						dispTask(nodeMeta[tab].taskTreeObj,nodeMeta[tab].Row,false,tab,hierLevel)
+					end
+				else
+					oTree.actionQ[#oTree.actionQ + 1] = "nodeMeta[taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."]]."..key.."={Red="..val.Red..",Green="..val.Green..",Blue="..val.Blue.."}"
+					oTree.actionQ[#oTree.actionQ + 1] = "if ".."taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."].Row then local hierLevel = 0 local currNode = ".."taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."] while nodeMeta[currNode].Parent do hierLevel = hierLevel + 1 currNode = nodeMeta[currNode].Parent end dispTask(tab,nodeMeta[taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."]].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",oNode.Key).."],hierLevel) end"
+				end		-- if oTree.update then ends
+			end					
 		else
 			oNode[key] = val
 		end		-- if key == ?? ends here
@@ -644,6 +666,7 @@ do
 				-- Write the up Values
 				env.taskTreeINT = taskTreeINT
 				env.tab = tab
+				env.nodeMeta = nodeMeta
 				env.dispTask = dispTask
 				env.dispGantt = dispGantt
 				--print(taskTreeINT)
@@ -774,6 +797,7 @@ do
 					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
 						GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
 				end
+				taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,i-1,"")
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 				taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,i-1)
 			end
@@ -793,12 +817,12 @@ do
 			end
 			local dateList
 			if taskTreeINT[taskTree].ShowActual then
-				dateList = getWorkDoneDates(taskNode.Task)
+				dateList = getTaskWorkDates(taskNode.Task,taskTreeINT[taskTree].Bubble)
 			else
-				dateList = getLatestScheduleDates(taskNode.Task,planning)
+				dateList = getTaskDates(taskNode.Task,taskTreeINT[taskTree].Bubble, planning)
 			end
 			if not dateList then
-				-- No task associated with the node so color the cells to show no schedule
+				-- No task associated with the node or no schedule so color the cells to show no schedule
 				if planning then
 					taskTreeINT[taskTree].ganttGrid:SetRowLabelValue(row-1,"(P)X")
 				else
@@ -817,10 +841,12 @@ do
 						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
 							GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
 					end
+					taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,i-1,"")
 					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 					taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,i-1)
 				end
 			else
+				-- Some dates are scheduled for the task
 				local map
 				if planning then
 					map = {Estimate="(P)E",Commit = "(P)C", Revs = "(P)R", Actual = "(P)A"}
@@ -841,33 +867,15 @@ do
 						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.emptyDayColor.Red,
 							GUI.emptyDayColor.Green,GUI.emptyDayColor.Blue))
 					end
+					taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,i-1,"")
 					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
 					taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,i-1)
 				end		
 				local before,after
 				for i=1,#dateList do
-					currDate = XMLDate2wxDateTime(dateList[i])
-					if dateList[i]>=startDay and dateList[i]<=finDay then
+					currDate = XMLDate2wxDateTime(dateList[i].Date)
+					if dateList[i].Date>=startDay and dateList[i].Date<=finDay then
 						-- This date is in range find the column which needs to be highlighted
-	--					local range = days
-	--					local stepDate = GUI.dateStartPick:GetValue()
-	--					stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
-	--					local col = math.ceil(range/2)
-	--					while not stepDate:IsSameDate(currDate) do
-	--						if stepDate:IsEarlierThan(currDate) then
-	--							-- Select the upper range
-	--							range = math.ceil(range/2)
-	--							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
-	--							col = math.ceil(range/2)
-	--						else
-	--							-- Select lower range
-	--							stepDate = stepDate:Subtract(wx.wxDateSpan(0,0,0,math.floor(range/2)))
-	--							range = math.floor(range/2)
-	--							stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,math.floor(range/2)))
-	--							col = math.floor(range/2)							
-	--						end
-	--					end
-	
 						local col = 0					
 						local stepDate = XMLDate2wxDateTime(startDay)
 						while not stepDate:IsSameDate(currDate) do
@@ -876,22 +884,25 @@ do
 						end
 						--taskTreeINT[taskTree].startDate:Subtract(wx.wxDateSpan(0,0,0,col))
 						if getWeekDay(toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
-							local newColor = {Red=GUI.ScheduleColor.Red - GUI.sunDayOffset.Red,Green=GUI.ScheduleColor.Green - GUI.sunDayOffset.Green,
-							    Blue=GUI.ScheduleColor.Blue-GUI.sunDayOffset.Blue}
+							local newColor = {Red=dateList[i].BackColor.Red - GUI.sunDayOffset.Red,
+							  Green=dateList[i].BackColor.Green - GUI.sunDayOffset.Green,
+							  Blue=dateList[i].BackColor.Blue-GUI.sunDayOffset.Blue}
 							if newColor.Red < 0 then newColor.Red = 0 end
 							if newColor.Green < 0 then newColor.Green = 0 end
 							if newColor.Blue < 0 then newColor.Blue = 0 end
 							taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
 						else
-							taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(GUI.ScheduleColor.Red,
-								GUI.ScheduleColor.Green,GUI.ScheduleColor.Blue))
+							taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,col,wx.wxColour(dateList[i].BackColor.Red,
+								dateList[i].BackColor.Green,dateList[i].BackColor.Blue))
 						end
+						taskTreeINT[taskTree].ganttGrid:SetCellTextColour(row-1,col,wx.wxColour(dateList[i].ForeColor.Red,dateList[i].ForeColor.Green,dateList[i].ForeColor.Blue))
+						taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,col,dateList[i].Text)
 						taskTreeINT[taskTree].ganttGrid:SetReadOnly(row-1,col)
 					else
-						if dateList[i]<startDay then
+						if dateList[i].Date<startDay then
 							before = true
 						end
-						if dateList[i]>finDay then
+						if dateList[i].Date>finDay then
 							after = true
 						end
 					end		-- if dateList[i]>=startDay and dateList[i]<=finDay then ends

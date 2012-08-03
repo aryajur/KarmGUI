@@ -72,6 +72,16 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 		NewTask(evt,title)
 	end
 											]]},								
+											{Text = "&Schedule Bubble\tCtrl-B", HelpText = "Bubble up the Schedules", Code = [[local menuItems = GUI.menuBar:GetMenu(1):GetMenuItems() 
+if menuItems:Item(4):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
+	-- Enable Bubbling Mode 
+	GUI.taskTree.Bubble = true
+	fillTaskTree()
+else 
+	-- Disable Bubbling Mode 
+	GUI.taskTree.Bubble = false
+	fillTaskTree()
+end]] , ItemKind = wx.wxITEM_CHECK},										
 											{Text = "&Show Work Done\tCtrl-W", HelpText = "Show Actual Work Done", Code = [[
 	GUI.taskTree.ShowActual = true
 	fillTaskTree()
@@ -130,6 +140,13 @@ function checkTask(task)
 	-- If there is a schedule and status is Not Started then set Status to On Track
 	return true
 end
+
+-- Function to auto fill a task
+--[[
+function AutoFillTask(task)
+
+end
+]]
 
 -- Initial Filter
 
