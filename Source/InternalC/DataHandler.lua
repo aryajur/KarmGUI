@@ -886,9 +886,12 @@ end
 -- and whatever it returns is passed to it it as the 2nd argument in the next call to it with the next task
 -- In the 1st call the second argument is passed if it is given as the 3rd argument to this function
 -- The last return from the function is returned by this function
-function applyFuncHier(task, func, initialValue)
+-- if omitTask is true then the func is not run for the task itself and it starts from the subTasks
+function applyFuncHier(task, func, initialValue, omitTask)
 	local passedVar	= initialValue	-- Variable passed to the function
-	passedVar = func(task,initialValue)
+	if not omitTask then
+		passedVar = func(task,initialValue)
+	end
 	if task.SubTasks then
 		-- Traverse the task hierarchy here
 		local hier = task.SubTasks
@@ -1407,7 +1410,7 @@ function getTaskDates(task,bubble,planning)
 			end
 		end
 		plan = nil
-		dateTable = applyFuncHier(task,updateDateTable,dateTable)
+		dateTable = applyFuncHier(task,updateDateTable,dateTable, true)
 		return dateTable
 	else 
 		-- Just get the latest dates for this task
@@ -1627,7 +1630,14 @@ function sporeTitle(path)
 		strVar = path
 	end
 	return strVar
+end
 
+function IsSpore(task)
+	if task.TaskID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		return true
+	else
+		return false
+	end
 end
 
 -- Function to convert XML data from a single spore to internal data structure

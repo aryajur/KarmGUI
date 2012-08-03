@@ -40,8 +40,11 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 		menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(true) 
 		local list = {}
 		for i = 1,#taskList do
-			if taskList[i].Task and taskList[i].Key:sub(1,#Globals.ROOTKEY) ~= Globals.ROOTKEY then
+			-- Select nodes that only have actual tasks and which are not spores 
+			if taskList[i].Task and not IsSpore(taskList[i].Task) then
 				list[#list + 1] = taskList[i].Task
+				-- Mark the unsaved spores list so saving message is displayed
+				Globals.unsavedSpores[taskList[i].Task.SporeFile] = SporeData[taskList[i].Task.SporeFile].Title
 			end
 		end
 		GUI.taskTree:enablePlanningMode(list)

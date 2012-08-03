@@ -60,7 +60,7 @@ Globals = {
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	StatusNodeColor = {
 				{	ForeColor = {Red=100,Green=100,Blue=0},
-					BackColor = {Red=255,Green=200,Blue=255}
+					BackColor = {Red=255,Green=255,Blue=255}
 				},
 				{	ForeColor = {Red=0,Green=0,Blue=0},
 					BackColor = {Red=255,Green=255,Blue=255}
@@ -2596,6 +2596,7 @@ function EditTaskCallBack(task)
 		if #taskList == 1 then
 			-- It passes the filter so update the task
 		    GUI.taskTree:UpdateNode(task)
+			GUI.taskTree.Nodes[task.TaskID].ForeColor, GUI.taskTree.Nodes[task.TaskID].BackColor = getNodeColor(GUI.taskTree.Nodes[task.TaskID])
 			taskClicked(task)
 	    else
 	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
@@ -3354,6 +3355,14 @@ function finalizePlanning(task)
 		-- It passes the filter so update the task
 	    GUI.taskTree:UpdateNode(task)
 		taskClicked(task)
+		-- Update all the parents as well
+		local currNode = GUI.taskTree.Nodes[task.TaskID]
+		while currNode and currNode.Parent do
+			currNode = currNode.Parent
+			if currNode.Task then
+				GUI.taskTree:UpdateNode(currNode.Task)
+			end
+		end
     else
     	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
     	GUI.taskTree:DeleteSubUpdate(task.TaskID)
