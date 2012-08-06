@@ -239,8 +239,10 @@ local function initializeFilterForm(filterData)
 			CW.InsertItem(TagList,filterData.Tags[i])
 		end
 	end
-	for i=1,#filterData.Who do
-		whoCtrl:InsertItem(filterData.Who[i], false)
+	if filterData.Who then
+		for i=1,#filterData.Who do
+			whoCtrl:InsertItem(filterData.Who[i], false)
+		end
 	end
 	
 	if filterData.Access then
@@ -881,8 +883,10 @@ function filterFormActivate(parent, callBack)
 			
 			whoCtrl = CheckListCtrl(AccessPanel,false,"I","A")
 			-- Populate the IDs
-			for i = 1,#filterData.Who do
-				whoCtrl:InsertItem(filterData.Who[i], false)
+			if filterData.Who then
+				for i = 1,#filterData.Who do
+					whoCtrl:InsertItem(filterData.Who[i], false)
+				end
 			end
 			whoSizer:Add(whoCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 			WhoBoolCtrl = BooleanTreeCtrl(AccessPanel,whoSizer,whoCtrl:getSelectionFunc(), "Who")

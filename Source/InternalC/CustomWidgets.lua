@@ -315,8 +315,10 @@ do
 	end
 	
 	local AddListData = function(o,items)
-		for i = 1,#items do
-			InsertItem(o.List,items[i])
+		if items then
+			for i = 1,#items do
+				InsertItem(o.List,items[i])
+			end
 		end
 	end
 	

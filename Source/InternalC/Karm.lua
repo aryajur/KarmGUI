@@ -2065,79 +2065,6 @@ function fillTaskTree()
 end
 --@@END@@
 
-function Initialize()
-	-- Show the Splash Screen
-	wx.wxInitAllImageHandlers()
-	local splash = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm", wx.wxDefaultPosition, wx.wxSize(400, 300),
-                        wx.wxSTAY_ON_TOP + wx.wxFRAME_NO_TASKBAR)
-    local sizer = wx.wxBoxSizer(wx.wxVERTICAL)
-    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
-    local dc = wx.wxPaintDC(textBox)
-    local wid,height
-    textBox:SetFont(wx.wxFont(30, wx.wxFONTFAMILY_SWISS, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD))
-    wid,height = dc:GetTextExtent("Karm",wx.wxFont(30, wx.wxFONTFAMILY_ROMAN, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD) )
-    local textAttr = wx.wxTextAttr()
-    textBox:WriteText("Karm")
-    sizer:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
-    sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    local panel = wx.wxPanel(splash, wx.wxID_ANY)
-	local image = wx.wxImage("images/SplashImage.bmp",wx.wxBITMAP_TYPE_BMP)
-	image = image:Scale(100,100)
-    sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    panel:Connect(wx.wxEVT_PAINT,function(event)
-		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))
-		    cdc:DrawBitmap(wx.wxBitmap(image),150,0,false)
-		    cdc:delete()
-	    end
-	)
-    splash:SetSizer(sizer)
-    splash:Centre()
-    splash:Layout()
-    splash:SetBackgroundColour( wx.wxColour( 255, 255, 255 ) )
-    splash:Show(true)
-    local timer = wx.wxTimer(splash)
-    splash:Connect(wx.wxEVT_TIMER,function(event)
-    							splash:Close()
-    							timer:Stop()
-								-- Get the user ID
-								if not Globals.User then
-									local user = ""
-									while user == "" do
-										user = wx.wxGetTextFromUser("Enter the user ID", "User ID", "")
-									end
-									Globals.User = user
-								end
-    						end)
-    timer:Start(3000, true)
-    
-	configFile = "KarmConfig.lua"
-	local f=io.open(configFile,"r")
-	if f~=nil then 
-		io.close(f) 
-		-- load the configuration file
-		dofile(configFile)
-	end
-	-- Load all the XML spores
-	local count = 1
-	SporeData[0] = 0
-	-- print(Spores[count])
-	if Spores then
-		while Spores[count] do
-			if Spores[count].type == "XML" then
-				-- XML file
-				SporeData[Spores[count].file] = XML2Data(xml.load(Spores[count].file), Spores[count].file)
-				SporeData[Spores[count].file].Modified = true
-				SporeData[0] = SporeData[0] + 1
-			else
-				-- Normal Karm File
-				local result,message = pcall(loadKarmSpore,Spores[count].file, {onlyData=true})
-			end
-			count = count + 1
-		end
-	end
-end
-
 function GUI.frameResize(event)
 	local winSize = event:GetSize()
 	local hei = 0.6*winSize:GetHeight()
@@ -2617,7 +2544,7 @@ function DeleteTask(event)
         return
 	end
 	for i = 1,#taskList do
-		if taskList[i] == Globals.ROOTKEY then
+		if taskList[i].Key == Globals.ROOTKEY then
 			-- Root node  deleting requested
 			wx.wxMessageBox("Cannot delete the root node!","Root Node Deleting", wx.wxOK + wx.wxCENTRE, GUI.frame)
 			return
@@ -3371,7 +3298,7 @@ function finalizePlanning(task)
 end		-- function finalizePlanning ends
 
 function main()
-    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm ("..Globals.User..")",
+    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
 
@@ -3626,13 +3553,88 @@ function main()
 	-- Key Press events
 	--connectKeyUpEvent(GUI.frame)
 
+	-- Get the user ID
     GUI.frame:Show(true)
+	if not Globals.User then
+		local user = ""
+		while user == "" do
+			user = wx.wxGetTextFromUser("Enter the user ID", "User ID", "")
+		end
+		Globals.User = user
+	end
+    GUI.frame:SetTitle("Karm ("..Globals.User..")")
+end
+
+function Initialize()
+	-- Show the Splash Screen
+	wx.wxInitAllImageHandlers()
+	local splash = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm", wx.wxDefaultPosition, wx.wxSize(400, 300),
+                        wx.wxSTAY_ON_TOP + wx.wxFRAME_NO_TASKBAR)
+    local sizer = wx.wxBoxSizer(wx.wxVERTICAL)
+    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    local dc = wx.wxPaintDC(textBox)
+    local wid,height
+    textBox:SetFont(wx.wxFont(30, wx.wxFONTFAMILY_SWISS, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD))
+    wid,height = dc:GetTextExtent("Karm",wx.wxFont(30, wx.wxFONTFAMILY_ROMAN, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD) )
+    local textAttr = wx.wxTextAttr()
+    textBox:WriteText("Karm")
+    sizer:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    local panel = wx.wxPanel(splash, wx.wxID_ANY)
+	local image = wx.wxImage("images/SplashImage.bmp",wx.wxBITMAP_TYPE_BMP)
+	image = image:Scale(100,100)
+    sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    panel:Connect(wx.wxEVT_PAINT,function(event)
+		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))
+		    cdc:DrawBitmap(wx.wxBitmap(image),150,0,false)
+		    cdc:delete()
+	    end
+	)
+    splash:SetSizer(sizer)
+    splash:Centre()
+    splash:Layout()
+    splash:SetBackgroundColour( wx.wxColour( 255, 255, 255 ) )
+    splash:Show(true)
+    local timer = wx.wxTimer(splash)
+    splash:Connect(wx.wxEVT_TIMER,function(event)
+    							splash:Close()
+    							timer:Stop()
+								main()
+    						end)
+    timer:Start(3000, true)
+    
+	configFile = "KarmConfig.lua"
+	local f=io.open(configFile,"r")
+	if f~=nil then 
+		io.close(f) 
+		-- load the configuration file
+		dofile(configFile)
+	end
+	-- Load all the XML spores
+	local count = 1
+	SporeData[0] = 0
+	-- print(Spores[count])
+	if Spores then
+		while Spores[count] do
+			if Spores[count].type == "XML" then
+				-- XML file
+				SporeData[Spores[count].file] = XML2Data(xml.load(Spores[count].file), Spores[count].file)
+				SporeData[Spores[count].file].Modified = true
+				SporeData[0] = SporeData[0] + 1
+			else
+				-- Normal Karm File
+				local result,message = pcall(loadKarmSpore,Spores[count].file, {onlyData=true})
+			end
+			count = count + 1
+		end
+	end
 end
 
 -- Do all the initial Configuration and Initialization
 Initialize()
 
-main()
+--main()
 
 -- refreshTree()
 -- fillDummyData()
