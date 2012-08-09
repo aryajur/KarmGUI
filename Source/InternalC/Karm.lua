@@ -7,10 +7,11 @@
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
+
 require("wx")
 
--- Include the XML handling module
-require("LuaXml")
+-- DO ALL CONFIGURATION
+Karm = {}
 
 -- Creating GUI the main table containing all the GUI objects and data
 GUI = {["__index"]=_G}
@@ -32,6 +33,7 @@ sunDayOffset = {Red = 30, Green=30, Blue = 30}
 bubbleOffset = {Red = 20, Green=20, Blue = 20}
 defaultColor = {Red=0,Green=0,Blue=0}
 highLightColor = {Red=120,Green=120,Blue=120}
+
 
 -- Task status colors
 -- Main Menu
@@ -95,6 +97,13 @@ function NewID()
     return ID_IDCOUNTER
 end
 
+-- FINISH CONFIGURATION
+
+-- INCLUDE ALL CODE
+
+-- Include the XML handling module
+require("LuaXml")
+
 -- Karm files
 require("Filter")
 require("DataHandler")
@@ -102,6 +111,8 @@ GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
 GUI.TaskForm = require("TaskForm")		-- Containing all Task Form GUI code
 
 require("TestFuncs")		-- Containing all testing functions not used in final deployment
+
+-- FINISH CODE INCLUSION
 
 do
 	local IDMap = {}	-- Map from wxID to object (used to handle events)
@@ -589,7 +600,7 @@ do
 						local toExpand = {}
 						while nextNode do
 							if nextNode.Expanded then
-								nextNode.Expanded = nil
+								nodeMeta[nextNode].Expanded = nil
 								toExpand[#toExpand + 1] = nextNode
 							end
 							nextNode = nextNode.Next
@@ -3297,6 +3308,166 @@ function finalizePlanning(task)
     Globals.unsavedSpores[task.SporeFile] = SporeData[task.SporeFile].Title
 end		-- function finalizePlanning ends
 
+-- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil
+-- Traversal is in the order as if listing out the tasks for a fully expanded task tree
+function Karm.getNextTask(task)
+	if not task then
+		error("Need a task object to give the next task", 2)
+	end
+	if not type(task) == "table" then
+		error("Need a task object to give the next task", 2)
+	end
+	if task.SubTasks and task.SubTasks[1] then
+		return task.SubTasks[1]
+	end
+	-- Go up the hierarchy and the next node
+	local currTask = task
+	if task.Parent then
+		-- Task was not a root node in a spore
+		local tempTask = currTask.Parent
+		for i = 1,#tempTask.SubTasks do
+			if tempTask.SubTasks[i] == currTask then
+				-- return the next one if it exists
+				if tempTask.SubTasks[i+1] then
+					return tempTask.SubTasks[i + 1]
+				end
+				break
+			end
+		end 	-- for i = 1,#tempTask.SubTasks do ends
+		while currTask.Parent do
+			currTask = currTask.Parent
+			-- Is this the root node?
+			if currTask.Parent then
+				-- Not a root node
+				local tempTask = currTask.Parent
+				for i = 1,#tempTask.SubTasks do
+					if tempTask.SubTasks[i] == currTask then
+						-- return the next one if it exists
+						if tempTask.SubTasks[i+1] then
+							return tempTask.SubTasks[i + 1]
+						end
+						break
+					end
+				end 	-- for i = 1,#tempTask.SubTasks do ends
+			end		-- if not currTask.Parent then ends			
+		end		-- while currTask.Parent do ends
+	end
+	-- We are at the root node and we need the next task
+	local SporeFile = currTask.SporeFile
+	for i = 1,#SporeData[SporeFile] do
+		if SporeData[SporeFile][i] == currTask then
+			if SporeData[SporeFile][i+1] then
+				return SporeData[SporeFile][i+1]
+			end
+			break
+		end
+	end
+end
+
+function Karm.Macro(event)
+	-- Get the macro details
+	local frame = wx.wxFrame(GUI.frame, wx.wxID_ANY, "Enter Macro Details", wx.wxDefaultPosition,wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)
+	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+	local MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)
+		local ScriptPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local ScriptPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+			local InsLabel = wx.wxStaticText(ScriptPanel, wx.wxID_ANY, "Enter Script here:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+			ScriptPanelSizer:Add(InsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			local ScriptBox = wx.wxTextCtrl(ScriptPanel, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)
+			ScriptPanelSizer:Add(ScriptBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			local scriptButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+			local CompileButton = wx.wxButton(ScriptPanel, wx.wxID_ANY, "Test Compile", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			local RunButton = wx.wxButton(ScriptPanel, wx.wxID_ANY, "Run", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			local CancelButton = wx.wxButton(ScriptPanel, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			
+			scriptButtonSizer:Add(CompileButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			scriptButtonSizer:Add(RunButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			scriptButtonSizer:Add(CancelButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			ScriptPanelSizer:Add(scriptButtonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		ScriptPanel:SetSizer(ScriptPanelSizer)
+		ScriptPanelSizer:SetSizeHints(ScriptPanel)
+	MainBook:AddPage(ScriptPanel, "Run Code")
+		local FilePanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local FilePanelSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+			local FileInsLabel = wx.wxStaticText(FilePanel, wx.wxID_ANY, "Select Lua script file:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
+			FilePanelSizer:Add(FileInsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			local fileBrowseSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+			local FileBox = wx.wxTextCtrl(FilePanel, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
+			fileBrowseSizer:Add(FileBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			local BrowseButton = wx.wxButton(FilePanel, wx.wxID_ANY, "Browse...", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			fileBrowseSizer:Add(BrowseButton,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			FilePanelSizer:Add(fileBrowseSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			local fileButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+			local FileCompileButton = wx.wxButton(FilePanel, wx.wxID_ANY, "Test Compile", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			local FileRunButton = wx.wxButton(FilePanel, wx.wxID_ANY, "Run", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			local FileCancelButton = wx.wxButton(FilePanel, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+			
+			fileButtonSizer:Add(FileCompileButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			fileButtonSizer:Add(FileRunButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			fileButtonSizer:Add(FileCancelButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			FilePanelSizer:Add(fileButtonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+		FilePanel:SetSizer(FilePanelSizer)
+		FilePanelSizer:SetSizeHints(FilePanel)
+	MainBook:AddPage(FilePanel, "Run File")
+	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	
+	-- Events
+	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+			frame:Close()
+		end		
+	)
+	
+	FileCancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+			frame:Close()
+		end		
+	)
+
+	BrowseButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+		    local fileDialog = wx.wxFileDialog(frame, "Select file",
+		                                       "",
+		                                       "",
+		                                       "Lua files (*.lua)|*.lua|wxLua files (*.wlua)|*.wlua|All files (*)|*",
+		                                       wx.wxOPEN + wx.wxFILE_MUST_EXIST)
+		    if fileDialog:ShowModal() == wx.wxID_OK then
+		    	FileBox:SetValue(fileDialog:GetPath())
+		    end
+		    fileDialog:Destroy()
+		end		
+	)
+
+	CompileButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+			-- Test Compile the script
+			local f,message = loadstring(ScriptBox:GetValue())
+			if not f then
+				wx.wxMessageBox("Error in compilation: "..message,"Error",wx.wxOK + wx.wxCENTRE, frame)
+			else
+				wx.wxMessageBox("Compilation successful","Success", wx.wxOK + wx.wxCENTRE, frame)			
+			end
+		end		
+	)
+
+	FileCompileButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+			-- Test Compile the script
+			local f,message = loadfile(FileBox:GetValue())
+			if not f then
+				wx.wxMessageBox("Error in compilation: "..message,"Error",wx.wxOK + wx.wxCENTRE, frame)
+			else
+				wx.wxMessageBox("Compilation successful","Success", wx.wxOK + wx.wxCENTRE, frame)			
+			end
+		end		
+	)
+
+	frame:SetSizer(MainSizer)
+	frame:Layout()
+	frame:Show(true)
+end
+
+
 function main()
     GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
                         wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
@@ -3327,6 +3498,7 @@ function main()
 	GUI.ID_COPY_UNDER = NewID()
 	GUI.ID_COPY_ABOVE = NewID()
 	GUI.ID_COPY_BELOW = NewID()
+	GUI.ID_LUA_MACRO = NewID()
 	
 	local bM
 	GUI.toolbar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
@@ -3371,6 +3543,10 @@ function main()
 	bM = wx.wxImage("images/copy_below.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
 	GUI.toolbar:AddTool(GUI.ID_COPY_BELOW, "Copy Below", wx.wxBitmap(bM), "Copy Task Below...", wx.wxITEM_CHECK)
+	GUI.toolbar:AddSeparator()
+	bM = wx.wxImage("images/lua_macro.png",wx.wxBITMAP_TYPE_PNG)
+	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
+	GUI.toolbar:AddTool(GUI.ID_LUA_MACRO, "Run Lua Macro", wx.wxBitmap(bM), "Run Lua Macro...")
 	GUI.toolbar:Realize()
 
 	-- Create status Bar in the window
@@ -3537,6 +3713,8 @@ function main()
 	GUI.frame:Connect(GUI.ID_UNLOAD,wx.wxEVT_COMMAND_MENU_SELECTED,unloadSpore)
 	GUI.frame:Connect(GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,SaveAllSpores)
 	
+	GUI.frame:Connect(GUI.ID_LUA_MACRO,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.Macro)
+
     -- Task selection in task tree
     GUI.taskTree:associateEventFunc({cellClickCallBack = taskClicked})
     -- *******************EVENTS FINISHED***************************************************************

@@ -1002,8 +1002,10 @@ end
 -- Parent is the same linked tables
 -- If copySubTasks is true then SubTasks are made a copy as well with the same parameters otherwise it is the same linked SubTask table
 -- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table
+-- Normally the task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the task parents
+-- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks
 -- Planning is not copied over
-function copyTask(task, copySubTasks, removeDBDATA)
+function copyTask(task, copySubTasks, removeDBDATA,keepOldTaskParents)
 	if not task then
 		return
 	end
@@ -1024,7 +1026,7 @@ function copyTask(task, copySubTasks, removeDBDATA)
 					end
 					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]="SubTasks"}
 					for i = 1,#task.SubTasks do
-						nTask.SubTasks[i] = copyTask(task.SubTasks[i],true,removeDBDATA)
+						nTask.SubTasks[i] = copyTask(task.SubTasks[i],true,removeDBDATA,true)
 					end
 				else
 					nTask[k] = copyTable(task[k],true)
@@ -1032,6 +1034,21 @@ function copyTask(task, copySubTasks, removeDBDATA)
 			end
 		end
 	end		-- for k,v in pairs(task) do ends
+	if not keepOldTaskParents and nTask.SubTasks then
+		-- Correct for the task parents of all subtasks
+		applyFuncHier(nTask,function(task, subTaskParent)
+								if task.SubTasks then
+									if subTaskParent then
+										task.SubTasks.parent = task.Parent.SubTasks
+									end
+									for i = 1,#task.SubTasks do
+										task.SubTasks[i].Parent = task
+									end
+								end
+								return true
+							end
+		)
+	end
 	return nTask
 end		-- function copyTask(task)ends
 

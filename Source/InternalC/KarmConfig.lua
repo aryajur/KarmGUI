@@ -89,6 +89,23 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 	GUI.taskTree.ShowActual = true
 	fillTaskTree()
 											]]},										
+											{Text = "&Test Next task", HelpText = "Test the Karm.getNextTask routine", Code = [[
+	local Spore
+	for k,v in pairs(SporeData) do
+		if k ~= 0 then
+			Spore = v
+			break
+		end
+	end
+	local str = "" 
+	str = str..Spore[1].Title.."\n"
+	local nextTask = Karm.getNextTask(Spore[1])
+	while nextTask do
+		str = str..nextTask.Title.."\n"
+		nextTask = Karm.getNextTask(nextTask)
+	end
+	print(str)
+											]]},										
 											{Text = "&Show Normal Schedule\tCtrl-N", HelpText = "Show Normal Schedule", Code = [[
 	GUI.taskTree.ShowActual = nil
 	fillTaskTree()
@@ -141,6 +158,9 @@ function checkTask(task)
 	end
 	-- If there is a Due date and current date is larger than that then set Status to Behind
 	-- If there is a schedule and status is Not Started then set Status to On Track
+	if task.Schedules and task.Status == "Not Started" then
+		task.Status = "On Track"
+	end
 	return true
 end
 
