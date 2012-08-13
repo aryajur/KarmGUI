@@ -21,27 +21,22 @@ local pairs = pairs
 local GUI = GUI
 local bit = bit
 local Globals = Globals
-local XMLDate2wxDateTime = XMLDate2wxDateTime
-local toXMLDate = toXMLDate
-local task2IncSchTasks = task2IncSchTasks
-local getLatestScheduleDates = getLatestScheduleDates
-local getWorkDoneDates = getWorkDoneDates
-local tableToString = tableToString
-local getEmptyTask = getEmptyTask
-local copyTask = copyTask
-local addItemToArray = addItemToArray
-local collectFilterDataHier = collectFilterDataHier
-local togglePlanningDate = togglePlanningDate
+local XMLDate2wxDateTime = Karm.Utility.XMLDate2wxDateTime
+local toXMLDate = Karm.Utility.toXMLDate
+local task2IncSchTasks = Karm.TaskObject.incSchTasks
+local getLatestScheduleDates = Karm.TaskObject.getLatestScheduleDates
+local getWorkDoneDates = Karm.TaskObject.getWorkDoneDates
+local tableToString = Karm.Utility.tableToString
+local getEmptyTask = Karm.getEmptyTask
+local copyTask = Karm.TaskObject.copy
+local collectFilterDataHier = Karm.accumulateTaskDataHier
+local togglePlanningDate = Karm.TaskObject.togglePlanningDate
 local type = type
 local checkTask = function() 
 					return checkTask
 				end
-local newGUITreeGantt = function() 
-		return newGUITreeGantt 
-	end
-
 local SData = function()
-		return SporeData
+		return Karm.SporeData
 	end
 
 local CW = require("CustomWidgets")
@@ -572,7 +567,7 @@ function taskFormActivate(parent, callBack, task)
 					sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				local staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, "Work Done")
-					wdTaskTree = newGUITreeGantt()(TSch,true)
+					wdTaskTree = GUI.newTreeGantt(TSch,true)
 					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 					sizer3:Add(wdTaskTree.horSplitWin, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
@@ -593,7 +588,7 @@ function taskFormActivate(parent, callBack, task)
 				staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, "Schedules")
 				sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
 				
-				taskTree = newGUITreeGantt()(TSch,true)
+				taskTree = GUI.newTreeGantt(TSch,true)
 				sizer3:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				dateRangeChange()
 				taskTree:layout()

@@ -1,8 +1,9 @@
 -- Data structure to store the Global Filter Criteria
-Filter = {}
+Karm.Filter = {}
+Karm.FilterObject = {}
 
 -- Function to create a text summary of the Filter
-function textSummary(filter)
+function Karm.FilterObject.getSummary(filter)
 	local filterSummary = ""
 	-- Tasks
 	if filter.Tasks then
@@ -73,54 +74,14 @@ function textSummary(filter)
 	return filterSummary
 end
 
-function collectFilterData(task,filterData)
-	filterData = filterData or {}
-	filterData.Who = filterData.Who or {}
-	filterData.Access = filterData.Access or {}
-	filterData.Priority = filterData.Priority or {}
-	filterData.Cat = filterData.Cat or {}
-	filterData.SubCat = filterData.SubCat or {}
-	filterData.Tags = filterData.Tags or {}
-	-- Who data
-	for i = 1,#task.Who do
-		filterData.Who = addItemToArray(task.Who[i].ID,filterData.Who)
-	end
-	-- Access Data
-	if task.Access then
-		for i = 1,#task.Access do
-			filterData.Access = addItemToArray(task.Access[i].ID,filterData.Access)
-		end
-	end
-	-- Priority Data
-	if task.Priority then
-		filterData.Priority = addItemToArray(task.Priority,filterData.Priority)
-	end			
-	-- Category Data
-	if task.Cat then
-		filterData.Cat = addItemToArray(task.Cat,filterData.Cat)
-	end			
-	-- Sub-Category Data
-	if task.SubCat then
-		filterData.SubCat = addItemToArray(task.SubCat,filterData.SubCat)
-	end			
-	-- Tags Data
-	if task.Tags then
-		for i = 1,#task.Tags do
-			filterData.Tags = addItemToArray(task.Tags[i],filterData.Tags)
-		end
-	end
-	return filterData
-end
-
-
 -- Function to filter out tasks from the task hierarchy
-function applyFilterHier(filter, taskHier)
+function Karm.FilterObject.applyFilterHier(filter, taskHier)
 	local hier = taskHier
 	local returnList = {count = 0}
 	local data = {returnList = returnList, filter = filter}
 	for i = 1,#hier do
-		data = applyFuncHier(hier[i],function(task,data)
-							  	local passed = validateTask(data.filter,task)
+		data = Karm.TaskObject.applyFuncHier(hier[i],function(task,data)
+							  	local passed = Karm.FilterObject.validateTask(data.filter,task)
 							  	if passed then
 							  		data.returnList.count = data.returnList.count + 1
 							  		data.returnList[data.returnList.count] = task
@@ -133,7 +94,7 @@ function applyFilterHier(filter, taskHier)
 end
 
 -- Old Version
---function applyFilterHier(filter, taskHier)
+--function Karm.FilterObject.applyFilterHier(filter, taskHier)
 --	local hier = taskHier
 --	local hierCount = {}
 --	local returnList = {count = 0}
@@ -153,7 +114,7 @@ end
 --		else
 --			-- Increment the counter
 --			hierCount[hier] = hierCount[hier] + 1
---			local passed = validateTask(filter,hier[hierCount[hier]])
+--			local passed = Karm.FilterObject.validateTask(filter,hier[hierCount[hier]])
 --			if passed then
 --				returnList.count = returnList.count + 1
 --				returnList[returnList.count] = hier[hierCount[hier]]
@@ -169,10 +130,10 @@ end
 --end
 
 -- Function to filter out tasks from a list of tasks
-function applyFilterList(filter, taskList)
+function Karm.FilterObject.applyFilterList(filter, taskList)
 	local returnList = {count = 0}
 	for i=1,#taskList do
-		local passed = validateTask(filter,taskList[i])
+		local passed = Karm.FilterObject.validateTask(filter,taskList[i])
 		if passed then
 			returnList.count = returnList.count + 1
 			returnList[returnList.count] = taskList[i]
@@ -203,7 +164,7 @@ end
 ]]
 
 -- Function to validate a given task
-function validateTask(filter, task)
+function Karm.FilterObject.validateTask(filter, task)
 	if not filter then
 		return true
 	end
@@ -299,8 +260,8 @@ function validateTask(filter, task)
 				strt = range
 				stp = range
 			end
-			strt = toXMLDate(strt)
-			stp = toXMLDate(stp)
+			strt = Karm.Utility.toXMLDate(strt)
+			stp = Karm.Utility.toXMLDate(stp)
 			local taskDate = task.Start
 			if strt <= taskDate and taskDate <=stp then
 				matched = true
@@ -334,8 +295,8 @@ function validateTask(filter, task)
 				strt = range
 				stp = range
 			end
-			strt = toXMLDate(strt)
-			stp = toXMLDate(stp)
+			strt = Karm.Utility.toXMLDate(strt)
+			stp = Karm.Utility.toXMLDate(stp)
 			if task.Fin then
 				if strt <= task.Fin and task.Fin <=stp then
 					matched = true
@@ -472,8 +433,8 @@ function validateTask(filter, task)
 				strt = range
 				stp = range
 			end
-			strt = toXMLDate(strt)
-			stp = toXMLDate(stp)
+			strt = Karm.Utility.toXMLDate(strt)
+			stp = Karm.Utility.toXMLDate(stp)
 			if task.Due then
 				if strt <= task.Due and task.Due <=stp then
 					matched = true
@@ -688,8 +649,8 @@ function validateTask(filter, task)
 								strt = ranges[j]
 								stp = ranges[j]
 							end
-							strt = toXMLDate(strt)
-							stp = toXMLDate(stp)
+							strt = Karm.Utility.toXMLDate(strt)
+							stp = Karm.Utility.toXMLDate(stp)
 							if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then
 								inrange = true
 							end
@@ -730,4 +691,4 @@ function validateTask(filter, task)
 	end
 	-- All pass
 	return true
-end		-- function validateTask(filter, task) ends
+end		-- function Karm.FilterObject.validateTask(filter, task) ends

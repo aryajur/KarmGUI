@@ -20,11 +20,11 @@ local tonumber = tonumber
 local pairs = pairs
 local getfenv = getfenv
 local setfenv = setfenv
-local compareDateRanges = compareDateRanges
-local combineDateRanges = combineDateRanges
+local compareDateRanges = Karm.Utility.compareDateRanges
+local combineDateRanges = Karm.Utility.combineDateRanges
 
 
-local NewID = NewID    -- This is a function to generate a unique wxID for the application this module is used in
+local NewID = Karm.NewID    -- This is a function to generate a unique wxID for the application this module is used in
 
 local modname = ...
 module(modname)

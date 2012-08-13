@@ -1,273 +1,5 @@
--- Table to store all the Spores data 
-SporeData = {}
-
--- Function to convert a boolean string to a Table
--- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones 
--- on which this operation is performed.
--- The table consist of:
--- 1. Item - contains the item name
--- 2. Parent - contains the parent table
--- 3. Children - contains a sequence of tables starting from index = 1 similar to the root table
-local function convertBoolStr2Tab(str)
-	local boolTab = {Item="",Parent=nil,Children = {},currChild=nil}
-	local strLevel = {}
-	local subMap = {}
-	
-	local getUniqueSubst = function(str,subMap)
-		if not subMap.latest then
-			subMap.latest = 1
-		else 
-			subMap.latest = subMap.latest + 1
-		end
-		-- Generate prospective nique string
-		local uStr = "A"..tostring(subMap.latest)
-		local done = false
-		while not done do
-			-- Check if this unique string exists in str
-			while string.find(str,"[%(%s]"..uStr.."[%)%s]") or 
-			  string.find(string.sub(str,1,string.len(uStr) + 1),uStr.."[%)%s]") or 
-			  string.find(string.sub(str,-(string.len(uStr) + 1),-1),"[%(%s]"..uStr) do
-				subMap.latest = subMap.latest + 1
-				uStr = "A"..tostring(subMap.latest)
-			end
-			done = true
-			-- Check if the str exists in subMap mappings already replaced
-			for k,v in pairs(subMap) do
-				if k ~= "latest" then
-					while string.find(v,"[%(%s]"..uStr.."[%)%s]") or 
-					  string.find(string.sub(v,1,string.len(uStr) + 1),uStr.."[%)%s]") or 
-					  string.find(string.sub(v,-(string.len(uStr) + 1),-1),"[%(%s]"..uStr) do
-						done = false
-						subMap.latest = subMap.latest + 1
-						uStr = "A"..tostring(subMap.latest)
-					end
-					if done==false then 
-						break 
-					end
-				end
-			end		-- for k,v in pairs(subMap) do ends
-		end		-- while not done do ends
-		return uStr
-	end		-- function getUniqueSubst(str,subMap) ends
-	
-	local bracketReplace = function(str,subMap)
-		-- Function to replace brackets with substitutions and fill up the subMap (substitution map)
-		-- Make sure the brackets are consistent
-		local _,stBrack = string.gsub(str,"%(","t")
-		local _,enBrack = string.gsub(str,"%)","t")
-		if stBrack ~= enBrack then
-			error("String does not have consistent opening and closing brackets",2)
-		end
-		local brack = string.find(str,"%(")
-		while brack do
-			local init = brack + 1
-			local fin
-			-- find the ending bracket for this one
-			local count = 0	-- to track additional bracket openings
-			for i = init,str:len() do
-				if string.sub(str,i,i) == "(" then
-					count = count + 1
-				elseif string.sub(str,i,i) == ")" then
-					if count == 0 then
-						-- this is the matching bracket
-						fin = i-1
-						break
-					else
-						count = count - 1
-					end
-				end
-			end		-- for i = init,str:len() do ends
-			if count ~= 0 then
-				error("String does not have consistent opening and closing brackets",2)
-			end
-			local uStr = getUniqueSubst(str,subMap)
-			local pre = ""
-			local post = ""
-			if init > 2 then
-				pre = string.sub(str,1,init-2)
-			end
-			if fin < str:len() - 2 then
-				post = string.sub(str,fin + 2,str:len())
-			end
-			subMap[uStr] = string.sub(str,init,fin)
-			str = pre.." "..uStr.." "..post
-			-- Now find the next
-			brack = string.find(str,"%(")
-		end		-- while brack do ends
-		str = string.gsub(str,"%s+"," ")		-- Remove duplicate spaces
-		str = string.match(str,"^%s*(.-)%s*$")
-		return str
-	end		-- function(str,subMap) ends
-	
-	local OperSubst = function(str, subMap,op)
-		-- Function to make the str a simple OR expression
-		op = string.lower(string.match(op,"%s*([%w%W]+)%s*"))
-		if not(string.find(str," "..op.." ") or string.find(str," "..string.upper(op).." ")) then
-			return str
-		end
-		str = string.gsub(str," "..string.upper(op).." ", " "..op.." ")
-		-- Starting chunk
-		local strt,stp,subStr = string.find(str,"(.-) "..op.." ")
-		local uStr = getUniqueSubst(str,subMap)
-		local newStr = {count = 0} 
-		newStr.count = newStr.count + 1
-		newStr[newStr.count] = uStr
-		subMap[uStr] = subStr
-		-- Middle chunks
-		strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-op:len()-1)
-		while strt do
-			uStr = getUniqueSubst(str,subMap)
-			newStr.count = newStr.count + 1
-			newStr[newStr.count] = uStr
-			subMap[uStr] = subStr			
-			strt,stp,subStr = string.find(str," "..op.." (.-) "..op.." ",stp-op:len()-1)	
-		end
-		-- Last Chunk
-		strt,stp,subStr = string.find(str,"^.+ "..op.." (.-)$")
-		uStr = getUniqueSubst(str,subMap)
-		newStr.count = newStr.count + 1
-		newStr[newStr.count] = uStr
-		subMap[uStr] = subStr
-		return newStr
-	end		-- local function ORsubst(str) ends
-	
-	-- First replace all quoted strings in the string with substitutions
-	local strSubMap = {}
-	local _,numQuotes = string.gsub(str,"%'","t")
-	if numQuotes%2 ~= 0 then
-		error("String does not have consistent opening and closing quotes \"'\"",2)
-	end
-	local init,fin = string.find(str,"'.-'")
-	while init do
-		local uStr = getUniqueSubst(str,subMap)
-		local pre = ""
-		local post = ""
-		if init > 1 then
-			pre = string.sub(str,1,init-1)
-		end
-		if fin < str:len() then
-			post = string.sub(str,fin + 1,str:len())
-		end
-		strSubMap[uStr] = str:sub(init,fin)
-		str = pre.." "..uStr.." "..post
-		-- Now find the next
-		init,fin = string.find(str,"'.-'")
-	end		-- while brack do ends
-	strLevel[boolTab] = str
-	-- Start recursive loop here
-	local currTab = boolTab
-	while currTab do
-		-- Remove all brackets
-		strLevel[currTab] = string.gsub(strLevel[currTab],"%s+"," ")
-		strLevel[currTab] = bracketReplace(strLevel[currTab],subMap)
-		-- Check what type of element this is
-		if not(string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") 
-		  or string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") 
-		  or string.find(strLevel[currTab]," not ") or string.find(strLevel[currTab]," NOT ")
-		  or string.upper(string.sub(strLevel[currTab],1,4)) == "NOT "
-		  or subMap[strLevel[currTab]]) then
-			-- This is a simple element
-			if currTab.Item == "#NOT()#" then
-				currTab.Children[1] = {Item = strLevel[currTab],Parent=currTab}
-			else
-				currTab.Item = strLevel[currTab]
-				currTab.Children = nil
-			end
-			-- Return one level up
-			currTab = currTab.Parent
-			while currTab do
-				if currTab.currChild < #currTab.Children then
-					currTab.currChild = currTab.currChild + 1
-					currTab = currTab.Children[currTab.currChild]
-					break
-				else
-					currTab.currChild = nil
-					currTab = currTab.Parent
-				end
-			end
-		elseif not(string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") 
-		  or string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") 
-		  or string.find(strLevel[currTab]," not ") or string.find(strLevel[currTab]," NOT ")
-		  or string.upper(string.sub(strLevel[currTab],1,4)) == "NOT ")
-		  and subMap[strLevel[currTab]] then
-			-- This is a substitution as a whole
-			local temp = strLevel[currTab] 
-			strLevel[currTab] = subMap[temp]
-			subMap[temp] = nil
-		else
-			-- This is a normal expression
-			if string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") then
-				-- The expression has OR operators
-				-- Transform to a simple OR expression
-				local simpStr = OperSubst(strLevel[currTab],subMap,"OR")
-				if currTab.Item == "#NOT()#" then
-					currTab.Item = "#NOT(OR)#"
-				else
-					currTab.Item = "#OR#"
-				end
-				-- Now allchildren need to be added and we must evaluate each child
-				for i = 1,#simpStr do
-					currTab.Children[#currTab.Children + 1] = {Item="", Parent = currTab,Children={},currChild=nil}
-					strLevel[currTab.Children[#currTab.Children]] = simpStr[i]
-				end 
-				currTab.currChild = 1
-				currTab = currTab.Children[1]
-			elseif string.find(strLevel[currTab]," and ") or string.find(strLevel[currTab]," AND ") then
-				-- The expression does not have OR operators but has AND operators
-				-- Transform to a simple AND expression
-				local simpStr = OperSubst(strLevel[currTab],subMap,"AND")
-				if currTab.Item == "#NOT()#" then
-					currTab.Item = "#NOT(AND)#"
-				else
-					currTab.Item = "#AND#"
-				end
-				-- Now allchildren need to be added and we must evaluate each child
-				for i = 1,#simpStr do
-					currTab.Children[#currTab.Children + 1] = {Item="", Parent = currTab,Children={},currChild=nil}
-					strLevel[currTab.Children[#currTab.Children]] = simpStr[i]
-				end 
-				currTab.currChild = 1
-				currTab = currTab.Children[1]
-			else
-				-- This is a NOT element
-				strLevel[currTab] = string.gsub(strLevel[currTab],"NOT", "not")
-				local elem = string.match(strLevel[currTab],"%s*not%s+([%w%W]+)%s*")
-				currTab.Item = "#NOT()#"
-				strLevel[currTab] = elem
-			end		-- if string.find(strLevel[currTab]," or ") or string.find(strLevel[currTab]," OR ") then ends
-		end 
-	end		-- while currTab do ends
-	-- Now recurse boolTab to substitute all the strings back
-	local t = boolTab
-	if strSubMap[t.Item] then
-		t.Item = string.match(strSubMap[t.Item],"'(.-)'")
-	end
-	if t.Children then
-		-- Traverse the table to fill up the tree
-		local tIndex = {}
-		tIndex[t] = 1
-		while tIndex[t] <= #t.Children or t.Parent do
-			if tIndex[t] > #t.Children then
-				tIndex[t] = nil
-				t = t.Parent
-			else
-				-- Handle the current element
-				if strSubMap[t.Children[tIndex[t]].Item] then
-					t.Children[tIndex[t]].Item = strSubMap[t.Children[tIndex[t]].Item]:match("'(.-)'")
-				end
-				tIndex[t] = tIndex[t] + 1
-				-- Check if this has children
-				if t.Children[tIndex[t]-1].Children then
-					-- go deeper in the hierarchy
-					t = t.Children[tIndex[t]-1]
-					tIndex[t] = 1
-				end
-			end		-- if tIndex[t] > #t then ends
-		end		-- while tIndex[t] <= #t and t.Parent do ends
-	end	-- if t.Children then ends
-	return boolTab
-end		-- function convertBoolStr2Tab(str) ends
-
+Karm.TaskObject = {}
+Karm.Utility = {}
 -- Task structure
 -- Task.
 --	Planning
@@ -306,7 +38,7 @@ end		-- function convertBoolStr2Tab(str) ends
 --		parent  = pointer to the array containing the list of tasks having the task whose SubTask this is 
 --		tasks = count of number of subtasks
 --		[i] = Task table like this one repeated for sub tasks
-function getTaskSummary(task)
+function Karm.TaskObject.getSummary(task)
 	if task then
 		local taskSummary = ""
 		if task.TaskID then
@@ -399,7 +131,7 @@ function getTaskSummary(task)
 	end
 end
 
-function validateSpore(Spore)
+function Karm.validateSpore(Spore)
 	if not Spore then
 		return nil
 	elseif type(Spore) ~= "table" then
@@ -411,7 +143,7 @@ function validateSpore(Spore)
 end
 
 
-function getWorkDoneDates(task)
+function Karm.TaskObject.getWorkDoneDates(task)
 	if task.Schedules then
 		if task.Schedules.Actual then
 			local dateList = {}
@@ -430,7 +162,7 @@ function getWorkDoneDates(task)
 end
 -- Function to get the list of dates in the latest schedule of the task.
 -- if planning == true then the planning schedule dates are returned
-function getLatestScheduleDates(task,planning)
+function Karm.TaskObject.getLatestScheduleDates(task,planning)
 	local typeSchedule, index
 	local dateList = {}
 	if planning then
@@ -482,7 +214,7 @@ end
 -- Function to convert a table to a string
 -- Metatables not followed
 -- Unless key is a number it will be taken and converted to a string
-function tableToString(t)
+function Karm.Utility.tableToString(t)
 	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)
 	rL[rL.cL] = {}
 	do
@@ -558,7 +290,7 @@ end
 -- Keys: Number, String, Table
 -- Values: Number, String, Table, Boolean
 -- It also handles recursive and interlinked tables to recreate them back
-function tableToString2(t)
+function Karm.Utility.tableToString2(t)
 	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)
 	rL[rL.cL] = {}
 	local tabIndex = {}	-- Table to store a list of tables indexed into a string and their variable name
@@ -651,25 +383,25 @@ function tableToString2(t)
 	return rL[rL.cL].str
 end
 
-function combineDateRanges(range1,range2)
-	local comp = compareDateRanges(range1,range2)
+function Karm.Utility.combineDateRanges(range1,range2)
+	local comp = Karm.Utility.compareDateRanges(range1,range2)
 
 	local strt1,fin1 = string.match(range1,"(.-)%-(.*)")
 	local strt2,fin2 = string.match(range2,"(.-)%-(.*)")
 	
-	strt1 = toXMLDate(strt1)
-	local idate = XMLDate2wxDateTime(strt1)
+	strt1 = Karm.Utility.toXMLDate(strt1)
+	local idate = Karm.Utility.XMLDate2wxDateTime(strt1)
 	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))
-	local strt1m1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	local strt1m1 = Karm.Utility.toXMLDate(idate:Format("%m/%d/%Y"))
 	
-	fin1 = toXMLDate(fin1)
-	idate = XMLDate2wxDateTime(fin1)
+	fin1 = Karm.Utility.toXMLDate(fin1)
+	idate = Karm.Utility.XMLDate2wxDateTime(fin1)
 	idate = idate:Add(wx.wxDateSpan(0,0,0,1))
-	local fin1p1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	local fin1p1 = Karm.Utility.toXMLDate(idate:Format("%m/%d/%Y"))
 
-	strt2 = toXMLDate(strt2)
+	strt2 = Karm.Utility.toXMLDate(strt2)
 
-	fin2 = toXMLDate(fin2)
+	fin2 = Karm.Utility.toXMLDate(fin2)
 
 	if comp == 1 then
 		return range1
@@ -696,7 +428,7 @@ function combineDateRanges(range1,range2)
 	end		
 end
 
-function XMLDate2wxDateTime(XMLdate)
+function Karm.Utility.XMLDate2wxDateTime(XMLdate)
 	local map = {
 		[1] = wx.wxDateTime.Jan,
 		[2] = wx.wxDateTime.Feb,
@@ -733,7 +465,7 @@ end
 -- o nil -- for error
 --
 -- SOURCE
-function compareDateRanges(range1,range2)
+function Karm.Utility.compareDateRanges(range1,range2)
 --@@END@@
 	if not(range1 and range2) or range1=="" or range2=="" then
 		error("Expected a valid date range.",2)
@@ -747,19 +479,19 @@ function compareDateRanges(range1,range2)
 	local strt1,fin1 = string.match(range1,"(.-)%-(.*)")
 	local strt2,fin2 = string.match(range2,"(.-)%-(.*)")
 	
-	strt1 = toXMLDate(strt1)
-	local idate = XMLDate2wxDateTime(strt1)
+	strt1 = Karm.Utility.toXMLDate(strt1)
+	local idate = Karm.Utility.XMLDate2wxDateTime(strt1)
 	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))
-	local strt1m1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	local strt1m1 = Karm.Utility.toXMLDate(idate:Format("%m/%d/%Y"))
 	
-	fin1 = toXMLDate(fin1)
-	idate = XMLDate2wxDateTime(fin1)
+	fin1 = Karm.Utility.toXMLDate(fin1)
+	idate = Karm.Utility.XMLDate2wxDateTime(fin1)
 	idate = idate:Add(wx.wxDateSpan(0,0,0,1))
-	local fin1p1 = toXMLDate(idate:Format("%m/%d/%Y"))
+	local fin1p1 = Karm.Utility.toXMLDate(idate:Format("%m/%d/%Y"))
 	
-	strt2 = toXMLDate(strt2)
+	strt2 = Karm.Utility.toXMLDate(strt2)
 	
-	fin2 = toXMLDate(fin2)
+	fin2 = Karm.Utility.toXMLDate(fin2)
 	
 	if strt1>fin1 or strt2>fin2 then
 		error("Range given is not valid. Start date should be less than finish date.",2)
@@ -797,7 +529,7 @@ end
 -- The date as a string compliant to XML date format YYYY-MM-DD
 --
 -- SOURCE
-function toXMLDate(displayDate)
+function Karm.Utility.toXMLDate(displayDate)
 --@@END@@
 
     local exYear, exMonth, exDate
@@ -831,7 +563,7 @@ function toXMLDate(displayDate)
     return exYear .. "-" .. exMonth .. "-" .. exDate
 end
 
-function getWeekDay(xmlDate)
+function Karm.Utility.getWeekDay(xmlDate)
 	if #xmlDate ~= 10 then
 		error("Expected XML Date in the form YYYY-MM-DD",2)
 	end
@@ -854,7 +586,7 @@ function getWeekDay(xmlDate)
 	return WeekDays[w]
 end
 
-function addItemToArray(item,array)
+function Karm.Utility.addItemToArray(item,array)
 	local pos = 0
 	for i = 1,#array do
 		if array[i] == item  then
@@ -887,7 +619,7 @@ end
 -- In the 1st call the second argument is passed if it is given as the 3rd argument to this function
 -- The last return from the function is returned by this function
 -- if omitTask is true then the func is not run for the task itself and it starts from the subTasks
-function applyFuncHier(task, func, initialValue, omitTask)
+function Karm.TaskObject.applyFuncHier(task, func, initialValue, omitTask)
 	local passedVar	= initialValue	-- Variable passed to the function
 	if not omitTask then
 		passedVar = func(task,initialValue)
@@ -919,20 +651,108 @@ function applyFuncHier(task, func, initialValue, omitTask)
 	return passedVar
 end
 
+-- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil
+-- Traversal is in the order as if listing out the tasks for a fully expanded task tree
+function Karm.TaskObject.NextInSequence(task)
+	if not task then
+		error("Need a task object to give the next task", 2)
+	end
+	if not type(task) == "table" then
+		error("Need a task object to give the next task", 2)
+	end
+	if task.SubTasks and task.SubTasks[1] then
+		return task.SubTasks[1]
+	end	
+	if task.Next then
+		return task.Next
+	end
+	if task.Parent then
+		local currTask = task.Parent
+		if currTask.Next then
+			return currTask.Next
+		end
+		while currTask.Parent do
+			currTask = currTask.Parent
+			if currTask.Next then
+				return currTask.Next
+			end
+		end
+	end
+end
+
+-- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil
+-- Traversal is in the order as if listing out the tasks for a fully expanded task tree
+function Karm.TaskObject.PreviousInSequence(task)
+	if not task then
+		error("Need a task object to give the next task", 2)
+	end
+	if not type(task) == "table" then
+		error("Need a task object to give the next task", 2)
+	end
+	if task.Previous then
+		local currTask = task.Previous
+		while Karm.TaskObject.NextInSequence(currTask) ~= task do
+			currTask = Karm.TaskObject.NextInSequence(currTask)
+		end
+		return currTask
+	end
+	return task.Parent
+end
+
+function Karm.TaskObject.accumulateTaskData(task,Data)
+	Data = Data or {}
+	Data.Who = Data.Who or {}
+	Data.Access = Data.Access or {}
+	Data.Priority = Data.Priority or {}
+	Data.Cat = Data.Cat or {}
+	Data.SubCat = Data.SubCat or {}
+	Data.Tags = Data.Tags or {}
+	-- Who data
+	for i = 1,#task.Who do
+		Data.Who = Karm.Utility.addItemToArray(task.Who[i].ID,Data.Who)
+	end
+	-- Access Data
+	if task.Access then
+		for i = 1,#task.Access do
+			Data.Access = Karm.Utility.addItemToArray(task.Access[i].ID,Data.Access)
+		end
+	end
+	-- Priority Data
+	if task.Priority then
+		Data.Priority = Karm.Utility.addItemToArray(task.Priority,Data.Priority)
+	end			
+	-- Category Data
+	if task.Cat then
+		Data.Cat = Karm.Utility.addItemToArray(task.Cat,Data.Cat)
+	end			
+	-- Sub-Category Data
+	if task.SubCat then
+		Data.SubCat = Karm.Utility.addItemToArray(task.SubCat,Data.SubCat)
+	end			
+	-- Tags Data
+	if task.Tags then
+		for i = 1,#task.Tags do
+			Data.Tags = Karm.Utility.addItemToArray(task.Tags[i],Data.Tags)
+		end
+	end
+	return Data
+end
+
+
 -- Function to collect and return all data from the task heirarchy on the basis of which task filtration criteria can be selected
-function collectFilterDataHier(filterData, taskHier)
+function Karm.accumulateTaskDataHier(filterData, taskHier)
 	local hier = taskHier
 	-- Reset the hierarchy if not already done so
 	while hier.parent do
 		hier = hier.parent
 	end
 	for i = 1,#hier do
-		filterData = applyFuncHier(hier[i],collectFilterData,filterData)
+		filterData = Karm.TaskObject.applyFuncHier(hier[i],Karm.TaskObject.accumulateTaskData,filterData)
 	end
 end
 
 -- Old version 
---function collectFilterDataHier(filterData, taskHier)
+--function Karm.accumulateTaskDataHier(filterData, taskHier)
 --	local hier = taskHier
 --	local hierCount = {}
 --	-- Reset the hierarchy if not already done so
@@ -951,7 +771,7 @@ end
 --		else
 --			-- Increment the counter
 --			hierCount[hier] = hierCount[hier] + 1
---			collectFilterData(hier[hierCount[hier]],filterData)
+--			Karm.TaskObject.accumulateTaskData(hier[hierCount[hier]],filterData)
 --			if hier[hierCount[hier]].SubTasks then
 --				-- This task has children so go deeper in the hierarchy
 --				hier = hier[hierCount[hier]].SubTasks
@@ -961,29 +781,10 @@ end
 --	end		-- while hierCount[hier] < #hier or hier.parent do ends here
 --end
 
-function collectFilterDataList(filterData,taskList)
+function Karm.accumulateTaskDataList(filterData,taskList)
 	for i=1,#taskList do
-		collectFilterData(taskList[i],filterData)
+		Karm.TaskObject.accumulateTaskData(taskList[i],filterData)
 	end
-end
-
--- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value
-function copyTable(t, deep, seen)
-    seen = seen or {}
-    if t == nil then return nil end
-    if seen[t] then return seen[t] end
-
-    local nt = {}
-    for k, v in pairs(t) do
-        if deep and type(v) == 'table' then
-            nt[k] = copyTable(v, deep, seen)
-        else
-            nt[k] = v
-        end
-    end
-    setmetatable(nt, copyTable(getmetatable(t), deep, seen))
-    seen[t] = nt
-    return nt
 end
 
 -- Function to make a copy of a task
@@ -1005,7 +806,28 @@ end
 -- Normally the task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the task parents
 -- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks
 -- Planning is not copied over
-function copyTask(task, copySubTasks, removeDBDATA,keepOldTaskParents)
+function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParents)
+	-- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value
+	local copyTableFunc
+	local function copyTable(t, deep, seen)
+	    seen = seen or {}
+	    if t == nil then return nil end
+	    if seen[t] then return seen[t] end
+	
+	    local nt = {}
+	    for k, v in pairs(t) do
+	        if deep and type(v) == 'table' then
+	            nt[k] = copyTableFunc(v, deep, seen)
+	        else
+	            nt[k] = v
+	        end
+	    end
+	    setmetatable(nt, copyTableFunc(getmetatable(t), deep, seen))
+	    seen[t] = nt
+	    return nt
+	end
+	copyTableFunc = copyTable
+
 	if not task then
 		return
 	end
@@ -1026,7 +848,7 @@ function copyTask(task, copySubTasks, removeDBDATA,keepOldTaskParents)
 					end
 					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]="SubTasks"}
 					for i = 1,#task.SubTasks do
-						nTask.SubTasks[i] = copyTask(task.SubTasks[i],true,removeDBDATA,true)
+						nTask.SubTasks[i] = Karm.TaskObject.copy(task.SubTasks[i],true,removeDBDATA,true)
 					end
 				else
 					nTask[k] = copyTable(task[k],true)
@@ -1036,7 +858,7 @@ function copyTask(task, copySubTasks, removeDBDATA,keepOldTaskParents)
 	end		-- for k,v in pairs(task) do ends
 	if not keepOldTaskParents and nTask.SubTasks then
 		-- Correct for the task parents of all subtasks
-		applyFuncHier(nTask,function(task, subTaskParent)
+		Karm.TaskObject.applyFuncHier(nTask,function(task, subTaskParent)
 								if task.SubTasks then
 									if subTaskParent then
 										task.SubTasks.parent = task.Parent.SubTasks
@@ -1050,26 +872,26 @@ function copyTask(task, copySubTasks, removeDBDATA,keepOldTaskParents)
 		)
 	end
 	return nTask
-end		-- function copyTask(task)ends
+end		-- function Karm.TaskObject.copy(task)ends
 
 -- Function to convert a task to a task list with incremental schedules i.e. 1st will be same as task passed (but a copy of it) and last task will have 1st schedule only
 -- The task ID however have additional _n where n is a serial number from 1 
-function task2IncSchTasks(task)
+function Karm.TaskObject.incSchTasks(task)
 	local taskList = {}
-	taskList[1] = copyTask(task)
+	taskList[1] = Karm.TaskObject.copy(task)
 	taskList[1].TaskID = taskList[1].TaskID.."_1"
 	while taskList[#taskList].Schedules do
 		-- Find the latest schedule in the task here
 		if string.upper(taskList[#taskList].Status) == "DONE" and taskList[#taskList].Schedules.Actual then
 			-- Actual Schedule is the latest so remove this one
-			taskList[#taskList + 1] = copyTask(taskList[#taskList])
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])
 			-- Remove the actual schedule
 			taskList[#taskList].Schedules.Actual = nil
 			-- Change the task ID
 			taskList[#taskList].TaskID = task.TaskID.."_"..tostring(#taskList)
 		elseif taskList[#taskList].Schedules.Revs then
 			-- Actual is not the latest one but Revision is 
-			taskList[#taskList + 1] = copyTask(taskList[#taskList])
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])
 			-- Remove the latest Revision Schedule
 			taskList[#taskList].Schedules.Revs[taskList[#taskList].Schedules.Revs.count] = nil
 			taskList[#taskList].Schedules.Revs.count = taskList[#taskList].Schedules.Revs.count - 1
@@ -1080,14 +902,14 @@ function task2IncSchTasks(task)
 			taskList[#taskList].TaskID = task.TaskID.."_"..tostring(#taskList)
 		elseif taskList[#taskList].Schedules.Commit then
 			-- Actual and Revisions don't exist but Commit does
-			taskList[#taskList + 1] = copyTask(taskList[#taskList])
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])
 			-- Remove the Commit Schedule
 			taskList[#taskList].Schedules.Commit = nil
 			-- Change the task ID
 			taskList[#taskList].TaskID = task.TaskID.."_"..tostring(#taskList)
 		elseif taskList[#taskList].Schedules.Estimate then
 			-- The latest is Estimate
-			taskList[#taskList + 1] = copyTask(taskList[#taskList])
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])
 			-- Remove the latest Estimate Schedule
 			taskList[#taskList].Schedules.Estimate[taskList[#taskList].Schedules.Estimate.count] = nil
 			taskList[#taskList].Schedules.Estimate.count = taskList[#taskList].Schedules.Estimate.count - 1
@@ -1108,10 +930,13 @@ function task2IncSchTasks(task)
 	end			-- while taskList[#taskList].Schedules do ends
 	taskList[#taskList] = nil
 	return taskList
-end		-- function task2IncSchTasks(task) ends
+end		-- function Karm.TaskObject.incSchTasks(task) ends
 
 -- Function to return an Empty task that satisfies the minimum requirements
-function getEmptyTask(SporeFile)
+function Karm.getEmptyTask(SporeFile)
+	if type(SporeFile) ~= "string" then
+		error("Expected a spore file name for input to Karm.getEmptyTask",2)
+	end
 	local nTask = {}
 	nTask[0] = "Task"
 	nTask.SporeFile = SporeFile
@@ -1133,12 +958,12 @@ end
 -- Commit->Revs
 -- Revs->Actual
 -- Actual->Back to Estimate
-function togglePlanningType(task,type)
+function Karm.TaskObject.togglePlanningType(task,type)
 	if not task.Planning then
 		task.Planning = {}
 	end
 	if type == "NORMAL" then
-		local dateList = getLatestScheduleDates(task)
+		local dateList = Karm.TaskObject.getLatestScheduleDates(task)
 		if not dateList then
 			dateList = {}
 			dateList.index = 0
@@ -1187,9 +1012,9 @@ end
 
 -- Function to toggle a planning date in the given task. If the planning schedule table is not present it creates it with the schedule type Estimate
 -- returns 1 if added, 2 if removed, 3 if removed and no more planning schedule left
-function togglePlanningDate(task,xmlDate,type)
+function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)
 	if not task.Planning then
-		togglePlanningType(task,type)
+		Karm.TaskObject.togglePlanningType(task,type)
 		task.Planning.Period = {
 									[0]="Period",
 									count=1,
@@ -1243,13 +1068,19 @@ function togglePlanningDate(task,xmlDate,type)
 	return 1
 end
 
-function addTask2Spore(task,dataStruct)
+function Karm.TaskObject.add2Spore(task,dataStruct)
+	if not task.SubTasks then
+		task.SubTasks = {parent = dataStruct, tasks = 0, [0]="SubTasks"}
+	end
 	dataStruct.tasks = dataStruct.tasks + 1
 	dataStruct[dataStruct.tasks] = task 
-	--collectFilterData(task,dataStruct.filterData)
+	if dataStruct.tasks > 1 then
+		dataStruct[dataStruct.tasks - 1].Next = dataStruct[dataStruct.tasks]
+		dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks-1]
+	end
 end
 
-function getNewChildTaskID(parent)
+function Karm.TaskObject.getNewChildTaskID(parent)
 	local taskID
 	if not parent.SubTasks then
 		taskID = parent.TaskID.."_1"
@@ -1268,15 +1099,18 @@ function getNewChildTaskID(parent)
 end
 
 -- Function to add a task according to the specified relation
-function addTask2Parent(task, parent, Spore)
+function Karm.TaskObject.add2Parent(task, parent, Spore)
 	if not (task and parent) then
-		error("nil parameter cannot be handled at addTask2Parent in DataHandler.lua.",2)
+		error("nil parameter cannot be handled at add2Parent in DataHandler.lua.",2)
+	end
+	if getmetatable(task) ~= Karm.TaskObject or getmetatable(parent) ~= Karm.TaskObject then
+		error("Need a valid task and parent task object to add the task to parent", 2)
 	end
 	if not parent.SubTasks then
 		parent.SubTasks = {tasks = 0, [0]="SubTasks"}
 		if not parent.Parent then
 			if not Spore then
-				error("nil parameter cannot be handled at addTask2Parent in DataHandler.lua.",2)
+				error("nil parameter cannot be handled at add2Parent in DataHandler.lua.",2)
 			end
 			-- This is a Spore root node
 			parent.SubTasks.parent = Spore
@@ -1286,6 +1120,10 @@ function addTask2Parent(task, parent, Spore)
 	end
 	parent.SubTasks.tasks = parent.SubTasks.tasks + 1
 	parent.SubTasks[parent.SubTasks.tasks] = task
+	if parent.SubTasks.tasks > 1 then
+		parent.SubTasks[parent.SubTasks.tasks - 1].Next = parent.SubTasks[parent.SubTasks.tasks]
+		parent.SubTasks[parent.SubTasks.tasks].Previous = parent.SubTasks[parent.SubTasks.tasks-1]
+	end
 end
 
 -- Function to get all work done dates for a task and color and type for each date
@@ -1304,9 +1142,9 @@ end
 	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
 	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
 	-- Text - Text to be written in the Gantt cell for the date
-function getTaskWorkDates(task,bubble)
+function Karm.TaskObject.getWorkDates(task,bubble)
 	local updateDateTable = function(task,dateTable)
-		local dateList = getWorkDoneDates(task)
+		local dateList = Karm.TaskObject.getWorkDoneDates(task)
 		if dateList then
 			if not dateTable then
 				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
@@ -1342,11 +1180,11 @@ function getTaskWorkDates(task,bubble)
 		return dateTable
 	end
 	if bubble then
-		local dateTable = applyFuncHier(task,updateDateTable)
+		local dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable)
 		return dateTable
 	else 
 		-- Just get the latest dates for this task
-		local dateList = getWorkDoneDates(task)
+		local dateList = Karm.TaskObject.getWorkDoneDates(task)
 		if dateList then
 			-- Convert the dateList to modified return table
 			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
@@ -1378,10 +1216,10 @@ end
 	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
 	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
 	-- Text - Text to be written in the Gantt cell for the date
-function getTaskDates(task,bubble,planning)
+function Karm.TaskObject.getDates(task,bubble,planning)
 	local plan = planning
 	local updateDateTable = function(task,dateTable)
-		local dateList = getLatestScheduleDates(task,plan)
+		local dateList = Karm.TaskObject.getLatestScheduleDates(task,plan)
 		if dateList then
 			if not dateTable then
 				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
@@ -1427,11 +1265,11 @@ function getTaskDates(task,bubble,planning)
 			end
 		end
 		plan = nil
-		dateTable = applyFuncHier(task,updateDateTable,dateTable, true)
+		dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable,dateTable, true)
 		return dateTable
 	else 
 		-- Just get the latest dates for this task
-		local dateList = getLatestScheduleDates(task,planning)
+		local dateList = Karm.TaskObject.getLatestScheduleDates(task,planning)
 		if dateList then
 			-- Convert the dateList to modified return table
 			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
@@ -1447,12 +1285,12 @@ function getTaskDates(task,bubble,planning)
 end
 
 -- function to update the taskID in the whole hierarchy
-function updateTaskID(task,taskID)
+function Karm.TaskObject.updateTaskID(task,taskID)
 	if not(task and taskID) then
-		error("Need a task and taskID for updateTaskID in DataHandler.lua",2)
+		error("Need a task and taskID for Karm.TaskObject.updateTaskID in DataHandler.lua",2)
 	end
 	local prevTaskID = task.TaskID
-	applyFuncHier(task,function(task,taskIDs)
+	Karm.TaskObject.applyFuncHier(task,function(task,taskIDs)
 							task.TaskID = task.TaskID:gsub("^"..taskIDs.prevTaskID,taskIDs.newTaskID)
 							return taskIDs
 						end, {prevTaskID = prevTaskID, newTaskID = taskID}
@@ -1460,9 +1298,9 @@ function updateTaskID(task,taskID)
 end
 
 -- Old Version
---function updateTaskID(task,taskID)
+--function Karm.TaskObject.updateTaskID(task,taskID)
 --	if not(task and taskID) then
---		error("Need a task and taskID for updateTaskID in DataHandler.lua",2)
+--		error("Need a task and taskID for Karm.TaskObject.updateTaskID in DataHandler.lua",2)
 --	end
 --	local prevTaskID = task.TaskID
 --	task.TaskID = taskID
@@ -1493,12 +1331,12 @@ end
 --end
 
 -- Function to move the task before/after
-function bubbleTask(task,relative,beforeAfter,parent)
+function Karm.TaskObject.bubbleTask(task,relative,beforeAfter,parent)
 	if task.Parent ~= relative.Parent then
-		error("The task and relative should be on the same level in the bubbleTask call in DataHandler.lua",2)
+		error("The task and relative should be on the same level in the Karm.TaskObject.bubbleTask call in DataHandler.lua",2)
 	end
 	if not (task.Parent or parent) then
-		error("parent argument should be specified for tasks/relative that do not have a parent defined in bubbleTask call in DataHandler.lua",2)
+		error("parent argument should be specified for tasks/relative that do not have a parent defined in Karm.TaskObject.bubbleTask call in DataHandler.lua",2)
 	end	
 	if task==relative then
 		return
@@ -1531,11 +1369,26 @@ function bubbleTask(task,relative,beforeAfter,parent)
 					-- Swap TaskID
 					local tim1 = pTable[i].TaskID
 					local ti = pTable[i-1].TaskID
-					updateTaskID(pTable[i],ti) 
-					updateTaskID(pTable[i-1],tim1)
+					Karm.TaskObject.updateTaskID(pTable[i],ti) 
+					Karm.TaskObject.updateTaskID(pTable[i-1],tim1)
 				end 
 				-- Swap task position
 				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]
+				-- Update the Previous and Next pointers
+				pTable[i].Previous = pTable[i-1]
+				pTable[i-1].Next = pTable[i]
+				if i > 2 then
+					pTable[i-2].Next = pTable[i-1]
+					pTable[i-1].Previous = pTable[i-2]
+				else
+					pTable[i-1].Previous = nil
+				end
+				if i < pTable.tasks then
+					pTable[i].Next = pTable[i+1]
+					pTable[i+1].Previous = pTable[i]
+				else
+					pTable[i].Next = nil
+				end
 			end
 		else
 			-- Start the bubble down 
@@ -1544,11 +1397,26 @@ function bubbleTask(task,relative,beforeAfter,parent)
 					-- Swap TaskID
 					local tip1 = pTable[i].TaskID
 					local ti = pTable[i+1].TaskID
-					updateTaskID(pTable[i],ti) 
-					updateTaskID(pTable[i+1],tip1)
+					Karm.TaskObject.updateTaskID(pTable[i],ti) 
+					Karm.TaskObject.updateTaskID(pTable[i+1],tip1)
 				end 
 				-- Swap task position
 				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]
+				-- Update the Previous and Next pointers
+				pTable[i+1].Previous = pTable[i]
+				pTable[i].Next = pTable[i+1]
+				if i > 1 then
+					pTable[i-1].Next = pTable[i]
+					pTable[i].Previous = pTable[i-1]
+				else
+					pTable[i].Previous = nil
+				end
+				if i+1 < pTable.tasks then
+					pTable[i+1].Next = pTable[i+2]
+					pTable[i+2].Previous = pTable[i+1]
+				else
+					pTable[i+1].Next = nil
+				end
 			end
 		end
 	else
@@ -1570,11 +1438,26 @@ function bubbleTask(task,relative,beforeAfter,parent)
 					-- Swap TaskID
 					local tim1 = pTable[i].TaskID
 					local ti = pTable[i-1].TaskID
-					updateTaskID(pTable[i],ti) 
-					updateTaskID(pTable[i-1],tim1)
+					Karm.TaskObject.updateTaskID(pTable[i],ti) 
+					Karm.TaskObject.updateTaskID(pTable[i-1],tim1)
 				end 
 				-- Swap task position
 				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]
+				-- Update the Previous and Next pointers
+				pTable[i].Previous = pTable[i-1]
+				pTable[i-1].Next = pTable[i]
+				if i > 2 then
+					pTable[i-2].Next = pTable[i-1]
+					pTable[i-1].Previous = pTable[i-2]
+				else
+					pTable[i-1].Previous = nil
+				end
+				if i < pTable.tasks then
+					pTable[i].Next = pTable[i+1]
+					pTable[i+1].Previous = pTable[i]
+				else
+					pTable[i].Next = nil
+				end
 			end
 		else
 			-- Start the bubble down 
@@ -1583,45 +1466,65 @@ function bubbleTask(task,relative,beforeAfter,parent)
 					-- Swap TaskID
 					local tip1 = pTable[i].TaskID
 					local ti = pTable[i+1].TaskID
-					updateTaskID(pTable[i],ti) 
-					updateTaskID(pTable[i+1],tip1)
+					Karm.TaskObject.updateTaskID(pTable[i],ti) 
+					Karm.TaskObject.updateTaskID(pTable[i+1],tip1)
 				end 
 				-- Swap task position
 				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]
+				-- Update the Previous and Next pointers
+				pTable[i+1].Previous = pTable[i]
+				pTable[i].Next = pTable[i+1]
+				if i > 1 then
+					pTable[i-1].Next = pTable[i]
+					pTable[i].Previous = pTable[i-1]
+				else
+					pTable[i].Previous = nil
+				end
+				if i+1 < pTable.tasks then
+					pTable[i+1].Next = pTable[i+2]
+					pTable[i+2].Previous = pTable[i+1]
+				else
+					pTable[i+1].Next = nil
+				end
 			end
 		end
 	end
 
 end
 
-function DeleteTaskFromSpore(task, Spore)
-	if task.Parent then
-		error("DeleteTaskFromSpore: Cannot delete task that is not a root task in Spore.",2)
-	end
+--function DeleteTaskFromSpore(task, Spore)
+--	if task.Parent then
+--		error("DeleteTaskFromSpore: Cannot delete task that is not a root task in Spore.",2)
+--	end
+--	local taskList
+--	taskList = Spore
+--	for i = 1,#taskList do
+--		if taskList[i] == task then
+--			for j = i, #taskList-1 do
+--				taskList[j] = taskList[j+1]
+--			end
+--			taskList[#taskList] = nil
+--			taskList.tasks = taskList.tasks - 1
+--			break
+--		end
+--	end
+--end
+
+function Karm.TaskObject.DeleteFromDB(task)
 	local taskList
-	taskList = Spore
-	for i = 1,#taskList do
-		if taskList[i] == task then
-			for j = i, #taskList-1 do
-				taskList[j] = taskList[j+1]
-			end
-			taskList[#taskList] = nil
-			taskList.tasks = taskList.tasks - 1
-			break
-		end
-	end
-end
-
-function DeleteTaskDB(task)
 	if not task.Parent then
-		error("DeleteTask: Cannot delete task that is a root task in Spore or which does not have any parent.",2)
+		taskList = task.SubTasks.parent		
+	else
+		taskList = task.Parent.SubTasks
 	end
-	local taskList
-	taskList = task.Parent.SubTasks
 	for i = 1,#taskList do
 		if taskList[i] == task then
 			for j = i, #taskList-1 do
 				taskList[j] = taskList[j+1]
+				if j>1 then
+					taskList[j].Previous = taskList[j-1]
+					taskList[j-1].Next = taskList[j]
+				end
 			end
 			taskList[#taskList] = nil
 			taskList.tasks = taskList.tasks - 1
@@ -1630,7 +1533,7 @@ function DeleteTaskDB(task)
 	end
 end
 
-function sporeTitle(path)
+function Karm.sporeTitle(path)
 	-- Find the name of the file
 	local strVar
 	local intVar1 = -1
@@ -1649,7 +1552,7 @@ function sporeTitle(path)
 	return strVar
 end
 
-function IsSpore(task)
+function Karm.TaskObject.IsSpore(task)
 	if task.TaskID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
 		return true
 	else
@@ -1675,6 +1578,8 @@ end
 --	Assignee.
 --	Status
 --	Parent. = Pointer to the Task to which this is a sub task (Nil for root tasks in a Spore)
+--  Next. = Pointer to the next task under the same Parent (Nil if this is the last task)
+--  Previous. = Pointer to the previous task under the same Parent (Nil if this is the first task)
 --	Priority
 --	Due
 --	Comments
@@ -1697,10 +1602,10 @@ end
 --		tasks = count of number of subtasks
 --		[i] = Task table like this one repeated for sub tasks
 
-function XML2Data(SporeXML, SporeFile)
+function Karm.XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
-	local dataStruct = {Title = sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Globals.ROOTKEY..SporeFile, [0] = "Task_Spore"}	-- to create the data structure
+	local dataStruct = {Title = Karm.sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Globals.ROOTKEY..SporeFile, [0] = "Task_Spore"}	-- to create the data structure
 	if SporeXML[0]~="Task_Spore" then
 		return nil
 	end
@@ -1718,7 +1623,13 @@ function XML2Data(SporeXML, SporeFile)
 				local necessary = 0
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
+				setmetatable(dataStruct[dataStruct.tasks],{__index = Karm.TaskObject})
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile
+				-- Set the Previous and next pointers
+				if dataStruct.tasks > 1 then
+					dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks - 1]
+				end
+				dataStruct[dataStruct.tasks].Next = dataStruct[dataStruct.tasks + 1]
 				-- Each task has a Parent Attribute which points to a parent Task containing this task. For root tasks in the spore this is nil
 				dataStruct[dataStruct.tasks].Parent = hierInfo[currNode].parentTask
 				-- Extract all task information here
@@ -1936,5 +1847,11 @@ function XML2Data(SporeXML, SporeFile)
 	while dataStruct.parent do
 		dataStruct = dataStruct.parent
 	end
+	-- Create a SubTasks node for each root node to get link to spore data table
+	for i = 1,#dataStruct do
+		if not dataStruct[i].SubTasks then
+			dataStruct[i].SubTasks = {parent = dataStruct, tasks = 0, [0]="SubTasks"}
+		end
+	end
 	return dataStruct
-end		-- function XML2Data(SporeXML) ends here
+end		-- function Karm.XML2Data(SporeXML) ends here

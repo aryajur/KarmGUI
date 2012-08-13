@@ -41,10 +41,10 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 		local list = {}
 		for i = 1,#taskList do
 			-- Select nodes that only have actual tasks and which are not spores 
-			if taskList[i].Task and not IsSpore(taskList[i].Task) then
+			if taskList[i].Task and not Karm.TaskObject.IsSpore(taskList[i].Task) then
 				list[#list + 1] = taskList[i].Task
 				-- Mark the unsaved spores list so saving message is displayed
-				Globals.unsavedSpores[taskList[i].Task.SporeFile] = SporeData[taskList[i].Task.SporeFile].Title
+				Globals.unsavedSpores[taskList[i].Task.SporeFile] = Karm.SporeData[taskList[i].Task.SporeFile].Title
 			end
 		end
 		GUI.taskTree:enablePlanningMode(list)
@@ -53,7 +53,7 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 											]]},
 											{Text = "&Finalize all Planning Schedules\tCtrl-F", HelpText = "Finalize all Planning schedules in the tasks in the UI", Code = [[
 	while #GUI.taskTree.taskList > 0 do
-		finalizePlanning(GUI.taskTree.taskList[1])
+		Karm.finalizePlanning(GUI.taskTree.taskList[1])
 	end
 											
 											]]},
@@ -72,43 +72,26 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 	local title = wx.wxGetTextFromUser("Please enter the task Title (Blank to Cancel)", "New Task under", "")
 	if title ~= "" then
 		local evt = wx.wxCommandEvent(0,GUI.ID_NEW_SUB_TASK)
-		NewTask(evt,title)
+		Karm.NewTask(evt,title)
 	end
 											]]},								
 											{Text = "&Schedule Bubble\tCtrl-B", HelpText = "Bubble up the Schedules", Code = [[local menuItems = GUI.menuBar:GetMenu(1):GetMenuItems() 
 if menuItems:Item(4):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
 	-- Enable Bubbling Mode 
 	GUI.taskTree.Bubble = true
-	fillTaskTree()
+	GUI.fillTaskTree()
 else 
 	-- Disable Bubbling Mode 
 	GUI.taskTree.Bubble = false
-	fillTaskTree()
+	GUI.fillTaskTree()
 end]] , ItemKind = wx.wxITEM_CHECK},										
 											{Text = "&Show Work Done\tCtrl-W", HelpText = "Show Actual Work Done", Code = [[
 	GUI.taskTree.ShowActual = true
-	fillTaskTree()
-											]]},										
-											{Text = "&Test Next task", HelpText = "Test the Karm.getNextTask routine", Code = [[
-	local Spore
-	for k,v in pairs(SporeData) do
-		if k ~= 0 then
-			Spore = v
-			break
-		end
-	end
-	local str = "" 
-	str = str..Spore[1].Title.."\n"
-	local nextTask = Karm.getNextTask(Spore[1])
-	while nextTask do
-		str = str..nextTask.Title.."\n"
-		nextTask = Karm.getNextTask(nextTask)
-	end
-	print(str)
+	GUI.fillTaskTree()
 											]]},										
 											{Text = "&Show Normal Schedule\tCtrl-N", HelpText = "Show Normal Schedule", Code = [[
 	GUI.taskTree.ShowActual = nil
-	fillTaskTree()
+	GUI.fillTaskTree()
 											]]}									
 									}
 				},
@@ -187,7 +170,7 @@ do
 		setfenv(f,safeenv)
 		f()
 		if safeenv.filter and type(safeenv.filter) == "table" then
-			Filter = safeenv.filter
+			Karm.Filter = safeenv.filter
 		end
 	end
 end

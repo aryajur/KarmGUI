@@ -21,25 +21,24 @@ local setfenv = setfenv
 local string = string
 local Globals = Globals
 local setmetatable = setmetatable
-local NewID = NewID
+local NewID = Karm.NewID
 local type = type
 local math = math
 local error = error
 local modname = ...
-local addItemToArray = addItemToArray
-local tableToString = tableToString
+local tableToString = Karm.Utility.tableToString
 local pairs = pairs
-local applyFilterHier = applyFilterHier
-local collectFilterDataHier = collectFilterDataHier
+local applyFilterHier = Karm.FilterObject.applyFilterHier
+local collectFilterDataHier = Karm.accumulateTaskDataHier
 local CW = require("CustomWidgets")
 
 
 local GlobalFilter = function() 
-		return Filter 
+		return Karm.Filter 
 	end
 	
 local SData = function()
-		return SporeData
+		return Karm.SporeData
 	end
 
 local MainFilter
