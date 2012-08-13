@@ -6,7 +6,7 @@
 -----------------------------------------------------------------------------
 
 local prin
-if Globals.__DEBUG then
+if Karm.Globals.__DEBUG then
 	prin = print
 end
 local error = error
@@ -18,9 +18,9 @@ local wx = wx
 local wxaui = wxaui
 local setfenv = setfenv
 local pairs = pairs
-local GUI = GUI
+local GUI = Karm.GUI
 local bit = bit
-local Globals = Globals
+local Globals = Karm.Globals
 local XMLDate2wxDateTime = Karm.Utility.XMLDate2wxDateTime
 local toXMLDate = Karm.Utility.toXMLDate
 local task2IncSchTasks = Karm.TaskObject.incSchTasks

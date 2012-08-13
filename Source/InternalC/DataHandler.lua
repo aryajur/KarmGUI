@@ -1167,8 +1167,8 @@ function Karm.TaskObject.getWorkDates(task,bubble)
 					for j = #dateTable, index, -1 do
 						dateTable[j+1] = dateTable[j]
 					end
-					local newColor = {Red=GUI.ScheduleColor.Red - GUI.bubbleOffset.Red,Green=GUI.ScheduleColor.Green - GUI.bubbleOffset.Green,
-					Blue=GUI.ScheduleColor.Blue-GUI.bubbleOffset.Blue}
+					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,
+					Blue=Karm.GUI.ScheduleColor.Blue-Karm.GUI.bubbleOffset.Blue}
 					if newColor.Red < 0 then newColor.Red = 0 end
 					if newColor.Green < 0 then newColor.Green = 0 end
 					if newColor.Blue < 0 then newColor.Blue = 0 end
@@ -1190,7 +1190,7 @@ function Karm.TaskObject.getWorkDates(task,bubble)
 			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
 			for i = 1,#dateList do
 				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
-				  Bubbled = nil, BackColor = GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
+				  Bubbled = nil, BackColor = Karm.GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
 			end
 			return dateTable
 		else
@@ -1242,8 +1242,8 @@ function Karm.TaskObject.getDates(task,bubble,planning)
 					for j = #dateTable, index+1, -1 do
 						dateTable[j+1] = dateTable[j]
 					end
-					local newColor = {Red=GUI.ScheduleColor.Red - GUI.bubbleOffset.Red,Green=GUI.ScheduleColor.Green - GUI.bubbleOffset.Green,
-					Blue=GUI.ScheduleColor.Blue-GUI.bubbleOffset.Blue}
+					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,
+					Blue=Karm.GUI.ScheduleColor.Blue-Karm.GUI.bubbleOffset.Blue}
 					if newColor.Red < 0 then newColor.Red = 0 end
 					if newColor.Green < 0 then newColor.Green = 0 end
 					if newColor.Blue < 0 then newColor.Blue = 0 end
@@ -1260,7 +1260,7 @@ function Karm.TaskObject.getDates(task,bubble,planning)
 		if dateTable then
 			for i = 1,#dateTable do
 				dateTable[i].Bubbled = nil
-				dateTable[i].BackColor = GUI.ScheduleColor
+				dateTable[i].BackColor = Karm.GUI.ScheduleColor
 				dateTable[i].Text = ""
 			end
 		end
@@ -1275,7 +1275,7 @@ function Karm.TaskObject.getDates(task,bubble,planning)
 			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
 			for i = 1,#dateList do
 				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
-				  Bubbled = nil, BackColor = GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
+				  Bubbled = nil, BackColor = Karm.GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
 			end
 			return dateTable
 		else
@@ -1553,7 +1553,7 @@ function Karm.sporeTitle(path)
 end
 
 function Karm.TaskObject.IsSpore(task)
-	if task.TaskID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+	if task.TaskID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 		return true
 	else
 		return false
@@ -1605,7 +1605,7 @@ end
 function Karm.XML2Data(SporeXML, SporeFile)
 	-- tasks counts the number of tasks at the current level
 	-- index 0 contains the name of this level to make it compatible with LuaXml
-	local dataStruct = {Title = Karm.sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Globals.ROOTKEY..SporeFile, [0] = "Task_Spore"}	-- to create the data structure
+	local dataStruct = {Title = Karm.sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Karm.Globals.ROOTKEY..SporeFile, [0] = "Task_Spore"}	-- to create the data structure
 	if SporeXML[0]~="Task_Spore" then
 		return nil
 	end

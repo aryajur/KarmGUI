@@ -144,23 +144,23 @@ end
 
 --[[ The Task Filter should filter the following:
 
-1. Tasks - Particular tasks with or without its children - This is a table with each element (starting from 1) has a Specified Task ID, Task Title, with 'children' flag. If TaskID = Globals.ROOTKEY..(Spore File name) then the whole spore will pass the filter
+1. Tasks - Particular tasks with or without its children - This is a table with each element (starting from 1) has a Specified Task ID, Task Title, with 'children' flag. If TaskID = Karm.Globals.ROOTKEY..(Spore File name) then the whole spore will pass the filter
 2. Who - People responsible for the task (Boolean) - Boolean string with people IDs with their status in single quotes "'milind.gupta,A' or 'aryajur,A' and not('milind_gupta,A' or 'milind0x,I')" - if status not present then taken to be A (Active) 
 3. Date_Started - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by ,
-4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Globals.NoDateStr means no date also passes
-5. AccessIDs - Boolean expression of IDs and their access permission - "'milind.gupta,R' or 'aryajur,W' and not('milind_gupta,W' or 'milind0x,W')", Globals.NoAccessIDStr means tasks without an Access ID list also pass
+4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Karm.Globals.NoDateStr means no date also passes
+5. AccessIDs - Boolean expression of IDs and their access permission - "'milind.gupta,R' or 'aryajur,W' and not('milind_gupta,W' or 'milind0x,W')", Karm.Globals.NoAccessIDStr means tasks without an Access ID list also pass
 6. Status - Member of given list of status types - List of status types separated by commas
-7. Priority - Member of given list of priority types - List of priority numbers separated by commas -"1,2,3", Globals.NoPriStr means no priority also passes
-8. Date_Due - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Globals.NoDateStr means no date also passes
-9. Category - Member of given list of Categories - List of categories separated by commas, Globals.NoCatStr means tasks without any category also pass
-10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas, Globals.NoSubCatStr means tasks without any sub-category also pass
-11. Tags - Boolean expression of Tags - "'Technical' or 'Electronics'" - Tags allow alphanumeric characters spaces and underscores - For no TAG the tag would be Globals.NoDateStr
+7. Priority - Member of given list of priority types - List of priority numbers separated by commas -"1,2,3", Karm.Globals.NoPriStr means no priority also passes
+8. Date_Due - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Karm.Globals.NoDateStr means no date also passes
+9. Category - Member of given list of Categories - List of categories separated by commas, Karm.Globals.NoCatStr means tasks without any category also pass
+10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas, Karm.Globals.NoSubCatStr means tasks without any sub-category also pass
+11. Tags - Boolean expression of Tags - "'Technical' or 'Electronics'" - Tags allow alphanumeric characters spaces and underscores - For no TAG the tag would be Karm.Globals.NoDateStr
 12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges
 		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
 		Boolean expression different schedule criterias together 
-		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Globals.NoDateStr"
-		Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
-13. Script - The custom user script. task is passed in task variable. Executes in the Globals.safeenv environment. Final result (true or false) is present in the result variable
+		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Karm.Globals.NoDateStr"
+		Karm.Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
+13. Script - The custom user script. task is passed in task variable. Executes in the Karm.Globals.safeenv environment. Final result (true or false) is present in the result variable
 ]]
 
 -- Function to validate a given task
@@ -172,10 +172,10 @@ function Karm.FilterObject.validateTask(filter, task)
 	if filter.Tasks then
 		local matched = false
 		for i = 1,#filter.Tasks do
-			if string.sub(filter.Tasks[i].TaskID,1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			if string.sub(filter.Tasks[i].TaskID,1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 				-- A whole spore is marked check if this task belongs to that spore
 				-- Check if this is the spore of the task
-				if string.sub(filter.Tasks[i].TaskID,#Globals.ROOTKEY+1,-1) == task.SporeFile then
+				if string.sub(filter.Tasks[i].TaskID,#Karm.Globals.ROOTKEY+1,-1) == task.SporeFile then
 					if not filter.Tasks[i].Children then
 						return false
 					end
@@ -197,7 +197,7 @@ function Karm.FilterObject.validateTask(filter, task)
 						break
 					end
 				end
-			end		-- if filter.Tasks.TaskID == Globals.ROOTKEY.."S" then ends
+			end		-- if filter.Tasks.TaskID == Karm.Globals.ROOTKEY.."S" then ends
 		end	-- for 1,#filter.Tasks ends here
 		if not matched then
 			return false
@@ -283,8 +283,8 @@ function Karm.FilterObject.validateTask(filter, task)
 		end
 		local matched = false
 		for range in string.gmatch(finStr,"(.-),") do
-			-- Check if this is Globals.NoDateStr
-			if range == Globals.NoDateStr and not task.Fin then
+			-- Check if this is Karm.Globals.NoDateStr
+			if range == Karm.Globals.NoDateStr and not task.Fin then
 				matched = true
 				break
 			end
@@ -311,11 +311,11 @@ function Karm.FilterObject.validateTask(filter, task)
 
 	-- Check if Access IDs pass
 	if filter.Access then
-		local pattern = Globals.UserIDPattern
+		local pattern = Karm.Globals.UserIDPattern
 		local accStr = filter.Access
 		for id in string.gmatch(filter.Access,pattern) do
 			local result = false
-			if id == Globals.NoAccessIDStr and not task.Access then
+			if id == Karm.Globals.NoAccessIDStr and not task.Access then
 				result = true
 			else
 				-- Extract the permission character
@@ -356,7 +356,7 @@ function Karm.FilterObject.validateTask(filter, task)
 						end		-- for i = 1,#task.Who do ends
 					end		-- if string.upper(perm) == "W" then ends
 				end		-- if not result then ends
-			end		-- if id == Globals.NoAccessIDStr and not task.Access then ends
+			end		-- if id == Karm.Globals.NoAccessIDStr and not task.Access then ends
 			accStr = string.gsub(accStr,"'"..id.."'",tostring(result))
 		end		-- for id in string.gmatch(filter.Who,pattern) do ends
 		-- Check if the boolean passes
@@ -396,7 +396,7 @@ function Karm.FilterObject.validateTask(filter, task)
 		end
 		local matched = false
 		for pri in string.gmatch(priStr,"(.-),") do
-			if pri == Globals.NoPriStr and not task.Priority then
+			if pri == Karm.Globals.NoPriStr and not task.Priority then
 				matched = true
 				break
 			end
@@ -421,8 +421,8 @@ function Karm.FilterObject.validateTask(filter, task)
 		end
 		local matched = false
 		for range in string.gmatch(dueStr,"(.-),") do
-			-- Check if this is Globals.NoDateStr
-			if range == Globals.NoDateStr and not task.Fin then
+			-- Check if this is Karm.Globals.NoDateStr
+			if range == Karm.Globals.NoDateStr and not task.Fin then
 				matched = true
 				break
 			end
@@ -457,8 +457,8 @@ function Karm.FilterObject.validateTask(filter, task)
 		end
 		local matched = false
 		for cat in string.gmatch(catStr,"(.-),") do
-			-- Check if it matches Globals.NoCatStr
-			if cat == Globals.NoCatStr and not task.Cat then
+			-- Check if it matches Karm.Globals.NoCatStr
+			if cat == Karm.Globals.NoCatStr and not task.Cat then
 				matched = true
 				break
 			end
@@ -483,8 +483,8 @@ function Karm.FilterObject.validateTask(filter, task)
 		end
 		local matched = false
 		for subCat in string.gmatch(subCatStr,"(.-),") do
-			-- Check if it matches Globals.NoSubCatStr
-			if subCat == Globals.NoSubCatStr and not task.SubCat then
+			-- Check if it matches Karm.Globals.NoSubCatStr
+			if subCat == Karm.Globals.NoSubCatStr and not task.SubCat then
 				matched = true
 				break
 			end
@@ -506,7 +506,7 @@ function Karm.FilterObject.validateTask(filter, task)
 		for tag in string.gmatch(filter.Tags,pattern) do
 			-- Check if the tag exists in the task
 			local result = false
-			if tag == Globals.NoTagStr and not task.Tags then
+			if tag == Karm.Globals.NoTagStr and not task.Tags then
 				result = true
 			elseif task.Tags then			
 				for i = 1,#task.Tags do
@@ -549,7 +549,7 @@ function Karm.FilterObject.validateTask(filter, task)
 			end
 			-- CHeck if the task has a Schedule item
 			if not task.Schedules then
-				if ranges[0] == Globals.NoDateStr then
+				if ranges[0] == Karm.Globals.NoDateStr then
 					result = true
 				end			
 				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
@@ -562,7 +562,7 @@ function Karm.FilterObject.validateTask(filter, task)
 						index = string.match(typeSchedule,"%((%d-)%)")
 					else  
 						-- Get the latest schedule index
-						if ranges[0] == Globals.NoDateStr then
+						if ranges[0] == Karm.Globals.NoDateStr then
 							result = true
 							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						elseif task.Schedules.Estimate then
@@ -581,7 +581,7 @@ function Karm.FilterObject.validateTask(filter, task)
 						index = string.match(typeSchedule,"%((%d-)%)")
 					else  
 						-- Get the latest schedule index
-						if ranges[0] == Globals.NoDateStr then
+						if ranges[0] == Karm.Globals.NoDateStr then
 							result = true
 							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						elseif task.Schedules.Revs then
@@ -613,16 +613,16 @@ function Karm.FilterObject.validateTask(filter, task)
 						index = task.Schedules.Estimate.count
 					else
 						-- typeSchedule is latest but non of the schedule types exist
-						-- Check if the range is Globals.NoDateStr, if not this sch is false
+						-- Check if the range is Karm.Globals.NoDateStr, if not this sch is false
 						local result = false
-						if ranges[0] == Globals.NoDateStr then
+						if ranges[0] == Karm.Globals.NoDateStr then
 							result = true
 						end
 						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 					end
 				else
 					wx.wxMessageBox("Invalid Type Schedule ("..typeSchdule..") specified in filter: "..sch,"Filter Error",
-	                            wx.wxOK + wx.wxICON_ERROR, GUI.frame)
+	                            wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 					return false
 				end		-- if string.upper(string.sub(typeSchedule,1,#"ESTIMATE") == "ESTIMATE" then ends  (SETTING of typeSchdule and index)
 			end		-- if not task.Schedules then
@@ -635,8 +635,8 @@ function Karm.FilterObject.validateTask(filter, task)
 				else
 					result = true
 				end
-				-- First check if range is Globals.NoDateStr then this schedule should not exist for filter to pass
-				if ranges[0] == Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
+				-- First check if range is Karm.Globals.NoDateStr then this schedule should not exist for filter to pass
+				if ranges[0] == Karm.Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
 					result = true
 				elseif task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
 					for i = 1,#task.Schedules[typeSchedule][index].Period do
@@ -677,7 +677,7 @@ function Karm.FilterObject.validateTask(filter, task)
 
 	if filter.Script then
 		local safeenv = {}
-		setmetatable(safeenv,{__index = Globals.safeenv})
+		setmetatable(safeenv,{__index = Karm.Globals.safeenv})
 		local func,message = loadstring(filter.Script)
 		if not func then
 			return false

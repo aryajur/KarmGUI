@@ -5,7 +5,7 @@
 -- Created:     2/09/2012
 -----------------------------------------------------------------------------
 local prin
-if Globals.__DEBUG then
+if Karm.Globals.__DEBUG then
 	prin = print
 end
 local print = prin 
@@ -13,13 +13,13 @@ local wx = wx
 local io = io
 local wxaui = wxaui
 local bit = bit
-local GUI = GUI
+local GUI = Karm.GUI
 local tostring = tostring
 local loadfile = loadfile
 local loadstring = loadstring
 local setfenv = setfenv
 local string = string
-local Globals = Globals
+local Globals = Karm.Globals
 local setmetatable = setmetatable
 local NewID = Karm.NewID
 local type = type

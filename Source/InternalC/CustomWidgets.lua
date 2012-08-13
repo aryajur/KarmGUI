@@ -6,7 +6,7 @@
 -- Requirements:WxWidgets should be present already in the lua space
 -----------------------------------------------------------------------------
 local prin
-if Globals.__DEBUG then
+if Karm.Globals.__DEBUG then
 	prin = print
 end
 local error = error
@@ -914,7 +914,7 @@ do
 				local nodeText = ob.object.SelTree:GetItemText(Sel[1])
 				if nodeText == "(OR)" or nodeText == "(AND)" or nodeText == "NOT(OR)" or nodeText == "NOT(AND)" or nodeText == "NOT()" then
 					-- Just negation of the node has to be done
-					node = Sel[1]
+					local node = Sel[1]
 					if nodeText == "(OR)" then
 						ob.object.SelTree:SetItemText(node,"NOT(OR)")
 					elseif nodeText == "(AND)" then
@@ -937,7 +937,7 @@ do
 					end		-- if parentText == "(OR)" then ends here
 				-- Check if the parent just has this child
 				elseif ob.object.SelTree:GetChildrenCount(parent,false) == 1 then
-					node = parent
+					local node = parent
 					nodeText = ob.object.SelTree:GetItemText(parent)
 					if nodeText == "(OR)" then
 						ob.object.SelTree:SetItemText(node,"NOT(OR)")
@@ -1067,7 +1067,7 @@ do
 							elseif parentText == "(AND)" then
 								newPText = "NOT(AND)" 
 							end
-							newParent = ob.object.SelTree:AppendItem(parent,newPText)
+							local newParent = ob.object.SelTree:AppendItem(parent,newPText)
 							for i = 1,#Sel do
 								CopyTree(ob.object,Sel[i],newParent)
 								DelTree(ob.object,Sel[i])
@@ -1680,7 +1680,7 @@ do
 	local validateRange = function(range)
 		-- Check if the given date range is valid
 		-- Expected format is MM/DD/YYYY-MM/DD/YYYY here M and D can be single digits as well
-		_, _, im, id, iy, fm, fd, fy = string.find(range, "(%d+)/(%d+)/(%d%d%d%d+)%s*-%s*(%d+)/(%d+)/(%d%d%d%d+)")
+		local _, _, im, id, iy, fm, fd, fy = string.find(range, "(%d+)/(%d+)/(%d%d%d%d+)%s*-%s*(%d+)/(%d+)/(%d%d%d%d+)")
 		id = tonumber(id)
 		im = tonumber(im)
 		iy = tonumber(iy)
@@ -1770,7 +1770,7 @@ do
 	local RemovePress = function(event)
 		setfenv(1,package.loaded[modname])
 		local o = objMap[event:GetId()]
-		item = o.list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
+		local item = o.list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
 		local selItems = {}
 		while item ~= -1 do
 			selItems[#selItems + 1] = item	

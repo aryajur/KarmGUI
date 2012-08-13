@@ -17,48 +17,49 @@ Karm.SporeData = {}
 
 
 -- Creating GUI the main table containing all the GUI objects and data
-GUI = {["__index"]=_G}
-setmetatable(GUI,GUI)
-setfenv(1,GUI)
-initFrameW, initFrameH = wx.wxDisplaySize()
-initFrameW = 0.75*initFrameW
-initFrameH = 0.75*initFrameH
-initFrameW = initFrameW - initFrameW%1
-initFrameH = initFrameH - initFrameH%1
--- Node Colors
-nodeForeColor = {Red=0,Green=0,Blue=0}
-nodeBackColor = {Red=255,Green=255,Blue=255}
--- Gantt Colors
-noScheduleColor = {Red=210,Green=210,Blue=210}
-ScheduleColor = {Red=0,Green=180,Blue=215}
-emptyDayColor = {Red=255,Green=255,Blue=255}
-sunDayOffset = {Red = 30, Green=30, Blue = 30}
-bubbleOffset = {Red = 20, Green=20, Blue = 20}
-defaultColor = {Red=0,Green=0,Blue=0}
-highLightColor = {Red=120,Green=120,Blue=120}
-
-
--- Task status colors
--- Main Menu
-MainMenu = {
-				-- 1st Menu
-				{	
-					Text = "&File", Menu = {
-											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "GUI.frame:Close(true)"}
-									}
-				},
-				-- 2nd Menu
-				{	
-					Text = "&Help", Menu = {
-											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,GUI.frame)"}
-									}
-				}
+Karm.GUI = {
+	-- Node Colors
+	nodeForeColor = {Red=0,Green=0,Blue=0},
+	nodeBackColor = {Red=255,Green=255,Blue=255},
+	-- Gantt Colors
+	noScheduleColor = {Red=210,Green=210,Blue=210},
+	ScheduleColor = {Red=0,Green=180,Blue=215},
+	emptyDayColor = {Red=255,Green=255,Blue=255},
+	sunDayOffset = {Red = 30, Green=30, Blue = 30},
+	bubbleOffset = {Red = 20, Green=20, Blue = 20},
+	defaultColor = {Red=0,Green=0,Blue=0},
+	highLightColor = {Red=120,Green=120,Blue=120},
+	
+	
+	-- Task status colors
+	-- Main Menu
+	MainMenu = {
+					-- 1st Menu
+					{	
+						Text = "&File", Menu = {
+												{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "Karm.GUI.frame:Close(true)"}
+										}
+					},
+					-- 2nd Menu
+					{	
+						Text = "&Help", Menu = {
+												{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Karm.Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)"}
+										}
+					}
+	}
 }
 
-setfenv(1,_G)
+Karm.GUI.initFrameW, Karm.GUI.initFrameH = wx.wxDisplaySize()
+Karm.GUI.initFrameW = 0.75*Karm.GUI.initFrameW
+Karm.GUI.initFrameH = 0.75*Karm.GUI.initFrameH
+Karm.GUI.initFrameW = Karm.GUI.initFrameW - Karm.GUI.initFrameW%1
+Karm.GUI.initFrameH = Karm.GUI.initFrameH - Karm.GUI.initFrameH%1
+
+
+setmetatable(Karm.GUI,{__index = _G})
 
 -- Global Declarations
-Globals = {
+Karm.Globals = {
 	ROOTKEY = "T0",
 	KARM_VERSION = "1.12.08.13",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
@@ -112,8 +113,8 @@ require("LuaXml")
 -- Karm files
 require("Filter")
 require("DataHandler")
-GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
-GUI.TaskForm = require("TaskForm")		-- Containing all Task Form GUI code
+Karm.GUI.FilterForm = require("FilterForm")		-- Containing all Filter Form GUI code
+Karm.GUI.TaskForm = require("TaskForm")		-- Containing all Task Form GUI code
 
 -- FINISH CODE INCLUSION
 
@@ -246,7 +247,7 @@ do
 	end
 	
 	function taskTreeINT.layout(taskTree)
-		oTree = taskTreeINT[taskTree]
+		local oTree = taskTreeINT[taskTree]
 		oTree.treeGrid:AutoSizeColumn(0)
 	    oTree.treeGrid:SetColSize(1,oTree.horSplitWin:GetSashPosition()-oTree.treeGrid:GetColSize(0)-oTree.treeGrid:GetRowLabelSize(0))	
 	end
@@ -324,7 +325,7 @@ do
 	end		-- local function enablePlanningMode(taskTree, taskList, type)ends
 	
 	function taskTreeINT.getPlanningTasks(taskTree)
-		oTree = taskTreeINT[taskTree]
+		local oTree = taskTreeINT[taskTree]
 		if not oTree.Planning then
 			return nil
 		else
@@ -333,11 +334,11 @@ do
 	end
 	
 	function taskTreeINT.getSelectedTask(taskTree)
-		oTree = taskTreeINT[taskTree]
+		local oTree = taskTreeINT[taskTree]
 		return oTree.Selected
 	end
 	
-	function GUI.newTreeGantt(parent,noTaskTree)
+	function Karm.GUI.newTreeGantt(parent,noTaskTree)
 		local taskTree = {}	-- Main object
 		-- Main table to store the task tree that is on display
 		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, Planning = nil, taskList = nil, Selected = {},ShowActual = nil}
@@ -369,7 +370,7 @@ do
 		local ID = Karm.NewID()
 		oTree.horSplitWin = wx.wxSplitterWindow(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxSP_3D, "Task Splitter")
 		IDMap[ID] = taskTree
-		-- wx.wxSize(GUI.initFrameW, 0.7*GUI.initFrameH)
+		-- wx.wxSize(Karm.GUI.initFrameW, 0.7*Karm.GUI.initFrameH)
 		if not noTaskTree then
 			oTree.horSplitWin:SetMinimumPaneSize(10)
 		end
@@ -383,7 +384,7 @@ do
 	    oTree.treeGrid:SetRowLabelSize(15)
 	    oTree.treeGrid:SetColLabelValue(0," ")
 	    oTree.treeGrid:SetColLabelValue(1,"Tasks")
-	    --GUI.treeGrid:SetCellHighlightPenWidth(0)
+	    --Karm.GUI.treeGrid:SetCellHighlightPenWidth(0)
 	    oTree.treeGrid:EnableGridLines(false)
 	
 		ID = Karm.NewID()
@@ -392,7 +393,7 @@ do
 		IDMap[ID] = taskTree
 	    oTree.ganttGrid:CreateGrid(1,1)
 	    oTree.ganttGrid:EnableGridLines(false)
-	    -- GUI.ganttGrid:SetRowLabelSize(0)
+	    -- Karm.GUI.ganttGrid:SetRowLabelSize(0)
 	
 		oTree.horSplitWin:SplitVertically(oTree.treeGrid, oTree.ganttGrid)
 		if not noTaskTree then
@@ -425,7 +426,7 @@ do
 		
 		-- The TreeGrid label click event
 		oTree.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,labelClick)
-		--GUI.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,GUI.taskDblClick)
+		--Karm.GUI.treeGrid:GetEventHandler():Connect(wx.wxEVT_GRID_CELL_LEFT_CLICK,Karm.GUI.taskDblClick)
 		
 		-- The GanttGrid label click event
 		oTree.ganttGrid:GetEventHandler():Connect(wx.wxEVT_GRID_LABEL_LEFT_CLICK,ganttLabelClick)
@@ -536,7 +537,7 @@ do
 						oTree.ganttGrid:DeleteRows(oNode.Row,rows)
 						oTree.treeGrid:SetRowLabelValue(oNode.Row-1,"+")
 						if #oTree.Selected > 0 then
-							i = 0
+							local i = 0
 							while i < #oTree.Selected do
 								i = i + 1
 								if not oTree.Selected[i].Row then
@@ -664,7 +665,7 @@ do
 	end
 	
 	function taskTreeINT.__newindex(tab,key,val)
-		-- function to catch all setting commands to GUI.taskTree
+		-- function to catch all setting commands to Karm.GUI.taskTree
 		-- object reference to bypass metamethod
 		local oTree = taskTreeINT[tab]
 		if key == "update" then
@@ -799,15 +800,15 @@ do
 			for i = 1,days do
 				--print(currDate:Format("%m/%d/%Y"),Karm.Utility.getWeekDay(Karm.Utility.toXMLDate(currDate:Format("%m/%d/%Y"))))
 				if Karm.Utility.getWeekDay(Karm.Utility.toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
-					local newColor = {Red=GUI.noScheduleColor.Red - GUI.sunDayOffset.Red,Green=GUI.noScheduleColor.Green - GUI.sunDayOffset.Green,
-					Blue=GUI.noScheduleColor.Blue-GUI.sunDayOffset.Blue}
+					local newColor = {Red=Karm.GUI.noScheduleColor.Red - Karm.GUI.sunDayOffset.Red,Green=Karm.GUI.noScheduleColor.Green - Karm.GUI.sunDayOffset.Green,
+					Blue=Karm.GUI.noScheduleColor.Blue-Karm.GUI.sunDayOffset.Blue}
 					if newColor.Red < 0 then newColor.Red = 0 end
 					if newColor.Green < 0 then newColor.Green = 0 end
 					if newColor.Blue < 0 then newColor.Blue = 0 end
 					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
 				else
-					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
-						GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+					taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(Karm.GUI.noScheduleColor.Red,
+						Karm.GUI.noScheduleColor.Green,Karm.GUI.noScheduleColor.Blue))
 				end
 				taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,i-1,"")
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
@@ -843,15 +844,15 @@ do
 				local currDate = Karm.Utility.XMLDate2wxDateTime(startDay)
 				for i = 1,days do
 					if Karm.Utility.getWeekDay(Karm.Utility.toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
-						local newColor = {Red=GUI.noScheduleColor.Red - GUI.sunDayOffset.Red,Green=GUI.noScheduleColor.Green - GUI.sunDayOffset.Green,
-						Blue=GUI.noScheduleColor.Blue-GUI.sunDayOffset.Blue}
+						local newColor = {Red=Karm.GUI.noScheduleColor.Red - Karm.GUI.sunDayOffset.Red,Green=Karm.GUI.noScheduleColor.Green - Karm.GUI.sunDayOffset.Green,
+						Blue=Karm.GUI.noScheduleColor.Blue-Karm.GUI.sunDayOffset.Blue}
 						if newColor.Red < 0 then newColor.Red = 0 end
 						if newColor.Green < 0 then newColor.Green = 0 end
 						if newColor.Blue < 0 then newColor.Blue = 0 end
 						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
 					else
-						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.noScheduleColor.Red,
-							GUI.noScheduleColor.Green,GUI.noScheduleColor.Blue))
+						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(Karm.GUI.noScheduleColor.Red,
+							Karm.GUI.noScheduleColor.Green,Karm.GUI.noScheduleColor.Blue))
 					end
 					taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,i-1,"")
 					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
@@ -869,15 +870,15 @@ do
 				local currDate = Karm.Utility.XMLDate2wxDateTime(startDay)
 				for i=1,days do
 					if Karm.Utility.getWeekDay(Karm.Utility.toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
-						local newColor = {Red=GUI.emptyDayColor.Red - GUI.sunDayOffset.Red,Green=GUI.emptyDayColor.Green - GUI.sunDayOffset.Green,
-						Blue=GUI.emptyDayColor.Blue-GUI.sunDayOffset.Blue}
+						local newColor = {Red=Karm.GUI.emptyDayColor.Red - Karm.GUI.sunDayOffset.Red,Green=Karm.GUI.emptyDayColor.Green - Karm.GUI.sunDayOffset.Green,
+						Blue=Karm.GUI.emptyDayColor.Blue-Karm.GUI.sunDayOffset.Blue}
 						if newColor.Red < 0 then newColor.Red = 0 end
 						if newColor.Green < 0 then newColor.Green = 0 end
 						if newColor.Blue < 0 then newColor.Blue = 0 end
 						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(newColor.Red,newColor.Green,newColor.Blue))
 					else
-						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(GUI.emptyDayColor.Red,
-							GUI.emptyDayColor.Green,GUI.emptyDayColor.Blue))
+						taskTreeINT[taskTree].ganttGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(Karm.GUI.emptyDayColor.Red,
+							Karm.GUI.emptyDayColor.Green,Karm.GUI.emptyDayColor.Blue))
 					end
 					taskTreeINT[taskTree].ganttGrid:SetCellValue(row-1,i-1,"")
 					currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
@@ -896,9 +897,9 @@ do
 						end
 						--taskTreeINT[taskTree].startDate:Subtract(wx.wxDateSpan(0,0,0,col))
 						if Karm.Utility.getWeekDay(Karm.Utility.toXMLDate(currDate:Format("%m/%d/%Y"))) == "Sunday" then
-							local newColor = {Red=dateList[i].BackColor.Red - GUI.sunDayOffset.Red,
-							  Green=dateList[i].BackColor.Green - GUI.sunDayOffset.Green,
-							  Blue=dateList[i].BackColor.Blue-GUI.sunDayOffset.Blue}
+							local newColor = {Red=dateList[i].BackColor.Red - Karm.GUI.sunDayOffset.Red,
+							  Green=dateList[i].BackColor.Green - Karm.GUI.sunDayOffset.Green,
+							  Blue=dateList[i].BackColor.Blue-Karm.GUI.sunDayOffset.Blue}
 							if newColor.Red < 0 then newColor.Red = 0 end
 							if newColor.Green < 0 then newColor.Green = 0 end
 							if newColor.Blue < 0 then newColor.Blue = 0 end
@@ -984,7 +985,7 @@ do
 		end
 		local oTree = taskTreeINT[taskTree]
 		-- Check if these are spore nodes
-		if nodeMeta[node1].Key:sub(1,#Globals.ROOTKEY)==Globals.ROOTKEY then
+		if nodeMeta[node1].Key:sub(1,#Karm.Globals.ROOTKEY)==Karm.Globals.ROOTKEY then
 			-- ################################################################################
 			-- QUESTIONALBLE SINCE SPORE KEYS ARE BASED ON THEIR FILE NAMES!
 			-- ################################################################################
@@ -1068,7 +1069,7 @@ do
 	end
 	
 	function taskTreeINT.DeleteTree(taskTree,Key)
-		if Key == Globals.ROOTKEY then
+		if Key == Karm.Globals.ROOTKEY then
 			error("DeleteTree: Function cannot be used to delete a Root node,",2)
 		end
 		local oTree = taskTreeINT[taskTree]
@@ -1189,7 +1190,7 @@ do
 	end		-- function taskTreeINT.DeleteTree(taskTree,Key) ends
 	
 	function taskTreeINT.DeleteSubUpdate(taskTree,Key)
-		if Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		if Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			error("DeleteSubUpdate: Function cannot be used to delete a spore or Root node.",2)
 		end
 		local oTree = taskTreeINT[taskTree]
@@ -1358,7 +1359,7 @@ do
 		if oTree.Nodes[nodeInfo.Key] then
 			-- Key already exists
 			wx.wxMessageBox("Trying to add a duplicate Key ("..nodeInfo.Key..") to the task Tree.",
-		                wx.wxOK + wx.wxICON_ERROR, GUI.frame)
+		                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 			return nil
 		end
 		-- Check if Relative exist
@@ -1366,14 +1367,14 @@ do
 			if not oTree.Nodes[nodeInfo.Relative] then
 				-- Relative specified but does not exist
 				wx.wxMessageBox("Specified relative does not exist ("..nodeInfo.Relative..") in the task Tree.",
-			                wx.wxOK + wx.wxICON_ERROR, GUI.frame)
+			                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 				return nil
 			end
 			-- Since relative is specified relation should be specified
 			if not nodeInfo.Relation then
 				-- Relative specified but Relation not specified
 				wx.wxMessageBox("No relation specified for task (".. nodeInfo.Text..").",
-			                wx.wxOK + wx.wxICON_ERROR, GUI.frame)
+			                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 				return nil
 			end
 		end
@@ -1382,7 +1383,7 @@ do
 			if string.upper(nodeInfo.Relation) ~= "CHILD" and string.upper(nodeInfo.Relation) ~= "NEXT SIBLING" and string.upper(nodeInfo.Relation) ~= "PREV SIBLING" then
 				-- Relation specified incorrectly 
 				wx.wxMessageBox("Specified relation is not correct ("..nodeInfo.Relation.."). Allowed values are 'Child', 'Next Sibling', 'Prev Sibling'.",
-			                wx.wxOK + wx.wxICON_ERROR, GUI.frame)
+			                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 				return nil
 			end
 		end
@@ -1746,7 +1747,7 @@ do
 
 	local function onScrollTreeFunc(obj)
 		return function(event)
-			oTree = taskTreeINT[obj]
+			local oTree = taskTreeINT[obj]
 			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
 			event:Skip()
 		end
@@ -1760,7 +1761,7 @@ do
 --		end
 	local function onRowResizeGanttFunc(obj)
 		return function(event)
-			oTree = taskTreeINT[obj]
+			local oTree = taskTreeINT[obj]
 			local row = event:GetRowOrCol()
 			oTree.treeGrid:SetRowSize(row,oTree.ganttGrid:GetRowSize(row))
 			oTree.treeGrid:ForceRefresh()
@@ -1772,7 +1773,7 @@ do
 	
 	local function onRowResizeTreeFunc(obj)
 		return function(event)
-			oTree = taskTreeINT[obj]
+			local oTree = taskTreeINT[obj]
 			local row = event:GetRowOrCol()
 			oTree.ganttGrid:SetRowSize(row,oTree.treeGrid:GetRowSize(row))
 			oTree.ganttGrid:ForceRefresh()
@@ -1785,7 +1786,7 @@ do
 	local function onScrollGanttFunc(obj)
 		return function(event)
 			event:Skip()
-			oTree = taskTreeINT[obj]
+			local oTree = taskTreeINT[obj]
 			oTree.treeGrid:Scroll(oTree.treeGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.ganttGrid:GetScrollPos(wx.wxVERTICAL))
 
 			local currDate = oTree.startDate
@@ -1793,7 +1794,7 @@ do
 			local count = 0
 --			local y = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count))
 --			y1 = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count+1),wx.wxGridCellCoords(0,count+1))
---   			GUI.frame:SetStatusText(tostring(y:GetTopLeft():GetX())..","..tostring(y:GetTopLeft():GetY())..","..
+--   			Karm.GUI.frame:SetStatusText(tostring(y:GetTopLeft():GetX())..","..tostring(y:GetTopLeft():GetY())..","..
 --   			  tostring(y1:GetTopLeft():GetX())..","..tostring(y1:GetTopLeft():GetY()), 1)
    			
     		local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
@@ -1821,19 +1822,19 @@ do
 	end
 	
 	local function horSashAdjustFunc(event)
-		--local info = "Sash: "..tostring(GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(GUI.treeGrid:GetColSize(1))
+		--local info = "Sash: "..tostring(Karm.GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(Karm.GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(Karm.GUI.treeGrid:GetColSize(1))
 		local obj = IDMap[event:GetId()]
-		oTree = taskTreeINT[obj]
+		local oTree = taskTreeINT[obj]
 		oTree.treeGrid:SetColMinimalWidth(1,oTree.horSplitWin:GetSashPosition()-oTree.treeGrid:GetColSize(0)-oTree.treeGrid:GetRowLabelSize(0))
 		oTree.treeGrid:AutoSizeColumn(1,false)
-		--info = info.."\nCol 1 After: "..tostring(GUI.treeGrid:GetColSize(1))
-		--GUI.taskDetails:SetValue(info)	
+		--info = info.."\nCol 1 After: "..tostring(Karm.GUI.treeGrid:GetColSize(1))
+		--Karm.GUI.taskDetails:SetValue(info)	
 		event:Skip()
 	end
 	
 	local function widgetResizeFunc(event)
 		local obj = IDMap[event:GetId()]
-		oTree = taskTreeINT[obj]
+		local oTree = taskTreeINT[obj]
 		local winSize = event:GetSize()
 		local wid = 0.3*winSize:GetWidth()
 		if wid > 400 then
@@ -1950,80 +1951,80 @@ do
 end	-- The custom tree and Gantt widget object for Karm ends here
 
 -- Function to generate and return the node color of a TaskTree node
-function GUI.getNodeColor(node)
+function Karm.GUI.getNodeColor(node)
 	-- Get the node colors according to the status
 	if not node.Task then
-		return GUI.nodeForeColor, GUI.nodeBackColor
+		return Karm.GUI.nodeForeColor, Karm.GUI.nodeBackColor
 	else
-		if Globals.StatusNodeColor then
-			for i = 1,#Globals.StatusList do
-				if node.Task.Status == Globals.StatusList[i] and Globals.StatusNodeColor[i] then
-					local foreColor = GUI.nodeForeColor
-					local backColor = GUI.nodeBackColor
-					if Globals.StatusNodeColor[i].ForeColor and Globals.StatusNodeColor[i].ForeColor.Red and 
-					  Globals.StatusNodeColor[i].ForeColor.Blue and Globals.StatusNodeColor[i].ForeColor.Green then
-						foreColor = Globals.StatusNodeColor[i].ForeColor
+		if Karm.Globals.StatusNodeColor then
+			for i = 1,#Karm.Globals.StatusList do
+				if node.Task.Status == Karm.Globals.StatusList[i] and Karm.Globals.StatusNodeColor[i] then
+					local foreColor = Karm.GUI.nodeForeColor
+					local backColor = Karm.GUI.nodeBackColor
+					if Karm.Globals.StatusNodeColor[i].ForeColor and Karm.Globals.StatusNodeColor[i].ForeColor.Red and 
+					  Karm.Globals.StatusNodeColor[i].ForeColor.Blue and Karm.Globals.StatusNodeColor[i].ForeColor.Green then
+						foreColor = Karm.Globals.StatusNodeColor[i].ForeColor
 					end
-					if Globals.StatusNodeColor[i].BackColor and Globals.StatusNodeColor[i].BackColor.Red and 
-					  Globals.StatusNodeColor[i].BackColor.Blue and Globals.StatusNodeColor[i].BackColor.Green then
-						backColor = Globals.StatusNodeColor[i].BackColor
+					if Karm.Globals.StatusNodeColor[i].BackColor and Karm.Globals.StatusNodeColor[i].BackColor.Red and 
+					  Karm.Globals.StatusNodeColor[i].BackColor.Blue and Karm.Globals.StatusNodeColor[i].BackColor.Green then
+						backColor = Karm.Globals.StatusNodeColor[i].BackColor
 					end
 					return foreColor, backColor
 				end
 			end
-			return GUI.nodeForeColor, GUI.nodeBackColor
+			return Karm.GUI.nodeForeColor, Karm.GUI.nodeBackColor
 		else
-			return GUI.nodeForeColor, GUI.nodeBackColor
+			return Karm.GUI.nodeForeColor, Karm.GUI.nodeBackColor
 		end	
 	end
 end
 
-function GUI.addSpore(key,Spore)
+function Karm.GUI.addSpore(key,Spore)
 	-- Add the spore node
-	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..key, Text=Spore.Title, Task = Spore}
-	GUI.taskTree.Nodes[Globals.ROOTKEY..key].ForeColor,GUI.taskTree.Nodes[Globals.ROOTKEY..key].BackColor = GUI.getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY..key])
+	Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY, Relation="Child", Key=Karm.Globals.ROOTKEY..key, Text=Spore.Title, Task = Spore}
+	Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key].ForeColor,Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key])
 	local taskList = Karm.FilterObject.applyFilterHier(Karm.Filter, Spore)
 	-- Now add the tasks under the spore in the TaskTree
 	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
 	    -- Add the 1st element under the spore
-	    local currNode = GUI.taskTree:AddNode{Relative=Globals.ROOTKEY..key, Relation="Child", Key=taskList[1].TaskID, 
+	    local currNode = Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY..key, Relation="Child", Key=taskList[1].TaskID, 
 	    		Text=taskList[1].Title, Task=taskList[1]}
-		currNode.ForeColor, currNode.BackColor = GUI.getNodeColor(currNode)
+		currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
 	    for intVar = 2,taskList.count do
-	    	local cond1 = currNode.Key ~= Globals.ROOTKEY..key
+	    	local cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..key
 	    	local cond2 = #taskList[intVar].TaskID > #currNode.Key
 	    	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
 	    	while cond1 and not (cond2 and cond3) do
 	        	-- Go up the hierarchy
 	        	currNode = currNode.Parent
-	        	cond1 = currNode.Key ~= Globals.ROOTKEY..key
+	        	cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..key
 	        	cond2 = #taskList[intVar].TaskID > #currNode.Key
 	        	cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
 	        end
 	    	-- Now currNode has the node which is the right parent
-	        currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
+	        currNode = Karm.GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=taskList[intVar].TaskID, 
 	        		Text=taskList[intVar].Title, Task = taskList[intVar]}
-	    	currNode.ForeColor, currNode.BackColor = GUI.getNodeColor(currNode)
+	    	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
 	    end
 	end  -- if taskList.count > 0 then ends
 end
 
---****f* Karm/GUI.fillTaskTree
+--****f* Karm/Karm.GUI.fillTaskTree
 -- FUNCTION
 -- Function to recreate the task tree based on the global filter criteria from all the loaded spores
 --
 -- SOURCE
-function GUI.fillTaskTree()
+function Karm.GUI.fillTaskTree()
 -- ALGORITHM
 
 	local prevSelect, restorePrev
 	local expandedStatus = {}
-	GUI.taskTree.update = false		-- stop GUI updates for the time being    
-    if GUI.taskTree.nodeCount > 0 then
+	Karm.GUI.taskTree.update = false		-- stop GUI updates for the time being    
+    if Karm.GUI.taskTree.nodeCount > 0 then
 -- Check if the task Tree has elements then get the current selected nodekey this will be selected again after the tree view is refreshed
-        for i,v in GUI.taskTree.tpairs(GUI.taskTree) do
+        for i,v in Karm.GUI.taskTree.tpairs(Karm.GUI.taskTree) do
         	if v.Expanded then
-        		-- NOTE: i is the same as the TaskID i.e. i == GUI.taskTree.Nodes[i].Task.TaskID
+        		-- NOTE: i is the same as the TaskID i.e. i == Karm.GUI.taskTree.Nodes[i].Task.TaskID
             	expandedStatus[i] = true
             end
             if v.Selected then
@@ -2034,9 +2035,9 @@ function GUI.fillTaskTree()
     end
     
 -- Clear the treeview and add the root element
-    GUI.taskTree:Clear()
-    GUI.taskTree:AddNode{Key=Globals.ROOTKEY, Text = "Task Spores"}
-    GUI.taskTree.Nodes[Globals.ROOTKEY].ForeColor, GUI.taskTree.Nodes[Globals.ROOTKEY].BackColor = GUI.getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY])
+    Karm.GUI.taskTree:Clear()
+    Karm.GUI.taskTree:AddNode{Key=Karm.Globals.ROOTKEY, Text = "Task Spores"}
+    Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY].ForeColor, Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY])
 
     if Karm.SporeData[0] > 0 then
 -- Populate the tree control view
@@ -2044,7 +2045,7 @@ function GUI.fillTaskTree()
         	if k~=0 then
             -- Get the tasks in the spore
 -- Add the spore to the TaskTree
-				GUI.addSpore(k,v)
+				Karm.GUI.addSpore(k,v)
 			end		-- if k~=0 then ends
 -- Repeat for all spores
         end		-- for k,v in pairs(Karm.SporeData) do ends
@@ -2052,53 +2053,53 @@ function GUI.fillTaskTree()
     local selected
     if restorePrev then
 -- Update the tree status to before the refresh
-        for k,currNode in GUI.taskTree.tpairs(GUI.taskTree) do
+        for k,currNode in Karm.GUI.taskTree.tpairs(Karm.GUI.taskTree) do
             if expandedStatus[currNode.Key] then
                 currNode.Expanded = true
 			end
         end
-        for k,currNode in GUI.taskTree.tvpairs(GUI.taskTree) do
+        for k,currNode in Karm.GUI.taskTree.tvpairs(Karm.GUI.taskTree) do
             if currNode.Key == prevSelect then
                 currNode.Selected = true
                 selected = currNode.Task
             end
         end
     else
- 		GUI.taskTree.Nodes[Globals.ROOTKEY].Expanded = true
+ 		Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY].Expanded = true
     end
-	GUI.taskTree.update = true		-- Resume the tasktree update    
+	Karm.GUI.taskTree.update = true		-- Resume the tasktree update    
 	-- Update the Filter summary
 	if Karm.Filter then
-		GUI.taskFilter:SetValue(Karm.FilterObject.getSummary(Karm.Filter))
+		Karm.GUI.taskFilter:SetValue(Karm.FilterObject.getSummary(Karm.Filter))
 	else
-	    GUI.taskFilter:SetValue("No Filter")
+	    Karm.GUI.taskFilter:SetValue("No Filter")
 	end
-    GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(selected))
+    Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(selected))
 end
 --@@END@@
 
-function GUI.frameResize(event)
+function Karm.GUI.frameResize(event)
 	local winSize = event:GetSize()
 	local hei = 0.6*winSize:GetHeight()
 	if winSize:GetHeight() - hei > 400 then
 		hei = winSize:GetHeight() - 400
 	end
-	GUI.vertSplitWin:SetSashPosition(hei)
+	Karm.GUI.vertSplitWin:SetSashPosition(hei)
 	event:Skip()
 end
 
-function GUI.dateRangeChangeEvent(event)
-	local startDate = GUI.dateStartPick:GetValue()
-	local finDate = GUI.dateFinPick:GetValue()
-	GUI.taskTree:dateRangeChange(startDate,finDate)
+function Karm.GUI.dateRangeChangeEvent(event)
+	local startDate = Karm.GUI.dateStartPick:GetValue()
+	local finDate = Karm.GUI.dateFinPick:GetValue()
+	Karm.GUI.taskTree:dateRangeChange(startDate,finDate)
 	event:Skip()
 end
 
-function GUI.dateRangeChange()
+function Karm.GUI.dateRangeChange()
 	-- Clear the GanttGrid
-	local startDate = GUI.dateStartPick:GetValue()
-	local finDate = GUI.dateFinPick:GetValue()
-	GUI.taskTree:dateRangeChange(startDate,finDate)
+	local startDate = Karm.GUI.dateStartPick:GetValue()
+	local finDate = Karm.GUI.dateFinPick:GetValue()
+	Karm.GUI.taskTree:dateRangeChange(startDate,finDate)
 end
 
 function Karm.createNewSpore(title)
@@ -2113,73 +2114,73 @@ function Karm.createNewSpore(title)
 	end
 	Karm.SporeData[SporeName] = Karm.XML2Data({[0]="Task_Spore"}, SporeName)
 	Karm.SporeData[SporeName].Modified = "YES"
-	GUI.taskTree:AddNode{Relative=Globals.ROOTKEY, Relation="Child", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
-	GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor, GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].BackColor = GUI.getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName])
-	Globals.unsavedSpores[SporeName] = Karm.SporeData[SporeName].Title
-	return Globals.ROOTKEY..SporeName
+	Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY, Relation="Child", Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
+	Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].ForeColor, Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName])
+	Karm.Globals.unsavedSpores[SporeName] = Karm.SporeData[SporeName].Title
+	return Karm.Globals.ROOTKEY..SporeName
 end
 
 -- For MoveTask it needs the following information
---	GUI.MoveTask.action = ID
---	GUI.MoveTask.task = taskList[1].Task
+--	Karm.GUI.MoveTask.action = ID
+--	Karm.GUI.MoveTask.task = taskList[1].Task
 -- For CopyTask it needs the following information
---	GUI.CopyTask.action = ID
---	GUI.CopyTask.task = taskList[1].Task
+--	Karm.GUI.CopyTask.action = ID
+--	Karm.GUI.CopyTask.task = taskList[1].Task
 function Karm.moveCopyTask(task)
 	-- Do the move/copy task here
 	-- Get the selected task
-	local taskList = GUI.taskTree.Selected
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
 		-- Cancel the move/copy
-		GUI.statusBar:SetStatusText("",0)
-		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-		GUI.MoveTask = nil
-		GUI.CopyTask = nil
-		GUI.ResetMoveTools()
-		GUI.ResetCopyTools()
+		Karm.GUI.statusBar:SetStatusText("",0)
+		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+		Karm.GUI.MoveTask = nil
+		Karm.GUI.CopyTask = nil
+		Karm.GUI.ResetMoveTools()
+		Karm.GUI.ResetCopyTools()
         return
 	end			
 	if #taskList > 1 then
-		GUI.statusBar:SetStatusText("",0)
-		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-		GUI.MoveTask = nil
-		GUI.CopyTask = nil
+		Karm.GUI.statusBar:SetStatusText("",0)
+		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+		Karm.GUI.MoveTask = nil
+		Karm.GUI.CopyTask = nil
 		-- Cancel the move/copy
-		GUI.ResetMoveTools()
-		GUI.ResetCopyTools()
+		Karm.GUI.ResetMoveTools()
+		Karm.GUI.ResetCopyTools()
         return
 	end		
-	if GUI.MoveTask and taskList[1].Task ~= GUI.MoveTask.task or GUI.CopyTask and taskList[1].Task ~= GUI.CopyTask.task then
+	if Karm.GUI.MoveTask and taskList[1].Task ~= Karm.GUI.MoveTask.task or Karm.GUI.CopyTask and taskList[1].Task ~= Karm.GUI.CopyTask.task then
 		-- Start the move/copy
-		if taskList[1].Key == Globals.ROOTKEY then
+		if taskList[1].Key == Karm.Globals.ROOTKEY then
 			-- Relative is the Root node
-			if GUI.MoveTask and (GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW) then
-				wx.wxMessageBox("Can only move a task under the root task!","Illegal Move", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			if Karm.GUI.MoveTask and (Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_ABOVE or Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_BELOW) then
+				wx.wxMessageBox("Can only move a task under the root task!","Illegal Move", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 				return
 			end
-			if GUI.CopyTask and (GUI.CopyTask.action == GUI.ID_COPY_ABOVE or GUI.CopyTask.action == GUI.ID_COPY_BELOW) then
-				wx.wxMessageBox("Can only copy a task under the root task!","Illegal Copy", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			if Karm.GUI.CopyTask and (Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_ABOVE or Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_BELOW) then
+				wx.wxMessageBox("Can only copy a task under the root task!","Illegal Copy", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 				return
 			end
 			-- This is to move/copy the task into a new Spore
 			-- Create a new Spore here and make that the target parent instead of the root node
-			taskList[1] = GUI.taskTree.Nodes[Karm.createNewSpore()]
+			taskList[1] = Karm.GUI.taskTree.Nodes[Karm.createNewSpore()]
 		end
 		local task, str 
-		if GUI.MoveTask then
-			task = GUI.MoveTask.task
+		if Karm.GUI.MoveTask then
+			task = Karm.GUI.MoveTask.task
 			str = "Move"
 		else
 			-- Make a copy of the task and all its sub tasks and remove any DBDATA from the task to make a new task
-			task = Karm.TaskObject.copy(GUI.CopyTask.task, true, true)
+			task = Karm.TaskObject.copy(Karm.GUI.CopyTask.task, true, true)
 			str = "Copy"
 		end
-		if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- Relative is Spore
-			if (GUI.MoveTask and (GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.MoveTask.action == GUI.ID_MOVE_BELOW))
-			  or (GUI.CopyTask and (GUI.CopyTask.action == GUI.ID_COPY_ABOVE or GUI.CopyTask.action == GUI.ID_COPY_BELOW)) then
+			if (Karm.GUI.MoveTask and (Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_ABOVE or Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_BELOW))
+			  or (Karm.GUI.CopyTask and (Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_ABOVE or Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_BELOW)) then
 				-- Create a new spore and move/copy it under there (set that the new target parent)
-				taskList[1] = GUI.taskTree.Nodes[Karm.createNewSpore()]
+				taskList[1] = Karm.GUI.taskTree.Nodes[Karm.createNewSpore()]
 			end
 			-- This is to move/copy the task into this spore
 			local taskID
@@ -2187,10 +2188,10 @@ function Karm.moveCopyTask(task)
 			taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", str.." Task Under Spore", "")
 			if taskID == "" then
 				-- Cancel the move/copy
-				GUI.statusBar:SetStatusText("",0)
-				GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-				GUI.MoveTask = nil
-				GUI.CopyTask = nil
+				Karm.GUI.statusBar:SetStatusText("",0)
+				Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+				Karm.GUI.MoveTask = nil
+				Karm.GUI.CopyTask = nil
 				return
 			end
 			-- Check if the task ID exists in all the loaded spores
@@ -2209,10 +2210,10 @@ function Karm.moveCopyTask(task)
 					taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", str.." Task Under Spore", "")
 					if taskID == "" then
 						-- Cancel the move/copy
-						GUI.statusBar:SetStatusText("",0)
-						GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-						GUI.MoveTask = nil
-						GUI.CopyTask = nil
+						Karm.GUI.statusBar:SetStatusText("",0)
+						Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+						Karm.GUI.MoveTask = nil
+						Karm.GUI.CopyTask = nil
 						return
 					end
 				else
@@ -2220,18 +2221,18 @@ function Karm.moveCopyTask(task)
 				end
 			end		
 			
-			if GUI.MoveTask then	
+			if Karm.GUI.MoveTask then	
 				-- Delete it from db
 				-- Delete from Spores
 				-- Parent of a root node is nil
 				Karm.TaskObject.DeleteFromDB(task)
 				-- Delete from task Tree GUI
-				GUI.taskTree:DeleteTree(task.TaskID)
+				Karm.GUI.taskTree:DeleteTree(task.TaskID)
 			end
 			Karm.TaskObject.updateTaskID(task,taskID)
 			task.Parent = nil
-			task.SporeFile = string.sub(taskList[1].Key,#Globals.ROOTKEY+1,-1)
-			GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
+			task.SporeFile = string.sub(taskList[1].Key,#Karm.Globals.ROOTKEY+1,-1)
+			Karm.GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
 			if task.SubTasks then
 				-- Update the SubTasks parent
@@ -2247,51 +2248,51 @@ function Karm.moveCopyTask(task)
 				local addList = Karm.FilterObject.applyFilterHier(Karm.Filter, task.SubTasks)
 				-- Now add the tasks under the spore in the TaskTree
             	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
-    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
+    	            local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
 	                for intVar = 1,addList.count do
-	                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+	                	local cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
 	                	local cond2 = #addList[intVar].TaskID > #currNode.Key
 	                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                     	while cond1 and not (cond2 and cond3) do
                         	-- Go up the hierarchy
                         	currNode = currNode.Parent
-		                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+		                	cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
 		                	cond2 = #addList[intVar].TaskID > #currNode.Key
 		                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                         end
                     	-- Now currNode has the node which is the right parent
-	                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
+	                    currNode = Karm.GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
 	                    		Text=addList[intVar].Title, Task = addList[intVar]}
-                    	currNode.ForeColor, currNode.BackColor = GUI.getNodeColor(currNode)
+                    	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
                     end
 	            end  -- if addList.count > 0 then ends
 			end		-- if task.SubTasks then ends
-		else		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		else		-- if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- This is to move/copy the task in relation to this task
 			-- This relative might be a Spore root task or a normal hierarchy task
-			if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_UNDER or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_UNDER then
+			if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_UNDER or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_UNDER then
 				-- Sub task handling is same in both cases
-				if GUI.MoveTask then
+				if Karm.GUI.MoveTask then
 					-- Delete it from db
 					-- Delete from Spores
 					Karm.TaskObject.DeleteFromDB(task)
 					-- Delete from task Tree GUI
-					GUI.taskTree:DeleteTree(task.TaskID)
+					Karm.GUI.taskTree:DeleteTree(task.TaskID)
 				end
 				Karm.TaskObject.updateTaskID(task, Karm.TaskObject.getNewChildTaskID(taskList[1].Task))
 				task.Parent = taskList[1].Task
-				GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "Child"}
-			else		-- if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_UNDER or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_UNDER then else
+				Karm.GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "Child"}
+			else		-- if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_UNDER or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_UNDER then else
 				local parent, taskID
 				if not taskList[1].Task.Parent then
 					-- This is a spore root node so will have to ask for the task ID from the user
 					taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", str.." Task", "")
 					if taskID == "" then
 						-- Cancel the move
-						GUI.statusBar:SetStatusText("",0)
-						GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-						GUI.MoveTask = nil
-						GUI.CopyTask = nil
+						Karm.GUI.statusBar:SetStatusText("",0)
+						Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+						Karm.GUI.MoveTask = nil
+						Karm.GUI.CopyTask = nil
 						return
 					end
 					-- Check if the task ID exists in all the loaded spores
@@ -2310,10 +2311,10 @@ function Karm.moveCopyTask(task)
 							taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", str.." Task", "")
 							if taskID == "" then
 								-- Cancel the move
-								GUI.statusBar:SetStatusText("",0)
-								GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-								GUI.MoveTask = nil
-								GUI.CopyTask = nil
+								Karm.GUI.statusBar:SetStatusText("",0)
+								Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+								Karm.GUI.MoveTask = nil
+								Karm.GUI.CopyTask = nil
 								return
 							end
 						else
@@ -2325,23 +2326,23 @@ function Karm.moveCopyTask(task)
 					taskID = Karm.TaskObject.getNewChildTaskID(taskList[1].Task.Parent)
 					parent = taskList[1].Task.Parent
 				end		-- if not taskList[1].Task.Parent then ends
-				if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_ABOVE or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_ABOVE then
+				if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_ABOVE or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_ABOVE then
 					-- Move/Copy Above
-					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "PREV SIBLING"}
+					Karm.GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "PREV SIBLING"}
 				else
 					-- Move?Copy Below
-					GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "NEXT SIBLING"}
+					Karm.GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = "NEXT SIBLING"}
 				end
-				if GUI.MoveTask then
+				if Karm.GUI.MoveTask then
 					-- Delete it from db
 					-- Delete from Spores
 					Karm.TaskObject.DeleteFromDB(task)
-					-- Delete from task Tree GUI
-					GUI.taskTree:DeleteTree(task.TaskID)
+					-- Delete from task Tree Karm.GUI
+					Karm.GUI.taskTree:DeleteTree(task.TaskID)
 				end
 				Karm.TaskObject.updateTaskID(task,taskID)
 				task.Parent = parent
-			end		-- if GUI.MoveTask and GUI.MoveTask.action == GUI.ID_MOVE_UNDER or GUI.CopyTask and GUI.CopyTask.action == GUI.ID_COPY_UNDER then ends				
+			end		-- if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.GUI.ID_MOVE_UNDER or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.GUI.ID_COPY_UNDER then ends				
 			task.SporeFile = taskList[1].Task.SporeFile
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
 			if task.SubTasks then
@@ -2358,63 +2359,63 @@ function Karm.moveCopyTask(task)
 				local addList = Karm.FilterObject.applyFilterHier(Karm.Filter, task.SubTasks)
 				-- Now add the tasks under the spore in the TaskTree
             	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
-    	            local currNode = GUI.taskTree.Nodes[task.TaskID]
+    	            local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
 	                for intVar = 1,addList.count do
-	                	local cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+	                	local cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
 	                	local cond2 = #addList[intVar].TaskID > #currNode.Key
 	                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                     	while cond1 and not (cond2 and cond3) do
                         	-- Go up the hierarchy
                         	currNode = currNode.Parent
-		                	cond1 = currNode.Key ~= Globals.ROOTKEY..task.SporeFile
+		                	cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
 		                	cond2 = #addList[intVar].TaskID > #currNode.Key
 		                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
                         end
                     	-- Now currNode has the node which is the right parent
-	                    currNode = GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
+	                    currNode = Karm.GUI.taskTree:AddNode{Relative=currNode.Key, Relation="Child", Key=addList[intVar].TaskID, 
 	                    		Text=addList[intVar].Title, Task = addList[intVar]}
-                    	currNode.ForeColor, currNode.BackColor = GUI.getNodeColor(currNode)
+                    	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
                     end
 	            end  -- if addList.count > 0 then ends
 			end		-- if task.SubTasks then ends
-		end		-- if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then ends
-		Globals.unsavedSpores[taskList[1].Task.SporeFile] = Karm.SporeData[taskList[1].Task.SporeFile].Title
-		if GUI.MoveTask then
-			Globals.unsavedSpores[GUI.MoveTask.task.SporeFile] = Karm.SporeData[GUI.MoveTask.task.SporeFile].Title
+		end		-- if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then ends
+		Karm.Globals.unsavedSpores[taskList[1].Task.SporeFile] = Karm.SporeData[taskList[1].Task.SporeFile].Title
+		if Karm.GUI.MoveTask then
+			Karm.Globals.unsavedSpores[Karm.GUI.MoveTask.task.SporeFile] = Karm.SporeData[Karm.GUI.MoveTask.task.SporeFile].Title
 		else
-			Globals.unsavedSpores[GUI.CopyTask.task.SporeFile] = Karm.SporeData[GUI.CopyTask.task.SporeFile].Title
+			Karm.Globals.unsavedSpores[Karm.GUI.CopyTask.task.SporeFile] = Karm.SporeData[Karm.GUI.CopyTask.task.SporeFile].Title
 		end
-		GUI.statusBar:SetStatusText("",0)
-		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-		GUI.MoveTask = nil
-		GUI.CopyTask = nil
+		Karm.GUI.statusBar:SetStatusText("",0)
+		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+		Karm.GUI.MoveTask = nil
+		Karm.GUI.CopyTask = nil
 		-- Finish the move
-		GUI.ResetMoveTools()
-		GUI.ResetCopyTools()
-	end		-- if GUI.MoveTask and taskList[1].Task ~= GUI.MoveTask.task or GUI.CopyTask and taskList[1].Task ~= GUI.CopyTask.task then ends
+		Karm.GUI.ResetMoveTools()
+		Karm.GUI.ResetCopyTools()
+	end		-- if Karm.GUI.MoveTask and taskList[1].Task ~= Karm.GUI.MoveTask.task or Karm.GUI.CopyTask and taskList[1].Task ~= Karm.GUI.CopyTask.task then ends
 end		-- function Karm.moveCopyTask ends
 
-function GUI.taskClicked(task)
-	GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
-	if GUI.MoveTask or GUI.CopyTask then
+function Karm.GUI.taskClicked(task)
+	Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
+	if Karm.GUI.MoveTask or Karm.GUI.CopyTask then
 		Karm.moveCopyTask(task)
-	end		-- if GUI.MoveTask then ends here
+	end		-- if Karm.GUI.MoveTask then ends here
 end		-- function taskClicked(task) ends here
 
 function Karm.SetFilterCallBack(filter)
-	GUI.FilterWindowOpen = false
+	Karm.GUI.FilterWindowOpen = false
 	if filter then
 		Karm.Filter = filter
-		GUI.fillTaskTree()
+		Karm.GUI.fillTaskTree()
 	end
 end
 
 function Karm.SetFilter(event)
-	if not GUI.FilterWindowOpen then
-		GUI.FilterForm.filterFormActivate(GUI.frame,Karm.SetFilterCallBack)
-		GUI.FilterWindowOpen = true
+	if not Karm.GUI.FilterWindowOpen then
+		Karm.GUI.FilterForm.filterFormActivate(Karm.GUI.frame,Karm.SetFilterCallBack)
+		Karm.GUI.FilterWindowOpen = true
 	else
-		GUI.FilterForm.frame:SetFocus()
+		Karm.GUI.FilterForm.frame:SetFocus()
 	end
 end
 
@@ -2425,32 +2426,32 @@ function Karm.NewTaskCallBack(task)
 		if AutoFillTask then
 			AutoFillTask(task)
 		end
-		if GUI.TaskWindowOpen.Spore then
+		if Karm.GUI.TaskWindowOpen.Spore then
 			-- Add child to Spore i.e. Create a new root task in the spore
 			-- Add the task to the Karm.SporeData
 			Karm.TaskObject.add2Spore(task,Karm.SporeData[task.SporeFile])
 		else
 			-- Normal Hierarchy add
-			if GUI.TaskWindowOpen.Relation:upper() == "CHILD" then
+			if Karm.GUI.TaskWindowOpen.Relation:upper() == "CHILD" then
 				-- Add child
 				Karm.TaskObject.add2Parent(task, task.Parent, Karm.SporeData[task.SporeFile])
-			elseif GUI.TaskWindowOpen.Relation:upper() == "NEXT SIBLING" then
+			elseif Karm.GUI.TaskWindowOpen.Relation:upper() == "NEXT SIBLING" then
 				-- Add as next sibling
 				if not task.Parent then
 					-- Task is a root task in a spore
 					Karm.TaskObject.add2Spore(task,Karm.SporeData[task.SporeFile])
 					-- Now move it to the right place
-					Karm.TaskObject.bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"AFTER",Karm.SporeData[task.SporeFile])
+					Karm.TaskObject.bubbleTask(task,Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative].Task,"AFTER",Karm.SporeData[task.SporeFile])
 				else
 					-- First add as child
 					Karm.TaskObject.add2Parent(task, task.Parent, Karm.SporeData[task.SporeFile])
 					-- Now move it to the right place
-					Karm.TaskObject.bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"AFTER")
+					Karm.TaskObject.bubbleTask(task,Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative].Task,"AFTER")
 					-- Now modify the GUI keys
-					local currNode = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Parent.LastChild
-					local relative = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative]
+					local currNode = Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative].Parent.LastChild
+					local relative = Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative]
 					while currNode ~= relative do
-						GUI.taskTree:UpdateKeys(currNode)
+						Karm.GUI.taskTree:UpdateKeys(currNode)
 						currNode = currNode.Prev					
 					end
 				end		-- if not task.Parent then ends here
@@ -2460,295 +2461,295 @@ function Karm.NewTaskCallBack(task)
 					-- Task is a root spore node
 					Karm.TaskObject.add2Spore(task,Karm.SporeData[task.SporeFile])
 					-- Now move it to the right place
-					Karm.TaskObject.bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"BEFORE",Karm.SporeData[task.SporeFile])
+					Karm.TaskObject.bubbleTask(task,Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative].Task,"BEFORE",Karm.SporeData[task.SporeFile])
 				else
 					-- First add as child
 					Karm.TaskObject.add2Parent(task, task.Parent, Karm.SporeData[task.SporeFile])
 					-- Now move it to the right place
-					Karm.TaskObject.bubbleTask(task,GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Task,"BEFORE")
-					-- Now modify the GUI keys and add it to the UI
-					local currNode = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative].Parent.LastChild
-					local relative = GUI.taskTree.Nodes[GUI.TaskWindowOpen.Relative]
+					Karm.TaskObject.bubbleTask(task,Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative].Task,"BEFORE")
+					-- Now modify the Karm.GUI keys and add it to the UI
+					local currNode = Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative].Parent.LastChild
+					local relative = Karm.GUI.taskTree.Nodes[Karm.GUI.TaskWindowOpen.Relative]
 					while currNode ~= relative do
-						GUI.taskTree:UpdateKeys(currNode)
+						Karm.GUI.taskTree:UpdateKeys(currNode)
 						currNode = currNode.Prev					
 					end
 					-- Move the relative also
-					GUI.taskTree:UpdateKeys(currNode)
+					Karm.GUI.taskTree:UpdateKeys(currNode)
 					-- Since the Relative ID has changed update the ID in TaskWindowOpen here
-					GUI.TaskWindowOpen.Relative = currNode.Key
+					Karm.GUI.TaskWindowOpen.Relative = currNode.Key
 				end		-- if not task.Parent then ends here
-			end		-- if GUI.TaskWindowOpen.Relation:upper() == "CHILD" then ends here
-		end		-- if GUI.TaskWindowOpen.Spore then ends here
+			end		-- if Karm.GUI.TaskWindowOpen.Relation:upper() == "CHILD" then ends here
+		end		-- if Karm.GUI.TaskWindowOpen.Spore then ends here
 		local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
 		if #taskList == 1 then
-		    GUI.taskTree:AddNode{Relative=GUI.TaskWindowOpen.Relative, Relation=GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
-	    	GUI.taskTree.Nodes[task.TaskID].ForeColor, GUI.taskTree.Nodes[task.TaskID].BackColor = GUI.getNodeColor(GUI.taskTree.Nodes[task.TaskID])
+		    Karm.GUI.taskTree:AddNode{Relative=Karm.GUI.TaskWindowOpen.Relative, Relation=Karm.GUI.TaskWindowOpen.Relation, Key=task.TaskID, Text=task.Title, Task=task}
+	    	Karm.GUI.taskTree.Nodes[task.TaskID].ForeColor, Karm.GUI.taskTree.Nodes[task.TaskID].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[task.TaskID])
 	    end
-		Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
+		Karm.Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
     end		-- if task then ends
-	GUI.TaskWindowOpen = false
+	Karm.GUI.TaskWindowOpen = false
 end
 
 function Karm.EditTaskCallBack(task)
 	if task then
-		-- Replace task into GUI.TaskWindowOpen.Task
-		if not GUI.TaskWindowOpen.Task.Parent then
+		-- Replace task into Karm.GUI.TaskWindowOpen.Task
+		if not Karm.GUI.TaskWindowOpen.Task.Parent then
 			-- This is a root task in the Spore
-			local Spore = Karm.SporeData[GUI.TaskWindowOpen.Task.SporeFile]
+			local Spore = Karm.SporeData[Karm.GUI.TaskWindowOpen.Task.SporeFile]
 			for i=1,#Spore do
-				if Spore[i] == GUI.TaskWindowOpen.Task then
+				if Spore[i] == Karm.GUI.TaskWindowOpen.Task then
 					Spore[i] = task
 					break
 				end
 			end
 		else
-			local parentTask = GUI.TaskWindowOpen.Task.Parent
+			local parentTask = Karm.GUI.TaskWindowOpen.Task.Parent
 			for i=1,#parentTask.SubTasks do
-				if parentTask.SubTasks[i] == GUI.TaskWindowOpen.Task then
+				if parentTask.SubTasks[i] == Karm.GUI.TaskWindowOpen.Task then
 					parentTask.SubTasks[i] = task
 					break
 				end
 			end
 		end
-		-- Update the task in the GUI here
+		-- Update the task in the Karm.GUI here
 		-- Check if the task passes the filter now
 		local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
 		if #taskList == 1 then
 			-- It passes the filter so update the task
-		    GUI.taskTree:UpdateNode(task)
-			GUI.taskTree.Nodes[task.TaskID].ForeColor, GUI.taskTree.Nodes[task.TaskID].BackColor = GUI.getNodeColor(GUI.taskTree.Nodes[task.TaskID])
-			GUI.taskClicked(task)
+		    Karm.GUI.taskTree:UpdateNode(task)
+			Karm.GUI.taskTree.Nodes[task.TaskID].ForeColor, Karm.GUI.taskTree.Nodes[task.TaskID].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[task.TaskID])
+			Karm.GUI.taskClicked(task)
 	    else
 	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
-	    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
+	    	Karm.GUI.taskTree:DeleteSubUpdate(task.TaskID)
 	    end
-		Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
+		Karm.Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
 	end
-	GUI.TaskWindowOpen = false
+	Karm.GUI.TaskWindowOpen = false
 end
 
 function Karm.DeleteTask(event)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
+	Karm.GUI.ResetToggleTools()
 	-- Get the selected task
-	local taskList = GUI.taskTree.Selected
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end
 	for i = 1,#taskList do
-		if taskList[i].Key == Globals.ROOTKEY then
+		if taskList[i].Key == Karm.Globals.ROOTKEY then
 			-- Root node  deleting requested
-			wx.wxMessageBox("Cannot delete the root node!","Root Node Deleting", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			wx.wxMessageBox("Cannot delete the root node!","Root Node Deleting", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 			return
 		end
 	end	
 	local confirm
 	if #taskList > 1 then
-		confirm = wx.wxMessageDialog(GUI.frame,"Are you sure you want to delete all selected tasks and all their child elements?", "Confirm Multiple Delete", wx.wxYES_NO + wx.wxNO_DEFAULT)
+		confirm = wx.wxMessageDialog(Karm.GUI.frame,"Are you sure you want to delete all selected tasks and all their child elements?", "Confirm Multiple Delete", wx.wxYES_NO + wx.wxNO_DEFAULT)
 	else
-		confirm = wx.wxMessageDialog(GUI.frame,"Are you sure you want to delete this task:\n"..taskList[1].Title.."\n and all its child elements?", "Confirm Delete", wx.wxYES_NO + wx.wxNO_DEFAULT)
+		confirm = wx.wxMessageDialog(Karm.GUI.frame,"Are you sure you want to delete this task:\n"..taskList[1].Title.."\n and all its child elements?", "Confirm Delete", wx.wxYES_NO + wx.wxNO_DEFAULT)
 	end
 	local response = confirm:ShowModal()
 	if response == wx.wxID_YES then
 		for i = 1,#taskList do
 			-- Delete from Spores
-			if taskList[i].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+			if taskList[i].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 				-- This is a Spore node
-				Karm.SporeData[taskList[i].Key:sub(#Globals.ROOTKEY+1,-1)] = nil
+				Karm.SporeData[taskList[i].Key:sub(#Karm.Globals.ROOTKEY+1,-1)] = nil
 				Karm.SporeData[0] = Karm.SporeData[0] - 1
-				Globals.unsavedSpores[taskList[i].Key:sub(#Globals.ROOTKEY+1,-1)] = nil
+				Karm.Globals.unsavedSpores[taskList[i].Key:sub(#Karm.Globals.ROOTKEY+1,-1)] = nil
 			else
 				-- This is a normal task
 				Karm.TaskObject.DeleteFromDB(taskList[i].Task)
-				Globals.unsavedSpores[taskList[i].Task.SporeFile] = Karm.SporeData[taskList[i].Task.SporeFile].Title
+				Karm.Globals.unsavedSpores[taskList[i].Task.SporeFile] = Karm.SporeData[taskList[i].Task.SporeFile].Title
 			end
-			GUI.taskTree:DeleteTree(taskList[i].Key)
+			Karm.GUI.taskTree:DeleteTree(taskList[i].Key)
 		end
 	end
 end
 
 function Karm.CopyTaskToggle(event)
 	-- Get the selected task
-	local taskList = GUI.taskTree.Selected
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
-        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_UNDER,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_ABOVE,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_BELOW,nil)
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end			
 	if #taskList > 1 then
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
-        wx.wxMessageBox("Just select a single task to copy.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_UNDER,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_ABOVE,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_BELOW,nil)
+        wx.wxMessageBox("Just select a single task to copy.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end	
-	if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
-		wx.wxMessageBox("Cannot copy the root node or a Spore node. Please select a task to be copied.", "No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+	if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_UNDER,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_ABOVE,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_BELOW,nil)
+		wx.wxMessageBox("Cannot copy the root node or a Spore node. Please select a task to be copied.", "No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 		return
 	end	
-	GUI.ResetMoveTools()
-	GUI.CopyTask = {}
+	Karm.GUI.ResetMoveTools()
+	Karm.GUI.CopyTask = {}
 	-- Check if any other button is toggled then reset that button
 	local ID = event:GetId()
-	GUI.CopyTask.action = ID
-	GUI.CopyTask.task = taskList[1].Task
+	Karm.GUI.CopyTask.action = ID
+	Karm.GUI.CopyTask.task = taskList[1].Task
 	local ID1, ID2, status
-	if ID == GUI.ID_COPY_UNDER then
-		ID1 = GUI.ID_COPY_ABOVE
-		ID2 = GUI.ID_COPY_BELOW
+	if ID == Karm.GUI.ID_COPY_UNDER then
+		ID1 = Karm.GUI.ID_COPY_ABOVE
+		ID2 = Karm.GUI.ID_COPY_BELOW
 		status = "COPY TASK: Click task to copy this task under..."
-	elseif ID == GUI.ID_COPY_ABOVE then
-		ID1 = GUI.ID_COPY_UNDER
-		ID2 = GUI.ID_COPY_BELOW
+	elseif ID == Karm.GUI.ID_COPY_ABOVE then
+		ID1 = Karm.GUI.ID_COPY_UNDER
+		ID2 = Karm.GUI.ID_COPY_BELOW
 		status = "COPY TASK: Click task to copy this task above..."
 	else
-		ID1 = GUI.ID_COPY_ABOVE
-		ID2 = GUI.ID_COPY_UNDER
+		ID1 = Karm.GUI.ID_COPY_ABOVE
+		ID2 = Karm.GUI.ID_COPY_UNDER
 		status = "COPY TASK: Click Task to copy this task below..."
 	end	
-	if GUI.toolbar:GetToolState(ID1) then
-		GUI.toolbar:ToggleTool(ID1,nil)
+	if Karm.GUI.toolbar:GetToolState(ID1) then
+		Karm.GUI.toolbar:ToggleTool(ID1,nil)
 	end
-	if GUI.toolbar:GetToolState(ID2) then
-		GUI.toolbar:ToggleTool(ID2,nil)
+	if Karm.GUI.toolbar:GetToolState(ID2) then
+		Karm.GUI.toolbar:ToggleTool(ID2,nil)
 	end
-	if not (GUI.toolbar:GetToolState(GUI.ID_COPY_ABOVE) or GUI.toolbar:GetToolState(GUI.ID_COPY_UNDER) or GUI.toolbar:GetToolState(GUI.ID_COPY_BELOW)) then
-		GUI.statusBar:SetStatusText("",0)
-		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-		GUI.CopyTask = nil
+	if not (Karm.GUI.toolbar:GetToolState(Karm.GUI.ID_COPY_ABOVE) or Karm.GUI.toolbar:GetToolState(Karm.GUI.ID_COPY_UNDER) or Karm.GUI.toolbar:GetToolState(Karm.GUI.ID_COPY_BELOW)) then
+		Karm.GUI.statusBar:SetStatusText("",0)
+		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+		Karm.GUI.CopyTask = nil
 		return
 	end
-	GUI.frame:SetStatusText(status,0)
-	GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.highLightColor.Red,GUI.highLightColor.Green,GUI.highLightColor.Blue))
+	Karm.GUI.frame:SetStatusText(status,0)
+	Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.highLightColor.Red,Karm.GUI.highLightColor.Green,Karm.GUI.highLightColor.Blue))
 end
 
 function Karm.MoveTaskToggle(event)
 	-- Get the selected task
-	local taskList = GUI.taskTree.Selected
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
-        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_UNDER,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_ABOVE,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_BELOW,nil)
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end			
 	if #taskList > 1 then
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
-        wx.wxMessageBox("Just select a single task to move.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_UNDER,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_ABOVE,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_BELOW,nil)
+        wx.wxMessageBox("Just select a single task to move.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end	
-	if taskList[1].Key:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-		GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
-		wx.wxMessageBox("Cannot move the root node or a Spore node. Please select a task to be moved.", "No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+	if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_UNDER,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_ABOVE,nil)
+		Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_BELOW,nil)
+		wx.wxMessageBox("Cannot move the root node or a Spore node. Please select a task to be moved.", "No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 		return
 	end	
-	GUI.ResetCopyTools()
-	GUI.MoveTask = {}
+	Karm.GUI.ResetCopyTools()
+	Karm.GUI.MoveTask = {}
 	-- Check if any other button is toggled then reset that button
 	local ID = event:GetId()
-	GUI.MoveTask.action = ID
-	GUI.MoveTask.task = taskList[1].Task
+	Karm.GUI.MoveTask.action = ID
+	Karm.GUI.MoveTask.task = taskList[1].Task
 	local ID1, ID2, status
-	if ID == GUI.ID_MOVE_UNDER then
-		ID1 = GUI.ID_MOVE_ABOVE
-		ID2 = GUI.ID_MOVE_BELOW
+	if ID == Karm.GUI.ID_MOVE_UNDER then
+		ID1 = Karm.GUI.ID_MOVE_ABOVE
+		ID2 = Karm.GUI.ID_MOVE_BELOW
 		status = "MOVE TASK: Click task to move this task under..."
-	elseif ID == GUI.ID_MOVE_ABOVE then
-		ID1 = GUI.ID_MOVE_UNDER
-		ID2 = GUI.ID_MOVE_BELOW
+	elseif ID == Karm.GUI.ID_MOVE_ABOVE then
+		ID1 = Karm.GUI.ID_MOVE_UNDER
+		ID2 = Karm.GUI.ID_MOVE_BELOW
 		status = "MOVE TASK: Click task to move this task above..."
 	else
-		ID1 = GUI.ID_MOVE_ABOVE
-		ID2 = GUI.ID_MOVE_UNDER
+		ID1 = Karm.GUI.ID_MOVE_ABOVE
+		ID2 = Karm.GUI.ID_MOVE_UNDER
 		status = "MOVE TASK: Click Task to move this task below..."
 	end	
-	if GUI.toolbar:GetToolState(ID1) then
-		GUI.toolbar:ToggleTool(ID1,nil)
+	if Karm.GUI.toolbar:GetToolState(ID1) then
+		Karm.GUI.toolbar:ToggleTool(ID1,nil)
 	end
-	if GUI.toolbar:GetToolState(ID2) then
-		GUI.toolbar:ToggleTool(ID2,nil)
+	if Karm.GUI.toolbar:GetToolState(ID2) then
+		Karm.GUI.toolbar:ToggleTool(ID2,nil)
 	end
-	if not (GUI.toolbar:GetToolState(GUI.ID_MOVE_ABOVE) or GUI.toolbar:GetToolState(GUI.ID_MOVE_UNDER) or GUI.toolbar:GetToolState(GUI.ID_MOVE_BELOW)) then
-		GUI.statusBar:SetStatusText("",0)
-		GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.defaultColor.Red,GUI.defaultColor.Green,GUI.defaultColor.Blue))
-		GUI.MoveTask = nil
+	if not (Karm.GUI.toolbar:GetToolState(Karm.GUI.ID_MOVE_ABOVE) or Karm.GUI.toolbar:GetToolState(Karm.GUI.ID_MOVE_UNDER) or Karm.GUI.toolbar:GetToolState(Karm.GUI.ID_MOVE_BELOW)) then
+		Karm.GUI.statusBar:SetStatusText("",0)
+		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
+		Karm.GUI.MoveTask = nil
 		return
 	end
-	GUI.frame:SetStatusText(status,0)
-	GUI.statusBar:SetBackgroundColour(wx.wxColour(GUI.highLightColor.Red,GUI.highLightColor.Green,GUI.highLightColor.Blue))
+	Karm.GUI.frame:SetStatusText(status,0)
+	Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.highLightColor.Red,Karm.GUI.highLightColor.Green,Karm.GUI.highLightColor.Blue))
 end
 
-function GUI.ResetCopyTools()
-	GUI.toolbar:ToggleTool(GUI.ID_COPY_UNDER,nil)
-	GUI.toolbar:ToggleTool(GUI.ID_COPY_ABOVE,nil)
-	GUI.toolbar:ToggleTool(GUI.ID_COPY_BELOW,nil)
+function Karm.GUI.ResetCopyTools()
+	Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_UNDER,nil)
+	Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_ABOVE,nil)
+	Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_COPY_BELOW,nil)
 end
 
-function GUI.ResetMoveTools()
-	GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-	GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-	GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+function Karm.GUI.ResetMoveTools()
+	Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_UNDER,nil)
+	Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_ABOVE,nil)
+	Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_BELOW,nil)
 end
 
-function GUI.ResetToggleTools()
-	GUI.ResetMoveTools()
-	GUI.ResetCopyTools()
+function Karm.GUI.ResetToggleTools()
+	Karm.GUI.ResetMoveTools()
+	Karm.GUI.ResetCopyTools()
 end
 
 function Karm.EditTask(event)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
-	if not GUI.TaskWindowOpen then
+	Karm.GUI.ResetToggleTools()
+	if not Karm.GUI.TaskWindowOpen then
 		-- Get the selected task
-		local taskList = GUI.taskTree.Selected
+		local taskList = Karm.GUI.taskTree.Selected
 		if #taskList == 0 then
-            wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
             return
 		end			
 		if #taskList > 1 then
-            wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
             return
 		end		
 		-- Get the new task task ID
 		local taskID = taskList[1].Key
-		if taskID == Globals.ROOTKEY then
+		if taskID == Karm.Globals.ROOTKEY then
 			-- Root node editing requested
-			wx.wxMessageBox("Nothing editable in the root node","Root Node Editing", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			wx.wxMessageBox("Nothing editable in the root node","Root Node Editing", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 			return
-		elseif taskID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		elseif taskID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- Spore node editing requested
-			wx.wxMessageBox("Nothing editable in the spore node","Spore Node Editing", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			wx.wxMessageBox("Nothing editable in the spore node","Spore Node Editing", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 			return
 		else
 			-- A normal task editing requested
-			GUI.TaskWindowOpen = {Task = taskList[1].Task}
-			GUI.TaskForm.taskFormActivate(GUI.frame, Karm.EditTaskCallBack,taskList[1].Task)
+			Karm.GUI.TaskWindowOpen = {Task = taskList[1].Task}
+			Karm.GUI.TaskForm.taskFormActivate(Karm.GUI.frame, Karm.EditTaskCallBack,taskList[1].Task)
 		end
 	end
 end
 
 function Karm.NewTask(event, title)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
-	if not GUI.TaskWindowOpen then
-		local taskList = GUI.taskTree.Selected
+	Karm.GUI.ResetToggleTools()
+	if not Karm.GUI.TaskWindowOpen then
+		local taskList = Karm.GUI.taskTree.Selected
 		if #taskList == 0 then
-            wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
             return
 		end			
 		if #taskList > 1 then
-            wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+            wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
             return
 		end		
 		-- Get the new task task ID
@@ -2759,17 +2760,17 @@ function Karm.NewTask(event, title)
 		-- 2. Spore Node
 		-- 3. Root task node in a Spore
 		-- 4. Normal task node
-		if relativeID == Globals.ROOTKEY then
+		if relativeID == Karm.Globals.ROOTKEY then
 			-- 1. Root node on the tree
-			if event:GetId() == GUI.ID_NEW_PREV_TASK or event:GetId() == GUI.ID_NEW_NEXT_TASK then
-	            wx.wxMessageBox("A sibling for the root node cannot be created.","Root Node Sibling", wx.wxOK + wx.wxCENTRE, GUI.frame)
+			if event:GetId() == Karm.GUI.ID_NEW_PREV_TASK or event:GetId() == Karm.GUI.ID_NEW_NEXT_TASK then
+	            wx.wxMessageBox("A sibling for the root node cannot be created.","Root Node Sibling", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 	            return
 			end						
 			-- This is the root so the request is to create a new spore
 			Karm.createNewSpore(title)
-		elseif relativeID:sub(1,#Globals.ROOTKEY) == Globals.ROOTKEY then
+		elseif relativeID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- 2. Spore Node
-			if event:GetId() == GUI.ID_NEW_PREV_TASK or event:GetId() == GUI.ID_NEW_NEXT_TASK then
+			if event:GetId() == Karm.GUI.ID_NEW_PREV_TASK or event:GetId() == Karm.GUI.ID_NEW_NEXT_TASK then
 				local SporeName
 				if title then
 					SporeName = title
@@ -2782,12 +2783,12 @@ function Karm.NewTask(event, title)
 				Karm.SporeData[SporeName] = Karm.XML2Data({[0]="Task_Spore"}, SporeName)
 				Karm.SporeData[SporeName].Modified = true
 				Karm.SporeData[0] = Karm.SporeData[0] + 1
-				if event:GetId() == GUI.ID_NEW_PREV_TASK then
-	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="PREV SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
+				if event:GetId() == Karm.GUI.ID_NEW_PREV_TASK then
+	            	Karm.GUI.taskTree:AddNode{Relative=relativeID, Relation="PREV SIBLING", Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
 	            else
-	            	GUI.taskTree:AddNode{Relative=relativeID, Relation="NEXT SIBLING", Key=Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
+	            	Karm.GUI.taskTree:AddNode{Relative=relativeID, Relation="NEXT SIBLING", Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
 	            end
-	            GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].ForeColor, GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName].BackColor = GUI.getNodeColor(GUI.taskTree.Nodes[Globals.ROOTKEY..SporeName])	
+	            Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].ForeColor, Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName])	
 			else
 				-- This is a Spore so the request is to create a new root task in the spore
 				task.TaskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "New Task", "")
@@ -2816,27 +2817,27 @@ function Karm.NewTask(event, title)
 					end
 				end		
 				-- Parent of a root node is nil		
-				task.SporeFile = string.sub(GUI.taskTree.Nodes[relativeID].Key,#Globals.ROOTKEY+1,-1)
-				GUI.TaskWindowOpen = {Spore = true, Relative = relativeID, Relation = "Child"}
+				task.SporeFile = string.sub(Karm.GUI.taskTree.Nodes[relativeID].Key,#Karm.Globals.ROOTKEY+1,-1)
+				Karm.GUI.TaskWindowOpen = {Spore = true, Relative = relativeID, Relation = "Child"}
 				if title then
 					task.Title = title
-					task.Who = {[0]="Who", count = 1, [1] = {ID = Globals.User, Status = "Active"}}
+					task.Who = {[0]="Who", count = 1, [1] = {ID = Karm.Globals.User, Status = "Active"}}
 					Karm.NewTaskCallBack(task)
 				else
-					GUI.TaskForm.taskFormActivate(GUI.frame, Karm.NewTaskCallBack,task)
+					Karm.GUI.TaskForm.taskFormActivate(Karm.GUI.frame, Karm.NewTaskCallBack,task)
 				end
 			end
 		else
 			-- 3. Root task node in a Spore
 			-- 4. Normal task node
 			-- This is a normal task so the request is to create a new task relative to this task
-			if event:GetId() == GUI.ID_NEW_SUB_TASK then
+			if event:GetId() == Karm.GUI.ID_NEW_SUB_TASK then
 				-- Sub task handling is same in both cases
-				task.TaskID = Karm.TaskObject.getNewChildTaskID(GUI.taskTree.Nodes[relativeID].Task)
-				task.Parent = GUI.taskTree.Nodes[relativeID].Task
-				GUI.TaskWindowOpen = {Relative = relativeID, Relation = "Child"}
+				task.TaskID = Karm.TaskObject.getNewChildTaskID(Karm.GUI.taskTree.Nodes[relativeID].Task)
+				task.Parent = Karm.GUI.taskTree.Nodes[relativeID].Task
+				Karm.GUI.TaskWindowOpen = {Relative = relativeID, Relation = "Child"}
 			else
-				if not GUI.taskTree.Nodes[relativeID].Task.Parent then
+				if not Karm.GUI.taskTree.Nodes[relativeID].Task.Parent then
 					-- This is a spore root node so will have to ask for the task ID from the user
 					task.TaskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "New Task", "")
 					if task.TaskID == "" then
@@ -2865,26 +2866,26 @@ function Karm.NewTask(event, title)
 					end		
 					-- Parent of a root node is nil	
 				else				
-					task.TaskID = Karm.TaskObject.getNewChildTaskID(GUI.taskTree.Nodes[relativeID].Task.Parent)
-					task.Parent = GUI.taskTree.Nodes[relativeID].Task.Parent
+					task.TaskID = Karm.TaskObject.getNewChildTaskID(Karm.GUI.taskTree.Nodes[relativeID].Task.Parent)
+					task.Parent = Karm.GUI.taskTree.Nodes[relativeID].Task.Parent
 				end
-				if event:GetId() == GUI.ID_NEW_PREV_TASK then
-					GUI.TaskWindowOpen = {Relative = relativeID, Relation = "PREV SIBLING"}
+				if event:GetId() == Karm.GUI.ID_NEW_PREV_TASK then
+					Karm.GUI.TaskWindowOpen = {Relative = relativeID, Relation = "PREV SIBLING"}
 				else
-					GUI.TaskWindowOpen = {Relative = relativeID, Relation = "NEXT SIBLING"}
+					Karm.GUI.TaskWindowOpen = {Relative = relativeID, Relation = "NEXT SIBLING"}
 				end
 			end
-			task.SporeFile = GUI.taskTree.Nodes[relativeID].Task.SporeFile
+			task.SporeFile = Karm.GUI.taskTree.Nodes[relativeID].Task.SporeFile
 			if title then
 				task.Title = title
-				task.Who = {[0]="Who", count = 1, [1] = {ID = Globals.User, Status = "Active"}}
+				task.Who = {[0]="Who", count = 1, [1] = {ID = Karm.Globals.User, Status = "Active"}}
 				Karm.NewTaskCallBack(task)
 			else
-				GUI.TaskForm.taskFormActivate(GUI.frame, Karm.NewTaskCallBack,task)
+				Karm.GUI.TaskForm.taskFormActivate(Karm.GUI.frame, Karm.NewTaskCallBack,task)
 			end
-		end		-- if relativeID == Globals.ROOTKEY then ends
+		end		-- if relativeID == Karm.Globals.ROOTKEY then ends
 	else
-		GUI.TaskForm.frame:SetFocus()
+		Karm.GUI.TaskForm.frame:SetFocus()
 	end	
 end
 
@@ -2894,11 +2895,11 @@ function Karm.CharKeyEvent(event)
 	if kc == wx.WXK_ESCAPE then
 		print("Caught Escape")
 		-- Check possible ESCAPE actions
-		if GUI.MoveTask then
-			GUI.MoveTask = nil
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_UNDER,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_ABOVE,nil)
-			GUI.toolbar:ToggleTool(GUI.ID_MOVE_BELOW,nil)
+		if Karm.GUI.MoveTask then
+			Karm.GUI.MoveTask = nil
+			Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_UNDER,nil)
+			Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_ABOVE,nil)
+			Karm.GUI.toolbar:ToggleTool(Karm.GUI.ID_MOVE_BELOW,nil)
 		end			
 	end
 end
@@ -2916,13 +2917,13 @@ end
 
 function Karm.SaveAllSpores(event)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
+	Karm.GUI.ResetToggleTools()
 	for k,v in pairs(Karm.SporeData) do
 		if k ~= 0 then
 			Karm.saveKarmSpore(k)
 		end
 	end
-	Globals.unsavedSpores = {}
+	Karm.Globals.unsavedSpores = {}
 end
 
 function Karm.saveKarmSpore(Spore)
@@ -2930,14 +2931,14 @@ function Karm.saveKarmSpore(Spore)
 	if Karm.SporeData[Spore].Modified then
 		local notOK = true
 		while notOK do
-		    local fileDialog = wx.wxFileDialog(GUI.frame, "Save Spore: "..GUI.taskTree.Nodes[Globals.ROOTKEY..Spore].Title,
+		    local fileDialog = wx.wxFileDialog(Karm.GUI.frame, "Save Spore: "..Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..Spore].Title,
 		                                       "",
 		                                       "",
 		                                       "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
 		                                       wx.wxFD_SAVE)
 		    if fileDialog:ShowModal() == wx.wxID_OK then
 		    	if Karm.SporeData[path] then
-		    		wx.wxMessageBox("Spore already exist select a different name please.","Name Conflict", wx.wxOK + wx.wxCENTRE, GUI.frame)
+		    		wx.wxMessageBox("Spore already exist select a different name please.","Name Conflict", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 		    	else
 		    		notOK = nil
 			    	path = fileDialog:GetPath()
@@ -2953,17 +2954,17 @@ function Karm.saveKarmSpore(Spore)
 		file,err = io.open(path,"w+")
 	end		-- if Karm.SporeData[Spore].Modified then ends
 	if not file then
-        wx.wxMessageBox("Unable to save as file '"..path.."'.\n "..err, "File Save Error", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Unable to save as file '"..path.."'.\n "..err, "File Save Error", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
     else
     	if Spore ~= path then
     		-- Update the Spore File name in all the tasks and the root Spore
 			Karm.SporeData[path] = Karm.SporeData[Spore]    
 			Karm.SporeData[Spore] = nil
 			Karm.SporeData[path].SporeFile = path
-			Karm.SporeData[path].TaskID = Globals.ROOTKEY..path
+			Karm.SporeData[path].TaskID = Karm.Globals.ROOTKEY..path
 			Karm.SporeData[path].Title = Karm.sporeTitle(path)		
-			GUI.taskTree:UpdateKeys(GUI.taskTree.Nodes[Globals.ROOTKEY..Spore],true)
-			GUI.taskTree:UpdateNode(Karm.SporeData[path])
+			Karm.GUI.taskTree:UpdateKeys(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..Spore],true)
+			Karm.GUI.taskTree:UpdateNode(Karm.SporeData[path])
 			-- Now update all sub tasks
 			local taskList = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[path])
 			if #taskList > 0 then
@@ -2975,35 +2976,35 @@ function Karm.saveKarmSpore(Spore)
     	Karm.SporeData[path].Modified = false
     	file:write(Karm.Utility.tableToString2(Karm.SporeData[path]))
     	file:close()
-    	Globals.unsavedSpores[Spore] = nil
+    	Karm.Globals.unsavedSpores[Spore] = nil
     end
 end
 
 function Karm.SaveCurrSpore(event)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
-	local taskList = GUI.taskTree.Selected
+	Karm.GUI.ResetToggleTools()
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-        wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end
 	local Spore
 	if taskList[1].Task.SporeFile then
 		Spore = taskList[1].Task.SporeFile
 	else
-		Spore = taskList[1].Key:sub(#Globals.ROOTKEY + 1,-1)
+		Spore = taskList[1].Key:sub(#Karm.Globals.ROOTKEY + 1,-1)
 	end
 	for i = 2,#taskList do
 		if taskList[i].Task.SporeFile then
 			if Spore ~= taskList[i].Task.SporeFile then
 				-- All selected tasks are not in the same spore
-				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 				return
 			end
 		else
-			if Spore ~= taskList[i].Key:sub(#Globals.ROOTKEY + 1, -1) then
+			if Spore ~= taskList[i].Key:sub(#Karm.Globals.ROOTKEY + 1, -1) then
 				-- All selected tasks are not in the same spore
-				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 				return
 			end
 		end
@@ -3014,8 +3015,8 @@ end
 
 function Karm.loadXML()
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
-    local fileDialog = wx.wxFileDialog(GUI.frame, "Open XML Spore file",
+	Karm.GUI.ResetToggleTools()
+    local fileDialog = wx.wxFileDialog(Karm.GUI.frame, "Open XML Spore file",
                                        "",
                                        "",
                                        "XML Spore files (*.xml)|*.xml|All files (*)|*",
@@ -3044,7 +3045,7 @@ function Karm.loadKarmSpore(file, commands)
 	local Spore
 	do
 		local safeenv = {}
-		setmetatable(safeenv, {__index = Globals.safeenv})
+		setmetatable(safeenv, {__index = Karm.Globals.safeenv})
 		local f,message = loadfile(file)
 		if not f then
 			error({msg = "loadKarmSpore:4 "..message, code = "loadKarmSpore:4"},2)
@@ -3067,8 +3068,8 @@ function Karm.loadKarmSpore(file, commands)
 			setmetatable(list1[i],{__index=Karm.TaskObject})
 		end
 	end        	
-	-- First update the Globals.ROOTKEY
-	Spore.TaskID = Globals.ROOTKEY..Spore.SporeFile
+	-- First update the Karm.Globals.ROOTKEY
+	Spore.TaskID = Karm.Globals.ROOTKEY..Spore.SporeFile
 	-- Get list of task in the spore
 	list1 = Karm.FilterObject.applyFilterHier(nil,Spore)
 	local reload = nil
@@ -3097,24 +3098,24 @@ function Karm.loadKarmSpore(file, commands)
 	if reload then
 		-- Delete the current spore
 		Karm.SporeData[Spore.SporeFile] = nil
-		if not commands.onlyData and GUI.taskTree.Nodes[Globals.ROOTKEY..Spore.SporeFile] then
-			GUI.taskTree:DeleteTree(Globals.ROOTKEY..Spore.SporeFile)
+		if not commands.onlyData and Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..Spore.SporeFile] then
+			Karm.GUI.taskTree:DeleteTree(Karm.Globals.ROOTKEY..Spore.SporeFile)
 		end
 	end
 	-- Load the spore here
 	Karm.SporeData[Spore.SporeFile] = Spore
 	Karm.SporeData[0] = Karm.SporeData[0] + 1
 	if not commands.onlyData then
-		-- Load the Spore in the GUI here
-		GUI.addSpore(Spore.SporeFile,Spore)
+		-- Load the Spore in the Karm.GUI here
+		Karm.GUI.addSpore(Spore.SporeFile,Spore)
 	end
 	return true
 end
 
 function Karm.openKarmSpore(event)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
-    local fileDialog = wx.wxFileDialog(GUI.frame, "Open Spore file",
+	Karm.GUI.ResetToggleTools()
+    local fileDialog = wx.wxFileDialog(Karm.GUI.frame, "Open Spore file",
                                        "",
                                        "",
                                        "Karm Spore files (*.ksf)|*.ksf|Text files (*.txt)|*.txt|All files (*)|*",
@@ -3124,7 +3125,7 @@ function Karm.openKarmSpore(event)
         if not result then
             wx.wxMessageBox("Unable to load file '"..fileDialog:GetPath().."'.\n "..message.msg,
                             "File Load Error",
-                            wx.wxOK + wx.wxCENTRE, GUI.frame)
+                            wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         end
     end
     fileDialog:Destroy()
@@ -3136,43 +3137,43 @@ function Karm.unloadKarmSpore(Spore)
 	end
 	Karm.SporeData[Spore] = nil
 	Karm.SporeData[0] = Karm.SporeData[0] - 1
-	GUI.taskTree:DeleteTree(Globals.ROOTKEY..Spore)
-	Globals.unsavedSpores[Spore] = nil
+	Karm.GUI.taskTree:DeleteTree(Karm.Globals.ROOTKEY..Spore)
+	Karm.Globals.unsavedSpores[Spore] = nil
 end
 
 function Karm.unloadSpore(event)
 	-- Reset any toggle tools
-	GUI.ResetToggleTools()
-	local taskList = GUI.taskTree.Selected
+	Karm.GUI.ResetToggleTools()
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-        wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end
 	local Spore
 	if taskList[1].Task.SporeFile then
 		Spore = taskList[1].Task.SporeFile
 	else
-		Spore = taskList[1].Key:sub(#Globals.ROOTKEY + 1,-1)
+		Spore = taskList[1].Key:sub(#Karm.Globals.ROOTKEY + 1,-1)
 	end
 	for i = 2,#taskList do
 		if taskList[i].Task.SporeFile then
 			if Spore ~= taskList[i].Task.SporeFile then
 				-- All selected tasks are not in the same spore
-				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 				return
 			end
 		else
-			if Spore ~= taskList[i].Key:sub(#Globals.ROOTKEY + 1, -1) then
+			if Spore ~= taskList[i].Key:sub(#Karm.Globals.ROOTKEY + 1, -1) then
 				-- All selected tasks are not in the same spore
-				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, GUI.frame)
+				wx.wxMessageBox("Ambiguous Spore selection. Please select task from a single spore.","Ambiguous current Spore", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 				return
 			end
 		end
 	end
 	-- Now Spore has the Spore that needs to be unloaded
 	local confirm, response
-	if Globals.unsavedSpores[Spore] then
-		confirm = wx.wxMessageDialog(GUI.frame,"The spore "..Globals.unsavedSpores[Spore].." has unsaved changes. Are you sure you want to unload the spore and loose all changes?", "Loose all changes?", wx.wxYES_NO + wx.wxNO_DEFAULT)
+	if Karm.Globals.unsavedSpores[Spore] then
+		confirm = wx.wxMessageDialog(Karm.GUI.frame,"The spore "..Karm.Globals.unsavedSpores[Spore].." has unsaved changes. Are you sure you want to unload the spore and loose all changes?", "Loose all changes?", wx.wxYES_NO + wx.wxNO_DEFAULT)
 		response = confirm:ShowModal()
 	else
 		response = wx.wxID_YES
@@ -3182,7 +3183,7 @@ function Karm.unloadSpore(event)
 	end
 end
 
-function GUI.menuEventHandlerFunction(ID, code, file)
+function Karm.GUI.menuEventHandlerFunction(ID, code, file)
 	if not ID or (not code and not file) or (code and file) then
 		error("menuEventHandler: invalid parameters passed, need the ID and only 1 of code chunk or file name.")
 	end
@@ -3267,14 +3268,14 @@ function Karm.finalizePlanning(task)
 		end
 	end		-- if list ends here
 	task.Planning = nil	
-	if GUI.taskTree.taskList then
-		for i = 1,#GUI.taskTree.taskList do
-			if GUI.taskTree.taskList[i] == task then
+	if Karm.GUI.taskTree.taskList then
+		for i = 1,#Karm.GUI.taskTree.taskList do
+			if Karm.GUI.taskTree.taskList[i] == task then
 				-- Remove this one
-				for j = i,#GUI.taskTree.taskList - 1 do
-					GUI.taskTree.taskList[j] = GUI.taskTree.taskList[j + 1]
+				for j = i,#Karm.GUI.taskTree.taskList - 1 do
+					Karm.GUI.taskTree.taskList[j] = Karm.GUI.taskTree.taskList[j + 1]
 				end
-				GUI.taskTree.taskList[#GUI.taskTree.taskList] = nil
+				Karm.GUI.taskTree.taskList[#Karm.GUI.taskTree.taskList] = nil
 				break
 			end
 		end
@@ -3283,31 +3284,31 @@ function Karm.finalizePlanning(task)
 	local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
 	if #taskList == 1 then
 		-- It passes the filter so update the task
-	    GUI.taskTree:UpdateNode(task)
-		GUI.taskClicked(task)
+	    Karm.GUI.taskTree:UpdateNode(task)
+		Karm.GUI.taskClicked(task)
 		-- Update all the parents as well
-		local currNode = GUI.taskTree.Nodes[task.TaskID]
+		local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
 		while currNode and currNode.Parent do
 			currNode = currNode.Parent
 			if currNode.Task then
-				GUI.taskTree:UpdateNode(currNode.Task)
+				Karm.GUI.taskTree:UpdateNode(currNode.Task)
 			end
 		end
     else
     	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
-    	GUI.taskTree:DeleteSubUpdate(task.TaskID)
+    	Karm.GUI.taskTree:DeleteSubUpdate(task.TaskID)
     end
-    Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
+    Karm.Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
 end		-- function Karm.finalizePlanning ends
 
 function Karm.RunFile(file)
 	local f,message = loadfile(file)
 	if not f then
-		wx.wxMessageBox("Error in compilation/loading: "..message,"Error",wx.wxOK + wx.wxCENTRE, GUI.frame)
+		wx.wxMessageBox("Error in compilation/loading: "..message,"Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 	else
 		local stat,message = pcall(f)
 		if not stat then
-			wx.wxMessageBox("Error Running File: "..message,"Error",wx.wxOK + wx.wxCENTRE, GUI.frame)
+			wx.wxMessageBox("Error Running File: "..message,"Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 		end
 	end	
 end
@@ -3315,18 +3316,18 @@ end
 function Karm.RunScript(script)
 	local f,message = loadstring(script)
 	if not f then
-		wx.wxMessageBox("Error in compilation: "..message,"Error",wx.wxOK + wx.wxCENTRE, GUI.frame)
+		wx.wxMessageBox("Error in compilation: "..message,"Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 	else
 		local stat,message = pcall(f)
 		if not stat then
-			wx.wxMessageBox("Error Running Script: "..message,"Error",wx.wxOK + wx.wxCENTRE, GUI.frame)
+			wx.wxMessageBox("Error Running Script: "..message,"Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
 		end
 	end	
 end
 
 function Karm.Macro(event)
 	-- Get the macro details
-	local frame = wx.wxFrame(GUI.frame, wx.wxID_ANY, "Enter Macro Details", wx.wxDefaultPosition,wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)
+	local frame = wx.wxFrame(Karm.GUI.frame, wx.wxID_ANY, "Enter Macro Details", wx.wxDefaultPosition,wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)
 	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
 	local MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)
 		local ScriptPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
@@ -3455,8 +3456,8 @@ end
 
 
 function Karm.main()
-    GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
-                        wx.wxDefaultPosition, wx.wxSize(GUI.initFrameW, GUI.initFrameH),
+    Karm.GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
+                        wx.wxDefaultPosition, wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
 
 	--Toolbar buttons plan 5/10/2012
@@ -3468,92 +3469,92 @@ function Karm.main()
 	-- New Child
 	-- New Next Sibling
 	-- New Previous Sibling
-	GUI.ID_LOAD_XML = Karm.NewID()
-	GUI.ID_LOAD = Karm.NewID()
-	GUI.ID_UNLOAD = Karm.NewID()
-	GUI.ID_SAVEALL = Karm.NewID()
-	GUI.ID_SAVECURR = Karm.NewID()
-	GUI.ID_SET_FILTER = Karm.NewID()
-	GUI.ID_NEW_SUB_TASK = Karm.NewID()
-	GUI.ID_NEW_PREV_TASK = Karm.NewID()
-	GUI.ID_NEW_NEXT_TASK = Karm.NewID()
-	GUI.ID_EDIT_TASK = Karm.NewID()
-	GUI.ID_DEL_TASK = Karm.NewID()
-	GUI.ID_MOVE_UNDER = Karm.NewID()
-	GUI.ID_MOVE_ABOVE = Karm.NewID()
-	GUI.ID_MOVE_BELOW = Karm.NewID()
-	GUI.ID_COPY_UNDER = Karm.NewID()
-	GUI.ID_COPY_ABOVE = Karm.NewID()
-	GUI.ID_COPY_BELOW = Karm.NewID()
-	GUI.ID_LUA_MACRO = Karm.NewID()
+	Karm.GUI.ID_LOAD_XML = Karm.NewID()
+	Karm.GUI.ID_LOAD = Karm.NewID()
+	Karm.GUI.ID_UNLOAD = Karm.NewID()
+	Karm.GUI.ID_SAVEALL = Karm.NewID()
+	Karm.GUI.ID_SAVECURR = Karm.NewID()
+	Karm.GUI.ID_SET_FILTER = Karm.NewID()
+	Karm.GUI.ID_NEW_SUB_TASK = Karm.NewID()
+	Karm.GUI.ID_NEW_PREV_TASK = Karm.NewID()
+	Karm.GUI.ID_NEW_NEXT_TASK = Karm.NewID()
+	Karm.GUI.ID_EDIT_TASK = Karm.NewID()
+	Karm.GUI.ID_DEL_TASK = Karm.NewID()
+	Karm.GUI.ID_MOVE_UNDER = Karm.NewID()
+	Karm.GUI.ID_MOVE_ABOVE = Karm.NewID()
+	Karm.GUI.ID_MOVE_BELOW = Karm.NewID()
+	Karm.GUI.ID_COPY_UNDER = Karm.NewID()
+	Karm.GUI.ID_COPY_ABOVE = Karm.NewID()
+	Karm.GUI.ID_COPY_BELOW = Karm.NewID()
+	Karm.GUI.ID_LUA_MACRO = Karm.NewID()
 	
 	local bM
-	GUI.toolbar = GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
-	local toolBmpSize = GUI.toolbar:GetToolBitmapSize()
+	Karm.GUI.toolbar = Karm.GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
+	local toolBmpSize = Karm.GUI.toolbar:GetToolBitmapSize()
 	bM = wx.wxImage("images/load_xml.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_LOAD_XML, "Load XML", wx.wxBitmap(bM), "Load XML Spore from Disk")
-	GUI.toolbar:AddTool(GUI.ID_LOAD_XML, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
-	GUI.toolbar:AddTool(GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
-	GUI.toolbar:AddTool(GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
-	GUI.toolbar:AddTool(GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
-	GUI.toolbar:AddSeparator()
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LOAD_XML, "Load XML", wx.wxBitmap(bM), "Load XML Spore from Disk")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LOAD_XML, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
+	Karm.GUI.toolbar:AddSeparator()
 	bM = wx.wxImage("images/filter.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_SET_FILTER, "Set Filter", wx.wxBitmap(bM),   "Set Filter Criteria")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_SET_FILTER, "Set Filter", wx.wxBitmap(bM),   "Set Filter Criteria")
 	bM = wx.wxImage("images/new_under.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxBitmap(bM),   "Creat Sub-task")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxBitmap(bM),   "Creat Sub-task")
 	bM = wx.wxImage("images/new_below.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxBitmap(bM),   "Creat  Next task")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxBitmap(bM),   "Creat  Next task")
 	bM = wx.wxImage("images/new_above.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxBitmap(bM),   "Creat Previous task")
-	GUI.toolbar:AddTool(GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxBitmap(bM),   "Creat Previous task")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
 	bM = wx.wxImage("images/delete.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_DEL_TASK, "Delete Task", wx.wxBitmap(bM),   "Delete Task")
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_DEL_TASK, "Delete Task", wx.wxBitmap(bM),   "Delete Task")
 	bM = wx.wxImage("images/move_under.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_MOVE_UNDER, "Move Under", wx.wxBitmap(bM),   "Move Task Under...", wx.wxITEM_CHECK)
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_MOVE_UNDER, "Move Under", wx.wxBitmap(bM),   "Move Task Under...", wx.wxITEM_CHECK)
 	bM = wx.wxImage("images/move_above.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_MOVE_ABOVE, "Move Above", wx.wxBitmap(bM),   "Move task above...", wx.wxITEM_CHECK)
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_MOVE_ABOVE, "Move Above", wx.wxBitmap(bM),   "Move task above...", wx.wxITEM_CHECK)
 	bM = wx.wxImage("images/move_below.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_MOVE_BELOW, "Move Below", wx.wxBitmap(bM),   "Move task below...", wx.wxITEM_CHECK)
-	GUI.toolbar:AddSeparator()
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_MOVE_BELOW, "Move Below", wx.wxBitmap(bM),   "Move task below...", wx.wxITEM_CHECK)
+	Karm.GUI.toolbar:AddSeparator()
 	bM = wx.wxImage("images/copy_under.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_COPY_UNDER, "Copy Under", wx.wxBitmap(bM), "Copy Task Under...", wx.wxITEM_CHECK)
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_COPY_UNDER, "Copy Under", wx.wxBitmap(bM), "Copy Task Under...", wx.wxITEM_CHECK)
 	bM = wx.wxImage("images/copy_above.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_COPY_ABOVE, "Copy Above", wx.wxBitmap(bM), "Copy Task Above...", wx.wxITEM_CHECK)
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_COPY_ABOVE, "Copy Above", wx.wxBitmap(bM), "Copy Task Above...", wx.wxITEM_CHECK)
 	bM = wx.wxImage("images/copy_below.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_COPY_BELOW, "Copy Below", wx.wxBitmap(bM), "Copy Task Below...", wx.wxITEM_CHECK)
-	GUI.toolbar:AddSeparator()
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_COPY_BELOW, "Copy Below", wx.wxBitmap(bM), "Copy Task Below...", wx.wxITEM_CHECK)
+	Karm.GUI.toolbar:AddSeparator()
 	bM = wx.wxImage("images/lua_macro.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	GUI.toolbar:AddTool(GUI.ID_LUA_MACRO, "Run Lua Macro", wx.wxBitmap(bM), "Run Lua Macro...")
-	GUI.toolbar:Realize()
+	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LUA_MACRO, "Run Lua Macro", wx.wxBitmap(bM), "Run Lua Macro...")
+	Karm.GUI.toolbar:Realize()
 
 	-- Create status Bar in the window
-    GUI.statusBar = GUI.frame:CreateStatusBar(2)
+    Karm.GUI.statusBar = Karm.GUI.frame:CreateStatusBar(2)
     -- Text for the 1st field in the status bar
-    GUI.frame:SetStatusText("Welcome to Karm", 0)
-    GUI.frame:SetStatusBarPane(-1)
+    Karm.GUI.frame:SetStatusText("Welcome to Karm", 0)
+    Karm.GUI.frame:SetStatusBarPane(-1)
     -- text for the second field in the status bar
-    --GUI.frame:SetStatusText("Test", 1)
+    --Karm.GUI.frame:SetStatusText("Test", 1)
     -- Set the width of the second field to 25% of the whole window
     local widths = {}
     widths[1]=-3
     widths[2] = -1
-    GUI.frame:SetStatusWidths(widths)
-    GUI.defaultColor.Red = GUI.statusBar:GetBackgroundColour():Red()
-    GUI.defaultColor.Green = GUI.statusBar:GetBackgroundColour():Green()
-    GUI.defaultColor.Blue = GUI.statusBar:GetBackgroundColour():Blue()
+    Karm.GUI.frame:SetStatusWidths(widths)
+    Karm.GUI.defaultColor.Red = Karm.GUI.statusBar:GetBackgroundColour():Red()
+    Karm.GUI.defaultColor.Green = Karm.GUI.statusBar:GetBackgroundColour():Green()
+    Karm.GUI.defaultColor.Blue = Karm.GUI.statusBar:GetBackgroundColour():Blue()
     
     local getMenu
     getMenu = function(menuTable)
@@ -3563,7 +3564,7 @@ function Karm.main()
 				local ID = Karm.NewID()
 				newMenu:Append(ID,menuTable[j].Text,menuTable[j].HelpText, menuTable[j].ItemKind or wx.wxITEM_NORMAL)
 				-- Connect the event for this
-				GUI.frame:Connect(ID, wx.wxEVT_COMMAND_MENU_SELECTED,GUI.menuEventHandlerFunction(ID,menuTable[j].Code,menuTable[j].File))
+				Karm.GUI.frame:Connect(ID, wx.wxEVT_COMMAND_MENU_SELECTED,Karm.GUI.menuEventHandlerFunction(ID,menuTable[j].Code,menuTable[j].File))
 			elseif menuTable[j].Text and menuTable[j].Menu then
 				newMenu:Append(wx.wxID_ANY,menuTable[j].Text,getMenu(menuTable[j].Menu))
 			end
@@ -3572,10 +3573,10 @@ function Karm.main()
     end
 
     -- create the menubar and attach it
-    GUI.menuBar = wx.wxMenuBar()
-	for i = 1,#GUI.MainMenu do
-		if GUI.MainMenu[i].Text and GUI.MainMenu[i].Menu then
-			GUI.menuBar:Append(getMenu(GUI.MainMenu[i].Menu),GUI.MainMenu[i].Text)
+    Karm.GUI.menuBar = wx.wxMenuBar()
+	for i = 1,#Karm.GUI.MainMenu do
+		if Karm.GUI.MainMenu[i].Text and Karm.GUI.MainMenu[i].Menu then
+			Karm.GUI.menuBar:Append(getMenu(Karm.GUI.MainMenu[i].Menu),Karm.GUI.MainMenu[i].Text)
 		end
 	end    
 --    local fileMenu = wx.wxMenu()
@@ -3583,33 +3584,33 @@ function Karm.main()
 --    local helpMenu = wx.wxMenu()
 --    helpMenu:Append(wx.wxID_ABOUT, "&About", "About Karm")
 --
---    GUI.menuBar:Append(fileMenu, "&File")
---    GUI.menuBar:Append(helpMenu, "&Help")
+--    Karm.GUI.menuBar:Append(fileMenu, "&File")
+--    Karm.GUI.menuBar:Append(helpMenu, "&Help")
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
-    GUI.frame:Connect(wx.wxID_ANY, wx.wxEVT_CLOSE_WINDOW,
+    Karm.GUI.frame:Connect(wx.wxID_ANY, wx.wxEVT_CLOSE_WINDOW,
         function (event)
         	local count = 0 
 			local sporeList = ""
-			for k,v in pairs(Globals.unsavedSpores) do 
+			for k,v in pairs(Karm.Globals.unsavedSpores) do 
 				count = count + 1 
-				sporeList = sporeList..Globals.unsavedSpores[k].."\n"
+				sporeList = sporeList..Karm.Globals.unsavedSpores[k].."\n"
 			end 
 			local confirm, response 
 			if count > 0 then 
-				confirm = wx.wxMessageDialog(GUI.frame,"The following spores:\n"..sporeList.." have unsaved changes. Are you sure you want to exit and loose all changes?", "Loose all changes?", wx.wxYES_NO + wx.wxNO_DEFAULT) 
+				confirm = wx.wxMessageDialog(Karm.GUI.frame,"The following spores:\n"..sporeList.." have unsaved changes. Are you sure you want to exit and loose all changes?", "Loose all changes?", wx.wxYES_NO + wx.wxNO_DEFAULT) 
 				response = confirm:ShowModal() 
 			else 
 				response = wx.wxID_YES 
 			end 
 			if response == wx.wxID_YES then 
-				GUI.frame:Destroy() 
+				Karm.GUI.frame:Destroy() 
 			end
         end )
 --
 --    -- connect the selection event of the about menu item
---    GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
+--    Karm.GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
 --        function (event)
 --            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
 --                            wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
@@ -3618,15 +3619,15 @@ function Karm.main()
 --                            frame)
 --        end )
 
-    GUI.frame:SetMenuBar(GUI.menuBar)
-	GUI.vertSplitWin = wx.wxSplitterWindow(GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
-						wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxSP_3D, "Main Vertical Splitter")
-	GUI.vertSplitWin:SetMinimumPaneSize(10)
+    Karm.GUI.frame:SetMenuBar(Karm.GUI.menuBar)
+	Karm.GUI.vertSplitWin = wx.wxSplitterWindow(Karm.GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
+						wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH), wx.wxSP_3D, "Main Vertical Splitter")
+	Karm.GUI.vertSplitWin:SetMinimumPaneSize(10)
 	
-	GUI.taskTree = GUI.newTreeGantt(GUI.vertSplitWin)
+	Karm.GUI.taskTree = Karm.GUI.newTreeGantt(Karm.GUI.vertSplitWin)
 	
 	-- Panel to contain the task details and filter criteria text boxes
-	local detailsPanel = wx.wxPanel(GUI.vertSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
+	local detailsPanel = wx.wxPanel(Karm.GUI.vertSplitWin, wx.wxID_ANY, wx.wxDefaultPosition, 
 							wx.wxDefaultSize, wx.wxTAB_TRAVERSAL, "Task Details Parent Panel")
 	-- Main sizer in the detailsPanel containing everything
 	local boxSizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
@@ -3634,10 +3635,10 @@ function Karm.main()
 	local staticBoxSizer1 = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, detailsPanel, "Task Details")
 	
 	-- Task Details text box
-	GUI.taskDetails = wx.wxTextCtrl(detailsPanel, wx.wxID_ANY, "No Task Selected", 
+	Karm.GUI.taskDetails = wx.wxTextCtrl(detailsPanel, wx.wxID_ANY, "No Task Selected", 
 						wx.wxDefaultPosition, wx.wxDefaultSize, bit.bor(wx.wxTE_AUTO_SCROLL, 
 						wx.wxTE_MULTILINE, wx.wxTE_READONLY), wx.wxDefaultValidator,"Task Details Box")
-	staticBoxSizer1:Add(GUI.taskDetails, 1, bit.bor(wx.wxALL,wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,
+	staticBoxSizer1:Add(Karm.GUI.taskDetails, 1, bit.bor(wx.wxALL,wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,
 						wx.wxALIGN_CENTER_VERTICAL), 2)
 	boxSizer1:Add(staticBoxSizer1, 1, bit.bor(wx.wxALL,wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 1)
@@ -3646,21 +3647,21 @@ function Karm.main()
 	local boxSizer2 = wx.wxBoxSizer(wx.wxVERTICAL)
 	-- Sizer inside box sizer2 containing the date picker controls
 	local boxSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)
-	GUI.dateStartPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
-	local startDate = GUI.dateStartPick:GetValue()
+	Karm.GUI.dateStartPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+	local startDate = Karm.GUI.dateStartPick:GetValue()
 	local month = wx.wxDateSpan(0,1,0,0)
-	GUI.dateFinPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
-	boxSizer3:Add(GUI.dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
+	Karm.GUI.dateFinPick = wx.wxDatePickerCtrl(detailsPanel, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
+	boxSizer3:Add(Karm.GUI.dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 1)
-	boxSizer3:Add(GUI.dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
+	boxSizer3:Add(Karm.GUI.dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 1)
 	boxSizer2:Add(boxSizer3,0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 1)
 	local staticBoxSizer2 = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, detailsPanel, "Filter Criteria")
-	GUI.taskFilter = wx.wxTextCtrl(detailsPanel, wx.wxID_ANY, "No Filter", 
+	Karm.GUI.taskFilter = wx.wxTextCtrl(detailsPanel, wx.wxID_ANY, "No Filter", 
 						wx.wxDefaultPosition, wx.wxDefaultSize, bit.bor(wx.wxTE_AUTO_SCROLL, 
 						wx.wxTE_MULTILINE, wx.wxTE_READONLY), wx.wxDefaultValidator,"Task Filter Criteria")
-	staticBoxSizer2:Add(GUI.taskFilter, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
+	staticBoxSizer2:Add(Karm.GUI.taskFilter, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 2)
 	boxSizer2:Add(staticBoxSizer2, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 
 						wx.wxALIGN_CENTER_VERTICAL), 1)
@@ -3669,68 +3670,68 @@ function Karm.main()
 	detailsPanel:SetSizer(boxSizer1)
 	boxSizer1:Fit(detailsPanel)
 	boxSizer1:SetSizeHints(detailsPanel)
-	GUI.vertSplitWin:SplitHorizontally(GUI.taskTree.horSplitWin, detailsPanel)
-	GUI.vertSplitWin:SetSashPosition(0.7*GUI.initFrameH)
+	Karm.GUI.vertSplitWin:SplitHorizontally(Karm.GUI.taskTree.horSplitWin, detailsPanel)
+	Karm.GUI.vertSplitWin:SetSashPosition(0.7*Karm.GUI.initFrameH)
 
 	-- ********************EVENTS***********************************************************************
 	-- Date Picker Events
-	GUI.dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,GUI.dateRangeChangeEvent)
-	GUI.dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,GUI.dateRangeChangeEvent)
+	Karm.GUI.dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,Karm.GUI.dateRangeChangeEvent)
+	Karm.GUI.dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,Karm.GUI.dateRangeChangeEvent)
 	
 	-- Frame resize event
-	GUI.frame:Connect(wx.wxEVT_SIZE, GUI.frameResize)
+	Karm.GUI.frame:Connect(wx.wxEVT_SIZE, Karm.GUI.frameResize)
 	
 	-- Task Details click event
-	GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print(menuItems) end)
+	Karm.GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print(menuItems) end)
 	
 	-- Toolbar button events
-	GUI.frame:Connect(GUI.ID_LOAD_XML,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.loadXML)
-	GUI.frame:Connect(GUI.ID_SET_FILTER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SetFilter)
-	GUI.frame:Connect(GUI.ID_NEW_SUB_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
-	GUI.frame:Connect(GUI.ID_NEW_NEXT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
-	GUI.frame:Connect(GUI.ID_NEW_PREV_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
-	GUI.frame:Connect(GUI.ID_EDIT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.EditTask)
-	GUI.frame:Connect(GUI.ID_DEL_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.DeleteTask)
-	GUI.frame:Connect(GUI.ID_MOVE_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
-	GUI.frame:Connect(GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
-	GUI.frame:Connect(GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
-	GUI.frame:Connect(GUI.ID_COPY_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
-	GUI.frame:Connect(GUI.ID_COPY_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
-	GUI.frame:Connect(GUI.ID_COPY_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_LOAD_XML,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.loadXML)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_SET_FILTER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SetFilter)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_SUB_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_NEXT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_PREV_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_EDIT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.EditTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_DEL_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.DeleteTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
 	
-	GUI.frame:Connect(GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveCurrSpore)
-	GUI.frame:Connect(GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.openKarmSpore)
-	GUI.frame:Connect(GUI.ID_UNLOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.unloadSpore)
-	GUI.frame:Connect(GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveAllSpores)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveCurrSpore)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.openKarmSpore)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_UNLOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.unloadSpore)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveAllSpores)
 	
-	GUI.frame:Connect(GUI.ID_LUA_MACRO,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.Macro)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_LUA_MACRO,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.Macro)
 
     -- Task selection in task tree
-    GUI.taskTree:associateEventFunc({cellClickCallBack = GUI.taskClicked})
+    Karm.GUI.taskTree:associateEventFunc({cellClickCallBack = Karm.GUI.taskClicked})
     -- *******************EVENTS FINISHED***************************************************************
-    GUI.frame:Layout() -- help sizing the windows before being shown
-    GUI.dateRangeChange()	-- To create the colums for the current date range in the GanttGrid
+    Karm.GUI.frame:Layout() -- help sizing the windows before being shown
+    Karm.GUI.dateRangeChange()	-- To create the colums for the current date range in the GanttGrid
 
-    GUI.taskTree:layout()
+    Karm.GUI.taskTree:layout()
     
     -- Fill the task tree now
-    GUI.fillTaskTree()
+    Karm.GUI.fillTaskTree()
 		
-    wx.wxGetApp():SetTopWindow(GUI.frame)
+    wx.wxGetApp():SetTopWindow(Karm.GUI.frame)
     
 	-- Key Press events
-	--connectKeyUpEvent(GUI.frame)
+	--connectKeyUpEvent(Karm.GUI.frame)
 
 	-- Get the user ID
-    GUI.frame:Show(true)
-	if not Globals.User then
+    Karm.GUI.frame:Show(true)
+	if not Karm.Globals.User then
 		local user = ""
 		while user == "" do
 			user = wx.wxGetTextFromUser("Enter the user ID", "User ID", "")
 		end
-		Globals.User = user
+		Karm.Globals.User = user
 	end
-    GUI.frame:SetTitle("Karm ("..Globals.User..")")
+    Karm.GUI.frame:SetTitle("Karm ("..Karm.Globals.User..")")
 end
 
 function Karm.Initialize()
@@ -3747,7 +3748,7 @@ function Karm.Initialize()
     local textAttr = wx.wxTextAttr()
     textBox:WriteText("Karm")
     sizer:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
     sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
     local panel = wx.wxPanel(splash, wx.wxID_ANY)
 	local image = wx.wxImage("images/SplashImage.bmp",wx.wxBITMAP_TYPE_BMP)
@@ -3772,7 +3773,7 @@ function Karm.Initialize()
     						end)
     timer:Start(3000, true)
     
-	configFile = "KarmConfig.lua"
+	local configFile = "KarmConfig.lua"
 	local f=io.open(configFile,"r")
 	if f~=nil then 
 		io.close(f) 

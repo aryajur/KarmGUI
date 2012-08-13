@@ -8,35 +8,35 @@ Spores = {
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\ExpressIndianRecipes Tasks.ksf",type = "KSF"}
 }
 
--- GUI Settings
-setfenv(1,GUI)
+-- Karm.GUI Settings
+setfenv(1,Karm.GUI)
 --initFrameH = 800
 --initFrameW = 900
 MainMenu = {
 				-- 1st Menu
 				{	
 					Text = "&File", Menu = {
-											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "GUI.frame:Close(true)"}
+											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "Karm.GUI.frame:Close(true)"}
 									}
 				},
 				-- 2nd Menu
 				{	
 					Text = "&Tools", Menu = {
-											{Text = "&Planning Mode\tCtrl-P", HelpText = "Turn on Planning mode", Code = [[local menuItems = GUI.menuBar:GetMenu(1):GetMenuItems() 
+											{Text = "&Planning Mode\tCtrl-P", HelpText = "Turn on Planning mode", Code = [[local menuItems = Karm.GUI.menuBar:GetMenu(1):GetMenuItems() 
 if menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
 	-- Enable Planning Mode 
-	GUI.taskTree:enablePlanningMode() 
+	Karm.GUI.taskTree:enablePlanningMode() 
 else 
 	-- Disable Planning Mode 
-	GUI.taskTree:disablePlanningMode() 
+	Karm.GUI.taskTree:disablePlanningMode() 
 end]] , ItemKind = wx.wxITEM_CHECK},
 											{Text = "Planning Mode ON for &Tasks\tCtrl-T", HelpText = "Turn on Planning Mode for the selected tasks", Code = [[
-	local taskList = GUI.taskTree.Selected
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
     else
     	-- Turn on Planning Mode
-    	local menuItems = GUI.menuBar:GetMenu(1):GetMenuItems() 
+    	local menuItems = Karm.GUI.menuBar:GetMenu(1):GetMenuItems() 
 		menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(true) 
 		local list = {}
 		for i = 1,#taskList do
@@ -44,90 +44,90 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 			if taskList[i].Task and not Karm.TaskObject.IsSpore(taskList[i].Task) then
 				list[#list + 1] = taskList[i].Task
 				-- Mark the unsaved spores list so saving message is displayed
-				Globals.unsavedSpores[taskList[i].Task.SporeFile] = Karm.SporeData[taskList[i].Task.SporeFile].Title
+				Karm.Globals.unsavedSpores[taskList[i].Task.SporeFile] = Karm.SporeData[taskList[i].Task.SporeFile].Title
 			end
 		end
-		GUI.taskTree:enablePlanningMode(list)
+		Karm.GUI.taskTree:enablePlanningMode(list)
 	end
 											
 											]]},
 											{Text = "&Finalize all Planning Schedules\tCtrl-F", HelpText = "Finalize all Planning schedules in the tasks in the UI", Code = [[
-	while #GUI.taskTree.taskList > 0 do
-		Karm.finalizePlanning(GUI.taskTree.taskList[1])
+	while #Karm.GUI.taskTree.taskList > 0 do
+		Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1])
 	end
 											
 											]]},
 											{Text = "&Quick Enter Task Under\tCtrl-Q", HelpText = "Quick Entry of task under this task", Code = [[
 	-- Get the selected task
-	local taskList = GUI.taskTree.Selected
+	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-        wx.wxMessageBox("Select a task under which to create a task.","No Task Selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Select a task under which to create a task.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end	
 	if #taskList > 1 then
-        wx.wxMessageBox("Just select a single task as the parent of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, GUI.frame)
+        wx.wxMessageBox("Just select a single task as the parent of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
         return
 	end		
 	-- Get the task Title
 	local title = wx.wxGetTextFromUser("Please enter the task Title (Blank to Cancel)", "New Task under", "")
 	if title ~= "" then
-		local evt = wx.wxCommandEvent(0,GUI.ID_NEW_SUB_TASK)
+		local evt = wx.wxCommandEvent(0,Karm.GUI.ID_NEW_SUB_TASK)
 		Karm.NewTask(evt,title)
 	end
 											]]},								
-											{Text = "&Schedule Bubble\tCtrl-B", HelpText = "Bubble up the Schedules", Code = [[local menuItems = GUI.menuBar:GetMenu(1):GetMenuItems() 
+											{Text = "&Schedule Bubble\tCtrl-B", HelpText = "Bubble up the Schedules", Code = [[local menuItems = Karm.GUI.menuBar:GetMenu(1):GetMenuItems() 
 if menuItems:Item(4):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
 	-- Enable Bubbling Mode 
-	GUI.taskTree.Bubble = true
-	GUI.fillTaskTree()
+	Karm.GUI.taskTree.Bubble = true
+	Karm.GUI.fillTaskTree()
 else 
 	-- Disable Bubbling Mode 
-	GUI.taskTree.Bubble = false
-	GUI.fillTaskTree()
+	Karm.GUI.taskTree.Bubble = false
+	Karm.GUI.fillTaskTree()
 end]] , ItemKind = wx.wxITEM_CHECK},										
 											{Text = "&Show Work Done\tCtrl-W", HelpText = "Show Actual Work Done", Code = [[
-	GUI.taskTree.ShowActual = true
-	GUI.fillTaskTree()
+	Karm.GUI.taskTree.ShowActual = true
+	Karm.GUI.fillTaskTree()
 											]]},										
 											{Text = "&Show Normal Schedule\tCtrl-N", HelpText = "Show Normal Schedule", Code = [[
-	GUI.taskTree.ShowActual = nil
-	GUI.fillTaskTree()
+	Karm.GUI.taskTree.ShowActual = nil
+	Karm.GUI.fillTaskTree()
 											]]}									
 									}
 				},
 				-- 3rd Menu
 				{	
 					Text = "&Help", Menu = {
-											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,GUI.frame)"}
+											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Karm.Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)"}
 									}
 				}
 }
 setfenv(1,_G)
 -- print(Spores)
 
-Globals.Categories = {
+Karm.Globals.Categories = {
 	"Design",
 	"Definition",
 	"Maintainence"
 }
 
-Globals.SubCategories = {
+Karm.Globals.SubCategories = {
 	"Phase 1",
 	"Development",
 	"Phase 3"
 }
 
-Globals.Resources = {
+Karm.Globals.Resources = {
 	"milind.gupta",
 	"deepshikha.dandora",
 	"arnav.gupta"
 }
 
-Globals.User = "milind.gupta"
-Globals.UserIDPattern = "%'([%w%.%_%,% ]+)%'"
+Karm.Globals.User = "milind.gupta"
+Karm.Globals.UserIDPattern = "%'([%w%.%_%,% ]+)%'"
 
-Globals.safeenv = {}
-setmetatable(Globals.safeenv,{__index = _G})
+Karm.Globals.safeenv = {}
+setmetatable(Karm.Globals.safeenv,{__index = _G})
 --[[
 function AutoFillTask(task)
 	task.Who[#task.Who + 1] = {ID = "deepshikha.dandora", Status = "Inactive"}
@@ -164,7 +164,7 @@ end
 --}
 do
 	local safeenv = {}
-	setmetatable(safeenv, {__index = Globals.safeenv})
+	setmetatable(safeenv, {__index = Karm.Globals.safeenv})
 	local f,message = loadfile("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 	if f then
 		setfenv(f,safeenv)
