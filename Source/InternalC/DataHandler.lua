@@ -1,4 +1,5 @@
 Karm.TaskObject = {}
+Karm.TaskObject.__index = Karm.TaskObject
 Karm.Utility = {}
 -- Task structure
 -- Task.
@@ -1623,7 +1624,7 @@ function Karm.XML2Data(SporeXML, SporeFile)
 				local necessary = 0
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
-				setmetatable(dataStruct[dataStruct.tasks],{__index = Karm.TaskObject})
+				setmetatable(dataStruct[dataStruct.tasks],Karm.TaskObject)
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile
 				-- Set the Previous and next pointers
 				if dataStruct.tasks > 1 then

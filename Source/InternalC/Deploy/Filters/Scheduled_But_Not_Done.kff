@@ -1,0 +1,5 @@
+local year = os.date("%Y")
+local month = os.date("%m")
+local day = os.date("%d")
+local finDay = os.time{year=year,month=month,day=day-1}
+filter={Status="Behind,Not Started,Obsolete,On Track",Schedules="'Full,Latest,01/01/2010-"..os.date("%m",finDay).."/"..os.date("%d",finDay).."/"..os.date("%Y",finDay).."'"}

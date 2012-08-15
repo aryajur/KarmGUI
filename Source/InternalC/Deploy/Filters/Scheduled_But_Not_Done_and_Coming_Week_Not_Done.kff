@@ -1,0 +1,1 @@
+filter={Status="Behind,Not Started,Obsolete,On Track",Schedules="('Full,Latest,01/01/2010-07/16/2012' or 'Overlap,Latest,07/17/2012-07/24/2012')"}

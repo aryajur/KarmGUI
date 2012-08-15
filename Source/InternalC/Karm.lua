@@ -3065,7 +3065,7 @@ function Karm.loadKarmSpore(file, commands)
 	if #list1 > 0 then
 		for i = 1,#list1 do
 			list1[i].SporeFile = Spore.SporeFile
-			setmetatable(list1[i],{__index=Karm.TaskObject})
+			setmetatable(list1[i],Karm.TaskObject)
 		end
 	end        	
 	-- First update the Karm.Globals.ROOTKEY
@@ -3784,16 +3784,16 @@ function Karm.Initialize()
 	local count = 1
 	Karm.SporeData[0] = 0
 	-- print(Spores[count])
-	if Spores then
-		while Spores[count] do
-			if Spores[count].type == "XML" then
+	if Karm.Spores then
+		while Karm.Spores[count] do
+			if Karm.Spores[count].type == "XML" then
 				-- XML file
-				Karm.SporeData[Spores[count].file] = Karm.XML2Data(xml.load(Spores[count].file), Spores[count].file)
-				Karm.SporeData[Spores[count].file].Modified = true
+				Karm.SporeData[Karm.Spores[count].file] = Karm.XML2Data(xml.load(Karm.Spores[count].file), Karm.Spores[count].file)
+				Karm.SporeData[Karm.Spores[count].file].Modified = true
 				Karm.SporeData[0] = Karm.SporeData[0] + 1
 			else
 				-- Normal Karm File
-				local result,message = pcall(Karm.loadKarmSpore,Spores[count].file, {onlyData=true})
+				local result,message = pcall(Karm.loadKarmSpore,Karm.Spores[count].file, {onlyData=true})
 			end
 			count = count + 1
 		end

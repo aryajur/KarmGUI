@@ -1,5 +1,5 @@
 --Spores = {{file = "Test/Tasks.xml",type = "XML"}}
-Spores = {
+Karm.Spores = {
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Task Bank.ksf",type = "KSF"},
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Task Bank.ksf",type = "KSF"},
 		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Tasks.ksf",type = "KSF"},
