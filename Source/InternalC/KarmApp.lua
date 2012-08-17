@@ -10,6579 +10,6579 @@ __MANY2ONEFILES={}
 			end 
 			return package.loaded[str] 
 		end
-		__MANY2ONEFILES['CustomWidgets']="-----------------------------------------------------------------------------\r\
--- Application: Various\r\
--- Purpose:     Custom widgets using wxwidgets\r\
--- Author:      Milind Gupta\r\
--- Created:     2/09/2012\r\
--- Requirements:WxWidgets should be present already in the lua space\r\
------------------------------------------------------------------------------\r\
-local prin\r\
-if Karm.Globals.__DEBUG then\r\
-	prin = print\r\
-end\r\
-local error = error\r\
-local print = prin \r\
-local wx = wx\r\
-local bit = bit\r\
-local type = type\r\
-local string = string\r\
-local tostring = tostring\r\
-local tonumber = tonumber\r\
-local pairs = pairs\r\
-local getfenv = getfenv\r\
-local setfenv = setfenv\r\
-local compareDateRanges = Karm.Utility.compareDateRanges\r\
-local combineDateRanges = Karm.Utility.combineDateRanges\r\
-\r\
-\r\
-local NewID = Karm.NewID    -- This is a function to generate a unique wxID for the application this module is used in\r\
-\r\
-local modname = ...\r\
-module(modname)\r\
-\r\
-if not NewID then\r\
-	local ID_IDCOUNTER = wx.wxID_HIGHEST + 1\r\
-	function NewID()\r\
-	    ID_IDCOUNTER = ID_IDCOUNTER + 1\r\
-	    return ID_IDCOUNTER\r\
-	end\r\
-end\r\
-	\r\
--- Object to generate and manage a check list \r\
-do\r\
-	local objMap = {}		-- private static variable\r\
-	local imageList\r\
-	\r\
-	local getSelectedItems = function(o)\r\
-		local selItems = {}\r\
-		local itemNum = -1\r\
-\r\
-		while o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED) ~= -1 do\r\
-			itemNum = o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			local str\r\
-			local item = wx.wxListItem()\r\
-			item:SetId(itemNum)\r\
-			item:SetMask(wx.wxLIST_MASK_IMAGE)\r\
-			o.List:GetItem(item)\r\
-			if item:GetImage() == 0 then\r\
-				-- Item checked\r\
-				str = o.checkedText\r\
-			else\r\
-				-- Item Unchecked\r\
-				str = o.uncheckedText\r\
-			end\r\
-			item:SetId(itemNum)\r\
-			item:SetColumn(1)\r\
-			item:SetMask(wx.wxLIST_MASK_TEXT)\r\
-			o.List:GetItem(item)\r\
-			-- str = item:GetText()..\",\"..str\r\
-			selItems[#selItems + 1] = {itemText=item:GetText(),checked=str}\r\
-		end\r\
-		return selItems\r\
-	end\r\
-		\r\
-	local getAllItems = function(o)\r\
-		local selItems = {}\r\
-		local itemNum = -1\r\
-\r\
-		while o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL) ~= -1 do\r\
-			itemNum = o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL)\r\
-			local str\r\
-			local item = wx.wxListItem()\r\
-			item:SetId(itemNum)\r\
-			item:SetMask(wx.wxLIST_MASK_IMAGE)\r\
-			o.List:GetItem(item)\r\
-			if item:GetImage() == 0 then\r\
-				-- Item checked\r\
-				str = o.checkedText\r\
-			else\r\
-				-- Item Unchecked\r\
-				str = o.uncheckedText\r\
-			end\r\
-			item:SetId(itemNum)\r\
-			item:SetColumn(1)\r\
-			item:SetMask(wx.wxLIST_MASK_TEXT)\r\
-			o.List:GetItem(item)\r\
-			-- str = item:GetText()..\",\"..str\r\
-			selItems[#selItems + 1] = {itemText=item:GetText(),checked=str}\r\
-		end\r\
-		return selItems\r\
-	end\r\
-\r\
-	local InsertItem = function(o,Item,checked)\r\
-		local ListBox = o.List\r\
-		-- Check if the Item exists in the list control\r\
-		local itemNum = -1\r\
-		-- print(ListBox:GetNextItem(itemNum))\r\
-		while ListBox:GetNextItem(itemNum) ~= -1 do\r\
-			local prevItemNum = itemNum\r\
-			itemNum = ListBox:GetNextItem(itemNum)\r\
-			local obj = wx.wxListItem()\r\
-			obj:SetId(itemNum)\r\
-			obj:SetColumn(1)\r\
-			obj:SetMask(wx.wxLIST_MASK_TEXT)\r\
-			ListBox:GetItem(obj)\r\
-			local itemText = obj:GetText()\r\
-			if itemText == Item then\r\
-				-- Get checked status and update\r\
-				if checked then\r\
-					ListBox:SetItemImage(itemNum,0)\r\
-				else\r\
-					ListBox:SetItemImage(itemNum,1)\r\
-				end				\r\
-				return true\r\
-			end\r\
-			if itemText > Item then\r\
-				itemNum = prevItemNum\r\
-				break\r\
-			end \r\
-		end\r\
-		-- itemNum contains the item after which to place item\r\
-		if itemNum == -1 then\r\
-			itemNum = 0\r\
-		else \r\
-			itemNum = itemNum + 1\r\
-		end\r\
-		local newItem = wx.wxListItem()\r\
-		local img\r\
-		newItem:SetId(itemNum)\r\
-		--newItem:SetText(Item)\r\
-		if checked then\r\
-			newItem:SetImage(0)\r\
-		else\r\
-			newItem:SetImage(1)\r\
-		end				\r\
-		--newItem:SetTextColour(wx.wxColour(wx.wxBLACK))\r\
-		ListBox:InsertItem(newItem)\r\
-		ListBox:SetItem(itemNum,1,Item)\r\
-		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)		\r\
-		ListBox:SetColumnWidth(1,wx.wxLIST_AUTOSIZE)		\r\
-		return true\r\
-	end\r\
-\r\
-	local ResetCtrl = function(o)\r\
-		o.List:DeleteAllItems()\r\
-		o.List:SetImageList(imageList,wx.wxIMAGE_LIST_SMALL)\r\
-	end\r\
-\r\
-	local RightClick = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-		--o.List:SetImageList(o.mageList,wx.wxIMAGE_LIST_SMALL)\r\
-		local item = wx.wxListItem()\r\
-		local itemNum = event:GetIndex()\r\
-		item:SetId(itemNum)\r\
-		item:SetMask(wx.wxLIST_MASK_IMAGE)\r\
-		o.List:GetItem(item)\r\
-		if item:GetImage() == 0 then\r\
-			--item:SetImage(1)\r\
-			o.List:SetItemColumnImage(item:GetId(),0,1)\r\
-		else\r\
-			--item:SetImage(0)\r\
-			o.List:SetItemColumnImage(item:GetId(),0,0)\r\
-		end\r\
-		event:Skip()\r\
-	end\r\
-\r\
-	CheckListCtrl = function(parent,noneSelection,checkedText,uncheckedText,singleSelection)\r\
-		if not parent then\r\
-			return nil\r\
-		end\r\
-		local o = {ResetCtrl = ResetCtrl, InsertItem = InsertItem, getSelectedItems = getSelectedItems, getAllItems = getAllItems}	-- new object\r\
-		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		o.checkedText = checkedText or \"YES\"\r\
-		o.uncheckedText = uncheckedText or \"NO\"\r\
-		local ID\r\
-		ID = NewID()	\r\
-		if singleSelection then	\r\
-			o.List = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_SINGLE_SEL+wx.wxLC_NO_HEADER)\r\
-		else\r\
-			o.List = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\r\
-		end\r\
-		objMap[ID] = o\r\
-		-- Create the imagelist and add check and uncheck icons\r\
-		imageList = wx.wxImageList(16,16,true,0)\r\
-		local icon = wx.wxIcon()\r\
-		icon:LoadFile(\"images/checked.xpm\",wx.wxBITMAP_TYPE_XPM)\r\
-		imageList:Add(icon)\r\
-		icon:LoadFile(\"images/unchecked.xpm\",wx.wxBITMAP_TYPE_XPM)\r\
-		imageList:Add(icon)\r\
-		o.List:SetImageList(imageList,wx.wxIMAGE_LIST_SMALL)\r\
-		-- Add Items\r\
-		o.List:InsertColumn(0,\"Check\")\r\
-		o.List:InsertColumn(1,\"Options\")\r\
-		o.Sizer:Add(o.List, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		o.List:Connect(wx.wxEVT_COMMAND_LIST_ITEM_RIGHT_CLICK, RightClick)\r\
-		return o\r\
-	end\r\
-	\r\
-end	-- CheckListCtrl ends\r\
-\r\
-\r\
--- Two List boxes and 2 buttons in between class\r\
-do\r\
-	local objMap = {}	-- Private Static variable\r\
-\r\
-	-- This is exposed to the module since it is a generic function for a listBox\r\
-	InsertItem = function(ListBox,Item)\r\
-		-- Check if the Item exists in the list control\r\
-		local itemNum = -1\r\
-		while ListBox:GetNextItem(itemNum) ~= -1 do\r\
-			local prevItemNum = itemNum\r\
-			itemNum = ListBox:GetNextItem(itemNum)\r\
-			local itemText = ListBox:GetItemText(itemNum)\r\
-			if itemText == Item then\r\
-				return true\r\
-			end\r\
-			if itemText > Item then\r\
-				itemNum = prevItemNum\r\
-				break\r\
-			end \r\
-		end\r\
-		-- itemNum contains the item after which to place item\r\
-		if itemNum == -1 then\r\
-			itemNum = 0\r\
-		else \r\
-			itemNum = itemNum + 1\r\
-		end\r\
-		local newItem = wx.wxListItem()\r\
-		newItem:SetId(itemNum)\r\
-		newItem:SetText(Item)\r\
-		newItem:SetTextColour(wx.wxColour(wx.wxBLACK))\r\
-		ListBox:InsertItem(newItem)\r\
-		ListBox:SetItem(itemNum,0,Item)\r\
-		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)\r\
-		return true\r\
-	end\r\
-	\r\
-	local getSelectedItems = function(o)\r\
-		-- Function to return all the selected items in an array\r\
-		-- if the index 0 of the array is true then the none selection checkbox is checked\r\
-		local selItems = {}\r\
-		local SelList = o.SelList\r\
-		local itemNum = -1\r\
-		while SelList:GetNextItem(itemNum) ~= -1 do\r\
-			itemNum = SelList:GetNextItem(itemNum)\r\
-			local itemText = SelList:GetItemText(itemNum)\r\
-			selItems[#selItems + 1] = itemText\r\
-		end\r\
-		-- Finally Check if none selection box exists\r\
-		if o.CheckBox and o.CheckBox:GetValue() then\r\
-			selItems[0] = \"true\"\r\
-		end\r\
-		return selItems\r\
-	end\r\
-	\r\
-	local AddPress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		-- Transfer all selected items from List to SelList\r\
-		local item\r\
-		local o = objMap[event:GetId()]\r\
-		local list = o.List\r\
-		local selList = o.SelList\r\
-		item = list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-		local selItems = {}\r\
-		while item ~= -1 do\r\
-			local itemText = list:GetItemText(item)\r\
-			InsertItem(selList,itemText)			\r\
-			selItems[#selItems + 1] = item	\r\
-			item = list:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-		end\r\
-		for i=#selItems,1,-1 do\r\
-			list:DeleteItem(selItems[i])\r\
-		end\r\
-		if o.TextBox and o.TextBox:GetValue() ~= \"\" then\r\
-			InsertItem(selList,o.TextBox:GetValue())\r\
-			o.TextBox:SetValue(\"\")\r\
-		end\r\
-	end\r\
-	\r\
-	local ResetCtrl = function(o)\r\
-		o.SelList:DeleteAllItems()\r\
-		o.List:DeleteAllItems()\r\
-		if o.CheckBox then\r\
-			o.CheckBox:SetValue(false)\r\
-		end\r\
-	end\r\
-	\r\
-	local RemovePress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		-- Transfer all selected items from SelList to List\r\
-		local item\r\
-		local o = objMap[event:GetId()]\r\
-		local list = o.List\r\
-		local selList = o.SelList\r\
-		item = selList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-		local selItems = {}\r\
-		while item ~= -1 do\r\
-			local itemText = selList:GetItemText(item)\r\
-			InsertItem(list,itemText)			\r\
-			selItems[#selItems + 1] = item	\r\
-			item = selList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-		end\r\
-		for i=#selItems,1,-1 do\r\
-			selList:DeleteItem(selItems[i])\r\
-		end\r\
-	end\r\
-	\r\
-	local AddListData = function(o,items)\r\
-		if items then\r\
-			for i = 1,#items do\r\
-				InsertItem(o.List,items[i])\r\
-			end\r\
-		end\r\
-	end\r\
-	\r\
-	local AddSelListData = function(o,items)\r\
-		for i = 1,#items do\r\
-			local item = o.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL)\r\
-			while item ~= -1 do\r\
-				local itemText = o.List:GetItemText(item)\r\
-				if itemText == items[i] then\r\
-					o.List:DeleteItem(item)\r\
-					break\r\
-				end		\r\
-				item = o.List:GetNextItem(item,wx.wxLIST_NEXT_ALL)	\r\
-			end\r\
-			InsertItem(o.SelList,items[i])\r\
-		end	\r\
-	end\r\
-	\r\
-	MultiSelectCtrl = function(parent, LItems, RItems, noneSelection, textEntry)\r\
-		if not parent then\r\
-			return nil\r\
-		end\r\
-		LItems = LItems or {}\r\
-		RItems = RItems or {} \r\
-		local o = {AddSelListData=AddSelListData, AddListData=AddListData, ResetCtrl=ResetCtrl, getSelectedItems = getSelectedItems}	-- new object\r\
-		-- Create the GUI elements here\r\
-		o.Sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-			o.List = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\r\
-			-- Add Items\r\
-			--local col = wx.wxListItem()\r\
-			--col:SetId(0)\r\
-			o.List:InsertColumn(0,\"Options\")\r\
-			o:AddListData(LItems)\r\
-			sizer1:Add(o.List, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			local ID\r\
-			if textEntry then\r\
-				o.TextBox = wx.wxTextCtrl(parent, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize)\r\
-				sizer1:Add(o.TextBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			end\r\
-			if noneSelection then\r\
-				ID = NewID()\r\
-				local str\r\
-				if type(noneSelection) ~= \"string\" then\r\
-					str = \"None Also Passes\"\r\
-				else\r\
-					str = noneSelection\r\
-				end\r\
-				o.CheckBox = wx.wxCheckBox(parent, ID, str, wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				objMap[ID] = o \r\
-				sizer1:Add(o.CheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			end\r\
-			o.Sizer:Add(sizer1, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			local ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				ID = NewID()\r\
-				o.AddButton = wx.wxButton(parent, ID, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				ButtonSizer:Add(o.AddButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				objMap[ID] = o \r\
-				ID = NewID()\r\
-				o.RemoveButton = wx.wxButton(parent, ID, \"<\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				ButtonSizer:Add(o.RemoveButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				objMap[ID] = o\r\
-			o.Sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			o.SelList = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\r\
-			-- Add Items\r\
-			--col = wx.wxListItem()\r\
-			--col:SetId(0)\r\
-			o.SelList:InsertColumn(0,\"Selections\")\r\
-			o:AddListData(RItems)\r\
-			o.Sizer:Add(o.SelList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		-- Connect the buttons to the event handlers\r\
-		o.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,AddPress)\r\
-		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,RemovePress)\r\
-		return o\r\
-	end\r\
-end\r\
---  MultiSelectCtrl ends\r\
-\r\
--- Boolean Tree and Boolean buttons\r\
-do\r\
-\r\
-	local objMap = {}	-- Private Static variable\r\
-	\r\
-	-- Function to convert a boolean string to a Table\r\
-	-- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones \r\
-	-- on which this operation is performed.\r\
-	-- The table consist of:\r\
-	-- 1. Item - contains the item name\r\
-	-- 2. Parent - contains the parent table\r\
-	-- 3. Children - contains a sequence of tables starting from index = 1 similar to the root table\r\
-	local function convertBoolStr2Tab(str)\r\
-		local boolTab = {Item=\"\",Parent=nil,Children = {},currChild=nil}\r\
-		local strLevel = {}\r\
-		local subMap = {}\r\
-		\r\
-		local getUniqueSubst = function(str,subMap)\r\
-			if not subMap.latest then\r\
-				subMap.latest = 1\r\
-			else \r\
-				subMap.latest = subMap.latest + 1\r\
-			end\r\
-			-- Generate prospective nique string\r\
-			local uStr = \"A\"..tostring(subMap.latest)\r\
-			local done = false\r\
-			while not done do\r\
-				-- Check if this unique string exists in str\r\
-				while string.find(str,\"[%(%s]\"..uStr..\"[%)%s]\") or \r\
-				  string.find(string.sub(str,1,string.len(uStr) + 1),uStr..\"[%)%s]\") or \r\
-				  string.find(string.sub(str,-(string.len(uStr) + 1),-1),\"[%(%s]\"..uStr) do\r\
-					subMap.latest = subMap.latest + 1\r\
-					uStr = \"A\"..tostring(subMap.latest)\r\
-				end\r\
-				done = true\r\
-				-- Check if the str exists in subMap mappings already replaced\r\
-				for k,v in pairs(subMap) do\r\
-					if k ~= \"latest\" then\r\
-						while string.find(v,\"[%(%s]\"..uStr..\"[%)%s]\") or \r\
-						  string.find(string.sub(v,1,string.len(uStr) + 1),uStr..\"[%)%s]\") or \r\
-						  string.find(string.sub(v,-(string.len(uStr) + 1),-1),\"[%(%s]\"..uStr) do\r\
-							done = false\r\
-							subMap.latest = subMap.latest + 1\r\
-							uStr = \"A\"..tostring(subMap.latest)\r\
-						end\r\
-						if done==false then \r\
-							break \r\
-						end\r\
-					end\r\
-				end		-- for k,v in pairs(subMap) do ends\r\
-			end		-- while not done do ends\r\
-			return uStr\r\
-		end		-- function getUniqueSubst(str,subMap) ends\r\
-		\r\
-		local bracketReplace = function(str,subMap)\r\
-			-- Function to replace brackets with substitutions and fill up the subMap (substitution map)\r\
-			-- Make sure the brackets are consistent\r\
-			local _,stBrack = string.gsub(str,\"%(\",\"t\")\r\
-			local _,enBrack = string.gsub(str,\"%)\",\"t\")\r\
-			if stBrack ~= enBrack then\r\
-				error(\"String does not have consistent opening and closing brackets\",2)\r\
-			end\r\
-			local brack = string.find(str,\"%(\")\r\
-			while brack do\r\
-				local init = brack + 1\r\
-				local fin\r\
-				-- find the ending bracket for this one\r\
-				local count = 0	-- to track additional bracket openings\r\
-				for i = init,str:len() do\r\
-					if string.sub(str,i,i) == \"(\" then\r\
-						count = count + 1\r\
-					elseif string.sub(str,i,i) == \")\" then\r\
-						if count == 0 then\r\
-							-- this is the matching bracket\r\
-							fin = i-1\r\
-							break\r\
-						else\r\
-							count = count - 1\r\
-						end\r\
-					end\r\
-				end		-- for i = init,str:len() do ends\r\
-				if count ~= 0 then\r\
-					error(\"String does not have consistent opening and closing brackets\",2)\r\
-				end\r\
-				local uStr = getUniqueSubst(str,subMap)\r\
-				local pre = \"\"\r\
-				local post = \"\"\r\
-				if init > 2 then\r\
-					pre = string.sub(str,1,init-2)\r\
-				end\r\
-				if fin < str:len() - 2 then\r\
-					post = string.sub(str,fin + 2,str:len())\r\
-				end\r\
-				subMap[uStr] = string.sub(str,init,fin)\r\
-				str = pre..\" \"..uStr..\" \"..post\r\
-				-- Now find the next\r\
-				brack = string.find(str,\"%(\")\r\
-			end		-- while brack do ends\r\
-			str = string.gsub(str,\"%s+\",\" \")		-- Remove duplicate spaces\r\
-			str = string.match(str,\"^%s*(.-)%s*$\")\r\
-			return str\r\
-		end		-- function(str,subMap) ends\r\
-		\r\
-		local OperSubst = function(str, subMap,op)\r\
-			-- Function to make the str a simple OR expression\r\
-			op = string.lower(string.match(op,\"%s*([%w%W]+)%s*\"))\r\
-			if not(string.find(str,\" \"..op..\" \") or string.find(str,\" \"..string.upper(op)..\" \")) then\r\
-				return str\r\
-			end\r\
-			str = string.gsub(str,\" \"..string.upper(op)..\" \", \" \"..op..\" \")\r\
-			-- Starting chunk\r\
-			local strt,stp,subStr = string.find(str,\"(.-) \"..op..\" \")\r\
-			local uStr = getUniqueSubst(str,subMap)\r\
-			local newStr = {count = 0} \r\
-			newStr.count = newStr.count + 1\r\
-			newStr[newStr.count] = uStr\r\
-			subMap[uStr] = subStr\r\
-			-- Middle chunks\r\
-			strt,stp,subStr = string.find(str,\" \"..op..\" (.-) \"..op..\" \",stp-op:len()-1)\r\
-			while strt do\r\
-				uStr = getUniqueSubst(str,subMap)\r\
-				newStr.count = newStr.count + 1\r\
-				newStr[newStr.count] = uStr\r\
-				subMap[uStr] = subStr			\r\
-				strt,stp,subStr = string.find(str,\" \"..op..\" (.-) \"..op..\" \",stp-op:len()-1)	\r\
-			end\r\
-			-- Last Chunk\r\
-			strt,stp,subStr = string.find(str,\"^.+ \"..op..\" (.-)$\")\r\
-			uStr = getUniqueSubst(str,subMap)\r\
-			newStr.count = newStr.count + 1\r\
-			newStr[newStr.count] = uStr\r\
-			subMap[uStr] = subStr\r\
-			return newStr\r\
-		end		-- local function ORsubst(str) ends\r\
-		\r\
-		-- First replace all quoted strings in the string with substitutions\r\
-		local strSubMap = {}\r\
-		local _,numQuotes = string.gsub(str,\"%'\",\"t\")\r\
-		if numQuotes%2 ~= 0 then\r\
-			error(\"String does not have consistent opening and closing quotes \\\"'\\\"\",2)\r\
-		end\r\
-		local init,fin = string.find(str,\"'.-'\")\r\
-		while init do\r\
-			local uStr = getUniqueSubst(str,subMap)\r\
-			local pre = \"\"\r\
-			local post = \"\"\r\
-			if init > 1 then\r\
-				pre = string.sub(str,1,init-1)\r\
-			end\r\
-			if fin < str:len() then\r\
-				post = string.sub(str,fin + 1,str:len())\r\
-			end\r\
-			strSubMap[uStr] = str:sub(init,fin)\r\
-			str = pre..\" \"..uStr..\" \"..post\r\
-			-- Now find the next\r\
-			init,fin = string.find(str,\"'.-'\")\r\
-		end		-- while brack do ends\r\
-		strLevel[boolTab] = str\r\
-		-- Start recursive loop here\r\
-		local currTab = boolTab\r\
-		while currTab do\r\
-			-- Remove all brackets\r\
-			strLevel[currTab] = string.gsub(strLevel[currTab],\"%s+\",\" \")\r\
-			strLevel[currTab] = bracketReplace(strLevel[currTab],subMap)\r\
-			-- Check what type of element this is\r\
-			if not(string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") \r\
-			  or string.find(strLevel[currTab],\" and \") or string.find(strLevel[currTab],\" AND \") \r\
-			  or string.find(strLevel[currTab],\" not \") or string.find(strLevel[currTab],\" NOT \")\r\
-			  or string.upper(string.sub(strLevel[currTab],1,4)) == \"NOT \"\r\
-			  or subMap[strLevel[currTab]]) then\r\
-				-- This is a simple element\r\
-				if currTab.Item == \"#NOT()#\" then\r\
-					currTab.Children[1] = {Item = strLevel[currTab],Parent=currTab}\r\
-				else\r\
-					currTab.Item = strLevel[currTab]\r\
-					currTab.Children = nil\r\
-				end\r\
-				-- Return one level up\r\
-				currTab = currTab.Parent\r\
-				while currTab do\r\
-					if currTab.currChild < #currTab.Children then\r\
-						currTab.currChild = currTab.currChild + 1\r\
-						currTab = currTab.Children[currTab.currChild]\r\
-						break\r\
-					else\r\
-						currTab.currChild = nil\r\
-						currTab = currTab.Parent\r\
-					end\r\
-				end\r\
-			elseif not(string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") \r\
-			  or string.find(strLevel[currTab],\" and \") or string.find(strLevel[currTab],\" AND \") \r\
-			  or string.find(strLevel[currTab],\" not \") or string.find(strLevel[currTab],\" NOT \")\r\
-			  or string.upper(string.sub(strLevel[currTab],1,4)) == \"NOT \")\r\
-			  and subMap[strLevel[currTab]] then\r\
-				-- This is a substitution as a whole\r\
-				local temp = strLevel[currTab] \r\
-				strLevel[currTab] = subMap[temp]\r\
-				subMap[temp] = nil\r\
-			else\r\
-				-- This is a normal expression\r\
-				if string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") then\r\
-					-- The expression has OR operators\r\
-					-- Transform to a simple OR expression\r\
-					local simpStr = OperSubst(strLevel[currTab],subMap,\"OR\")\r\
-					if currTab.Item == \"#NOT()#\" then\r\
-						currTab.Item = \"#NOT(OR)#\"\r\
-					else\r\
-						currTab.Item = \"#OR#\"\r\
-					end\r\
-					-- Now allchildren need to be added and we must evaluate each child\r\
-					for i = 1,#simpStr do\r\
-						currTab.Children[#currTab.Children + 1] = {Item=\"\", Parent = currTab,Children={},currChild=nil}\r\
-						strLevel[currTab.Children[#currTab.Children]] = simpStr[i]\r\
-					end \r\
-					currTab.currChild = 1\r\
-					currTab = currTab.Children[1]\r\
-				elseif string.find(strLevel[currTab],\" and \") or string.find(strLevel[currTab],\" AND \") then\r\
-					-- The expression does not have OR operators but has AND operators\r\
-					-- Transform to a simple AND expression\r\
-					local simpStr = OperSubst(strLevel[currTab],subMap,\"AND\")\r\
-					if currTab.Item == \"#NOT()#\" then\r\
-						currTab.Item = \"#NOT(AND)#\"\r\
-					else\r\
-						currTab.Item = \"#AND#\"\r\
-					end\r\
-					-- Now allchildren need to be added and we must evaluate each child\r\
-					for i = 1,#simpStr do\r\
-						currTab.Children[#currTab.Children + 1] = {Item=\"\", Parent = currTab,Children={},currChild=nil}\r\
-						strLevel[currTab.Children[#currTab.Children]] = simpStr[i]\r\
-					end \r\
-					currTab.currChild = 1\r\
-					currTab = currTab.Children[1]\r\
-				else\r\
-					-- This is a NOT element\r\
-					strLevel[currTab] = string.gsub(strLevel[currTab],\"NOT\", \"not\")\r\
-					local elem = string.match(strLevel[currTab],\"%s*not%s+([%w%W]+)%s*\")\r\
-					currTab.Item = \"#NOT()#\"\r\
-					strLevel[currTab] = elem\r\
-				end		-- if string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") then ends\r\
-			end \r\
-		end		-- while currTab do ends\r\
-		-- Now recurse boolTab to substitute all the strings back\r\
-		local t = boolTab\r\
-		if strSubMap[t.Item] then\r\
-			t.Item = string.match(strSubMap[t.Item],\"'(.-)'\")\r\
-		end\r\
-		if t.Children then\r\
-			-- Traverse the table to fill up the tree\r\
-			local tIndex = {}\r\
-			tIndex[t] = 1\r\
-			while tIndex[t] <= #t.Children or t.Parent do\r\
-				if tIndex[t] > #t.Children then\r\
-					tIndex[t] = nil\r\
-					t = t.Parent\r\
-				else\r\
-					-- Handle the current element\r\
-					if strSubMap[t.Children[tIndex[t]].Item] then\r\
-						t.Children[tIndex[t]].Item = strSubMap[t.Children[tIndex[t]].Item]:match(\"'(.-)'\")\r\
-					end\r\
-					tIndex[t] = tIndex[t] + 1\r\
-					-- Check if this has children\r\
-					if t.Children[tIndex[t]-1].Children then\r\
-						-- go deeper in the hierarchy\r\
-						t = t.Children[tIndex[t]-1]\r\
-						tIndex[t] = 1\r\
-					end\r\
-				end		-- if tIndex[t] > #t then ends\r\
-			end		-- while tIndex[t] <= #t and t.Parent do ends\r\
-		end	-- if t.Children then ends\r\
-		return boolTab\r\
-	end		-- function convertBoolStr2Tab(str) ends\r\
-\r\
-	-- Function to set the boolean string expression in the tree\r\
-	local function setExpression(o,str)\r\
-		local t = convertBoolStr2Tab(str)\r\
-		local tIndex = {}\r\
-		local tNode = {}\r\
-		local itemText = function(itemStr)\r\
-			-- To return the item text\r\
-			if itemStr == \"#AND#\" then\r\
-				return \"(AND)\"\r\
-			elseif itemStr == \"#OR#\" then\r\
-				return \"(OR)\"\r\
-			elseif itemStr == \"#NOT()#\" then\r\
-				return \"NOT()\"\r\
-			elseif itemStr == \"#NOT(AND)#\" then\r\
-				return \"NOT(AND)\"\r\
-			elseif itemStr == \"#NOT(OR)#\" then\r\
-				return \"NOT(OR)\"\r\
-			else\r\
-				return itemStr\r\
-			end\r\
-		end\r\
-		-- Clear the control\r\
-		o:ResetCtrl()\r\
-		tNode[t] = o.SelTree:AppendItem(o.SelTree:GetRootItem(),itemText(t.Item))\r\
-		if t.Children then\r\
-			-- Traverse the table to fill up the tree\r\
-			tIndex[t] = 1\r\
-			while tIndex[t] <= #t.Children or t.Parent do\r\
-				if tIndex[t] > #t.Children then\r\
-					tIndex[t] = nil\r\
-					t = t.Parent\r\
-				else\r\
-					-- Handle the current element\r\
-					local parentNode \r\
-					parentNode = tNode[t]\r\
-					tNode[t.Children[tIndex[t]]] = o.SelTree:AppendItem(parentNode,itemText(t.Children[tIndex[t]].Item)) \r\
-					tIndex[t] = tIndex[t] + 1\r\
-					-- Check if this has children\r\
-					if t.Children[tIndex[t]-1].Children then\r\
-						-- go deeper in the hierarchy\r\
-						t = t.Children[tIndex[t]-1]\r\
-						tIndex[t] = 1\r\
-					end\r\
-				end		-- if tIndex[t] > #t then ends\r\
-			end		-- while tIndex[t] <= #t and t.Parent do ends\r\
-		end	-- if t.Children then ends\r\
-		o.SelTree:Expand(o.SelTree:GetRootItem())\r\
-	end		-- local function setExpression(o,str) ends\r\
-	\r\
-	local treeRecRef\r\
-	local treeRecurse = function(tree,node)\r\
-		local itemText = tree:GetItemText(node) \r\
-		if itemText == \"(AND)\" or itemText == \"(OR)\" or itemText == \"NOT(OR)\" or itemText == \"NOT(AND)\" then\r\
-			local retText = \"(\" \r\
-			local logic = string.lower(\" \"..string.match(itemText,\"%((.-)%)\")..\" \")\r\
-			if string.sub(itemText,1,3) == \"NOT\" then\r\
-				retText = \"not(\"\r\
-			end\r\
-			local currNode = tree:GetFirstChild(node)\r\
-			retText = retText..treeRecRef(tree,currNode)\r\
-			currNode = tree:GetNextSibling(currNode)\r\
-			while currNode:IsOk() do\r\
-				retText = retText..logic..treeRecRef(tree,currNode)\r\
-				currNode = tree:GetNextSibling(currNode)\r\
-			end\r\
-			return retText..\")\"\r\
-		elseif itemText == \"NOT()\" then\r\
-			return \"not(\"..treeRecRef(tree,tree:GetFirstChild(node))..\")\"\r\
-		else\r\
-			return \"'\"..itemText..\"'\"\r\
-		end\r\
-	end\r\
-	treeRecRef = treeRecurse\r\
-\r\
-	local BooleanExpression = function(o)\r\
-		local tree = o.SelTree\r\
-		local currNode = tree:GetFirstChild(tree:GetRootItem())\r\
-		if currNode:IsOk() then\r\
-			local expr = treeRecurse(tree,currNode)\r\
-			return expr\r\
-		else\r\
-			return nil\r\
-		end		\r\
-	end\r\
-		\r\
-	local CopyTree = function(treeObj,srcItem,destItem)\r\
-		-- This will copy the srcItem and its child tree to as a child of destItem\r\
-		if not srcItem:IsOk() or not destItem:IsOk() then\r\
-			error(\"Expected wxTreeItemIds\",2)\r\
-		end\r\
-		local tree = treeObj.SelTree\r\
-		local currSrcNode = srcItem\r\
-		local currDestNode = destItem\r\
-		-- Copy the currSrcNode under the currDestNode\r\
-		currDestNode = tree:AppendItem(currDestNode,tree:GetItemText(currSrcNode))\r\
-		-- Check if any children\r\
-		if tree:ItemHasChildren(currSrcNode) then\r\
-			currSrcNode = tree:GetFirstChild(currSrcNode)\r\
-			while true do\r\
-				-- Copy the currSrcNode under the currDestNode\r\
-				local currNode = tree:AppendItem(currDestNode,tree:GetItemText(currSrcNode))\r\
-				-- Check if any children\r\
-				if tree:ItemHasChildren(currSrcNode) then\r\
-					currDestNode = currNode\r\
-					currSrcNode = tree:GetFirstChild(currSrcNode)\r\
-				elseif tree:GetNextSibling(currSrcNode):IsOk() then\r\
-					-- There are more items in the same level\r\
-					currSrcNode = tree:GetNextSibling(currSrcNode)\r\
-				else\r\
-					-- No children and no further siblings so go up\r\
-					currSrcNode = tree:GetItemParent(currSrcNode)\r\
-					currDestNode = tree:GetItemParent(currDestNode)\r\
-					while not tree:GetNextSibling(currSrcNode):IsOk() and not(currSrcNode:GetValue() == srcItem:GetValue()) do\r\
-						currSrcNode = tree:GetItemParent(currSrcNode)\r\
-						currDestNode = tree:GetItemParent(currDestNode)\r\
-					end\r\
-					if currSrcNode:GetValue() == srcItem:GetValue() then\r\
-						break\r\
-					end\r\
-					currSrcNode = tree:GetNextSibling(currSrcNode)\r\
-				end		-- if tree:ItemHasChildren(currSrcNode) then ends\r\
-			end		-- while true do ends\r\
-		end		-- if tree:ItemHasChildren(currSrcNode) then ends\r\
-	end\r\
-	\r\
-	local DelTree = function(treeObj,item)\r\
-		if not item:IsOk() then\r\
-			error(\"Expected proper wxTreeItemId\",2)\r\
-		end\r\
-		local tree = treeObj.SelTree\r\
-		local currNode = item\r\
-		if tree:ItemHasChildren(currNode) then\r\
-			currNode = tree:GetFirstChild(currNode)\r\
-			while true do\r\
-				-- Check if any children\r\
-				if tree:ItemHasChildren(currNode) then\r\
-					currNode = tree:GetFirstChild(currNode)\r\
-				elseif tree:GetNextSibling(currNode):IsOk() then\r\
-					-- delete this node\r\
-					-- There are more items in the same level\r\
-					local next = tree:GetNextSibling(currNode)\r\
-					tree:Delete(currNode)\r\
-					currNode = next \r\
-				else\r\
-					-- No children and no further siblings so delete and go up\r\
-					local parent = tree:GetItemParent(currNode)\r\
-					tree:Delete(currNode)\r\
-					currNode = parent\r\
-					while not tree:GetNextSibling(currNode):IsOk() and not(currNode:GetValue() == item:GetValue()) do\r\
-						parent = tree:GetItemParent(currNode)\r\
-						tree:Delete(currNode)\r\
-						currNode = parent\r\
-					end\r\
-					if currNode:GetValue() == item:GetValue() then\r\
-						break\r\
-					end\r\
-					currNode = tree:GetNextSibling(currNode)\r\
-				end		-- if tree:ItemHasChildren(currSrcNode) then ends\r\
-			end		-- while true do ends\r\
-		end		-- if tree:ItemHasChildren(currNode) then ends\r\
-		tree:Delete(currNode)		\r\
-	end\r\
-	\r\
-	local ResetCtrl = function(o)\r\
-		if o.SelTree:GetFirstChild(o.SelTree:GetRootItem()):IsOk() then\r\
-			DelTree(o,o.SelTree:GetFirstChild(o.SelTree:GetRootItem()))\r\
-		end\r\
-	end\r\
-	\r\
-	local DeletePress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local ob = objMap[event:GetId()]\r\
-		local Sel = ob.object.SelTree:GetSelections(Sel)	\r\
-		-- Check if anything selected\r\
-		if #Sel == 0 then\r\
-			return nil\r\
-		end\r\
-		-- Get list of Parents\r\
-		local parents = {}\r\
-		-- Delete all selected\r\
-		for i=1,#Sel do\r\
-			local parent = ob.object.SelTree:GetItemParent(Sel[i])\r\
-			local addParent = true\r\
-			for j = 1,#parents do\r\
-				if parents[j]:GetValue() == parent:GetValue() then\r\
-					addParent = nil\r\
-					break\r\
-				end\r\
-			end\r\
-			if addParent then\r\
-				parents[#parents + 1] = parent\r\
-			end\r\
-			if Sel[i]:GetValue() ~= ob.object.SelTree:GetRootItem():GetValue() then\r\
-				DelTree(ob.object,Sel[i])\r\
-			end\r\
-		end\r\
-		-- Check for any parents that are logic nodes with only 1 child under them\r\
-		for i = 1,#parents do\r\
-			if ob.object.SelTree:GetChildrenCount(parents[i],false) == 1 then\r\
-				local nodeText = ob.object.SelTree:GetItemText(parents[i])\r\
-				if nodeText == \"(OR)\" or nodeText == \"(AND)\" then\r\
-					-- This is a logic node without NOT()\r\
-					-- Delete the Parent and move the children up 1 level\r\
-					-- Move it up the hierarchy\r\
-					local pParent = ob.object.SelTree:GetItemParent(parents[i])\r\
-					-- Copy all children to pParent\r\
-					local currNode = ob.object.SelTree:GetFirstChild(parents[i])\r\
-					while currNode:IsOk() do\r\
-						CopyTree(ob.object,currNode,pParent)\r\
-						currNode = ob.object.SelTree:GetNextSibling(currNode)\r\
-					end\r\
-					DelTree(ob.object,parents[i])\r\
-				elseif nodeText == \"NOT(OR)\" or nodeText == \"NOT(AND)\"  then\r\
-					-- Just change the text to NOT()\r\
-					ob.object.SelTree:SetItemText(node,\"NOT(OR)\")\r\
-				end\r\
-			end\r\
-		end\r\
-		if ob.object.SelTree:GetChildrenCount(ob.object.SelTree:GetRootItem()) == 1 then\r\
-			ob.object.DeleteButton:Disable()\r\
-		end\r\
-	end\r\
-	\r\
-	local NegatePress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local ob = objMap[event:GetId()]\r\
-		local Sel = ob.object.SelTree:GetSelections(Sel)	\r\
-		-- Check if anything selected\r\
-		if #Sel == 0 then\r\
-			return nil\r\
-		end\r\
-		local parent = ob.object.SelTree:GetItemParent(Sel[1])\r\
-		for i = 2,#Sel do\r\
-			if ob.object.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\r\
-				wx.wxMessageBox(\"For multiple selection negate they must all be under the same node.\",\"Selections not at the same level\", wx.wxOK + wx.wxCENTRE, o.parent)\r\
-				return\r\
-			end\r\
-		end\r\
-		if parent:IsOk() then\r\
-			if #Sel == 1 then\r\
-				-- Single Selection\r\
-				-- Check if this is a Logic node\r\
-				local nodeText = ob.object.SelTree:GetItemText(Sel[1])\r\
-				if nodeText == \"(OR)\" or nodeText == \"(AND)\" or nodeText == \"NOT(OR)\" or nodeText == \"NOT(AND)\" or nodeText == \"NOT()\" then\r\
-					-- Just negation of the node has to be done\r\
-					local node = Sel[1]\r\
-					if nodeText == \"(OR)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"NOT(OR)\")\r\
-					elseif nodeText == \"(AND)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"NOT(AND)\")\r\
-					elseif nodeText == \"NOT(OR)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"(OR)\")\r\
-					elseif nodeText == \"NOT(AND)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"(AND)\")\r\
-					else\r\
-						-- NOT()\r\
-						-- Move it up the hierarchy\r\
-						local pParent = ob.object.SelTree:GetItemParent(node)\r\
-						-- Copy all children to pParent\r\
-						local currNode = ob.object.SelTree:GetFirstChild(node)\r\
-						while currNode:IsOk() do\r\
-							CopyTree(ob.object,currNode,pParent)\r\
-							currNode = ob.object.SelTree:GetNextSibling(currNode)\r\
-						end\r\
-						DelTree(ob.object,node)\r\
-					end		-- if parentText == \"(OR)\" then ends here\r\
-				-- Check if the parent just has this child\r\
-				elseif ob.object.SelTree:GetChildrenCount(parent,false) == 1 then\r\
-					local node = parent\r\
-					nodeText = ob.object.SelTree:GetItemText(parent)\r\
-					if nodeText == \"(OR)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"NOT(OR)\")\r\
-					elseif nodeText == \"(AND)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"NOT(AND)\")\r\
-					elseif nodeText == \"NOT(OR)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"(OR)\")\r\
-					elseif nodeText == \"NOT(AND)\" then\r\
-						ob.object.SelTree:SetItemText(node,\"(AND)\")\r\
-					else\r\
-						-- NOT()\r\
-						-- Move it up the hierarchy\r\
-						local pParent = ob.object.SelTree:GetItemParent(node)\r\
-						CopyTree(ob.object,Sel[1],pParent)\r\
-						DelTree(ob.object,node)\r\
-					end		-- if parentText == \"(OR)\" then ends here\r\
-				else\r\
-					local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-					CopyTree(ob.object,Sel[1],currNode)\r\
-					DelTree(ob.object,Sel[1])\r\
-				end		-- if type of node - Logic Node, Single Child node of a parent or one of many children\r\
-			else\r\
-				-- Multiple Selection\r\
-				-- Check if the parent just has these children\r\
-				local parentText = ob.object.SelTree:GetItemText(parent)\r\
-				if ob.object.SelTree:GetChildrenCount(parent,false) == #Sel then\r\
-					-- Just modify the parent text\r\
-					if parentText == \"(OR)\" then\r\
-						ob.object.SelTree:SetItemText(parent,\"NOT(OR)\")\r\
-					elseif parentText == \"(AND)\" then\r\
-						ob.object.SelTree:SetItemText(parent,\"NOT(AND)\")\r\
-					elseif parentText == \"NOT(OR)\" then\r\
-						ob.object.SelTree:SetItemText(parent,\"(OR)\")\r\
-					else -- parentText == \"NOT(AND)\" \r\
-						ob.object.SelTree:SetItemText(parent,\"(AND)\")\r\
-					end\r\
-				else\r\
-					-- First move the selections to a correct new node\r\
-					if parentText == \"(OR)\" or parentText == \"NOT(OR)\" then\r\
-						parentText = \"NOT(OR)\"\r\
-					elseif parentText == \"(AND)\" or parentText == \"NOT(AND)\" then\r\
-						parentText = \"NOT(AND)\" \r\
-					end\r\
-					parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)\r\
-					for i = 1,#Sel do\r\
-						CopyTree(ob.object,Sel[i],parent)\r\
-						DelTree(ob.object,Sel[i])\r\
-					end\r\
-				end\r\
-			end\r\
-		end	-- if parent:IsOk() then\r\
-	end\r\
-	\r\
-	local LogicPress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local ob = objMap[event:GetId()]\r\
-		-- Get the Logic Unit\r\
-		local unit = ob.object.getInfo()\r\
-		if not unit then\r\
-			return nil\r\
-		end\r\
-		\r\
-		local root = ob.object.SelTree:GetRootItem()\r\
-		if ob.object.SelTree:GetCount() == 1 then\r\
-			-- Just add this first object\r\
-			local currNode = ob.object.SelTree:AppendItem(root,unit)\r\
-			ob.object.SelTree:Expand(root)\r\
-			return nil\r\
-		end\r\
-		-- More than 1 item in the tree so now find the selections and  modify the tree\r\
-		local Sel = ob.object.SelTree:GetSelections(Sel)\r\
-		-- Check if anything selected\r\
-		if #Sel == 0 then\r\
-			return nil\r\
-		end\r\
-		\r\
-		-- Check if parent of all selections is the same	\r\
-		if #Sel > 1 then\r\
-        	local parent = ob.object.SelTree:GetItemParent(Sel[1])\r\
-        	for i = 2,#Sel do\r\
-        		if ob.object.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\r\
-        			-- Parent is not common. \r\
-        			wx.wxMessageBox(\"All selected items not siblings!\",\"Error applying operation\", wx.wxICON_ERROR)\r\
-        			return nil\r\
-        		end\r\
-        	end\r\
-        end\r\
-		\r\
-		-- Check if root node selected\r\
-		if #Sel == 1 and ob.object.SelTree:GetRootItem():GetValue() == Sel[1]:GetValue() then\r\
-			-- Root item selected clear Sel and fill up with all children of root\r\
-			Sel = {}\r\
-			local node = ob.object.SelTree:GetFirstChild(ob.object.SelTree:GetRootItem())\r\
-			Sel[#Sel + 1] = node\r\
-			node = ob.object.SelTree:GetNextSibling(node)\r\
-			while node:IsOk() do\r\
-				Sel[#Sel + 1] = node\r\
-				node = ob.object.SelTree:GetNextSibling(node)\r\
-			end\r\
-		end\r\
-		local added = nil\r\
-		if #Sel > 1 then\r\
-			-- Check if all children selected\r\
-			local parent = ob.object.SelTree:GetItemParent(Sel[1])\r\
-			if #Sel == ob.object.SelTree:GetChildrenCount(parent,false) then\r\
-				-- All children of parent are selected\r\
-				-- Check if the unit can be added under the parent itself\r\
-				local parentText = ob.object.SelTree:GetItemText(parent)\r\
-				if ((ob.button == \"AND\" or ob.button == \"NAND\" or ob.button == \"ANDN\" or ob.button == \"NANDN\") and \r\
-						(parentText == \"(AND)\" or parentText == \"NOT(AND)\")) or\r\
-				   ((ob.button == \"OR\" or ob.button == \"NOR\" or ob.button == \"ORN\" or ob.button == \"NORN\") and \r\
-				   		(parentText == \"(OR)\" or parentText == \"NOT(OR)\")) then\r\
-					-- Add the unit under parent\r\
-					if ob.button == \"AND\" or ob.button == \"OR\" then\r\
-						-- Add to parent directly\r\
-						ob.object.SelTree:AppendItem(parent,unit)\r\
-					elseif ob.button == \"NAND\" or ob.button == \"NOR\" then\r\
-						-- Add to parent by negating first\r\
-						local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-						ob.object.SelTree:AppendItem(currNode,unit)\r\
-					elseif ob.button == \"ANDN\" or ob.button == \"ORN\" or ob.button == \"NANDN\" or ob.button == \"NORN\" then\r\
-						if parentText == \"(AND)\" or parentText == \"(OR)\"then\r\
-							-- Move all selected to a negated subnode\r\
-							local newPText \r\
-							if parentText == \"(OR)\" then\r\
-								newPText = \"NOT(OR)\"\r\
-							elseif parentText == \"(AND)\" then\r\
-								newPText = \"NOT(AND)\" \r\
-							end\r\
-							local newParent = ob.object.SelTree:AppendItem(parent,newPText)\r\
-							for i = 1,#Sel do\r\
-								CopyTree(ob.object,Sel[i],newParent)\r\
-								DelTree(ob.object,Sel[i])\r\
-							end\r\
-						elseif parentText == \"NOT(AND)\" then\r\
-							ob.object.SelTree:SetItemText(parent,\"(AND)\")\r\
-						elseif parentText == \"NOT(OR)\" then\r\
-							ob.object.SelTree:SetItemText(parent,\"(OR)\")\r\
-						end\r\
-						-- Now add the unit to the parent\r\
-						if ob.button == \"NANDN\" or ob.button == \"NORN\" then\r\
-							local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-							ob.object.SelTree:AppendItem(currNode,unit)\r\
-						else\r\
-							ob.object.SelTree:AppendItem(parent,unit)\r\
-						end\r\
-					end\r\
-					added = true\r\
-				end\r\
-			end		-- if #Sel < ob.object.SelTree:GetChildrenCount(parent) then ends\r\
-			if not added then\r\
-				-- Move all selected to sub node\r\
-				local parentText = ob.object.SelTree:GetItemText(parent)\r\
-				if parentText == \"(OR)\" or parentText == \"NOT(OR)\" then\r\
-					parentText = \"(OR)\"\r\
-				elseif parentText == \"(AND)\" or parentText == \"NOT(AND)\" then\r\
-					parentText = \"(AND)\" \r\
-				end\r\
-				parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)\r\
-				for i = 1,#Sel do\r\
-					CopyTree(ob.object,Sel[i],parent)\r\
-					DelTree(ob.object,Sel[i])\r\
-				end\r\
-				Sel = {parent}\r\
-			end\r\
-		end\r\
-		if not added then\r\
-			-- Single item selection case\r\
-			-- Check if this is a logic node and the unit can directly be added to it\r\
-			local selText = ob.object.SelTree:GetItemText(Sel[1])\r\
-			if selText == \"(OR)\" and (ob.button == \"OR\" or ob.button == \"NOR\") then\r\
-				if ob.button == \"OR\" then\r\
-					-- Add to parent directly\r\
-					ob.object.SelTree:AppendItem(Sel[1],unit)\r\
-				else\r\
-					-- Add to parent by negating first\r\
-					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\r\
-					ob.object.SelTree:AppendItem(currNode,unit)\r\
-				end\r\
-			elseif  selText == \"(AND)\" and (ob.button == \"AND\" or ob.button == \"NAND\") then\r\
-				if ob.button == \"AND\" then\r\
-					-- Add to parent directly\r\
-					ob.object.SelTree:AppendItem(Sel[1],unit)\r\
-				else\r\
-					-- Add to parent by negating first\r\
-					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\r\
-					ob.object.SelTree:AppendItem(currNode,unit)\r\
-				end\r\
-			elseif selText == \"NOT(OR)\" and (ob.button == \"ORN\" or ob.button == \"NORN\") then\r\
-				if ob.button == \"ORN\" then\r\
-					-- Add to parent directly\r\
-					ob.object.SelTree:AppendItem(Sel[1],unit)\r\
-				else\r\
-					-- Add to parent by negating first\r\
-					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\r\
-					ob.object.SelTree:AppendItem(currNode,unit)\r\
-				end\r\
-				ob.object.SelTree:SetItemText(Sel[1],\"(OR)\")\r\
-			elseif selText == \"NOT(AND)\" and (ob.button == \"ANDN\" or ob.button == \"NANDN\") then\r\
-				if ob.button == \"ANDN\" then\r\
-					-- Add to parent directly\r\
-					ob.object.SelTree:AppendItem(Sel[1],unit)\r\
-				else\r\
-					-- Add to parent by negating first\r\
-					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\r\
-					ob.object.SelTree:AppendItem(currNode,unit)\r\
-				end\r\
-				ob.object.SelTree:SetItemText(Sel[1],\"(AND)\")\r\
-			elseif selText == \"NOT()\" and (ob.button == \"ANDN\" or ob.button == \"NANDN\" or ob.button == \"ORN\" or ob.button == \"NORN\")then\r\
-				if ob.button == \"ANDN\" then\r\
-					ob.object.SelTree:SetItemText(Sel[1],\"(AND)\")\r\
-					ob.object.SelTree:AppendItem(Sel[1],unit)\r\
-				elseif ob.button == \"NANDN\" then\r\
-					ob.object.SelTree:SetItemText(Sel[1],\"(AND)\")\r\
-					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\r\
-					ob.object.SelTree:AppendItem(currNode,unit)\r\
-				elseif ob.button == \"ORN\" then\r\
-					ob.object.SelTree:SetItemText(Sel[1],\"(OR)\")\r\
-					ob.object.SelTree:AppendItem(Sel[1],unit)\r\
-				else\r\
-					ob.object.SelTree:SetItemText(Sel[1],\"(OR)\")\r\
-					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\r\
-					ob.object.SelTree:AppendItem(currNode,unit)\r\
-				end\r\
-			else\r\
-				-- Unit cannot be added to the selected node since that is also a unit\r\
-				local parent = ob.object.SelTree:GetItemParent(Sel[1])\r\
-				local parentText = ob.object.SelTree:GetItemText(parent)\r\
-				-- Handle the directly adding unit to parent cases\r\
-				if (parentText == \"(OR)\" or parentText == \"NOT(OR)\") and  (ob.button == \"OR\" or ob.button == \"NOR\") then\r\
-					if ob.button == \"OR\" then\r\
-						-- Add to parent directly\r\
-						ob.object.SelTree:AppendItem(parent,unit)\r\
-					else\r\
-						-- Add to parent by negating first\r\
-						local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-						ob.object.SelTree:AppendItem(currNode,unit)\r\
-					end\r\
-				elseif (parentText == \"(AND)\" or parentText == \"NOT(AND)\") and (ob.button == \"AND\" or ob.button == \"NAND\") then\r\
-					if ob.button == \"AND\" then\r\
-						-- Add to parent directly\r\
-						ob.object.SelTree:AppendItem(parent,unit)\r\
-					else\r\
-						-- Add to parent by negating first\r\
-						local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-						ob.object.SelTree:AppendItem(currNode,unit)\r\
-					end\r\
-				elseif parentText == \"NOT()\" and (ob.button == \"AND\" or ob.button == \"NAND\" or ob.button == \"OR\" or ob.button == \"NOR\") then\r\
-					-- parentText = \"NOT()\"\r\
-					-- Change Parent text\r\
-					if ob.button == \"NAND\" or ob.button == \"AND\" then\r\
-						ob.object.SelTree:SetItemText(parent,\"NOT(AND)\")\r\
-						if ob.button == \"AND\" then\r\
-							-- Add to parent directly\r\
-							ob.object.SelTree:AppendItem(parent,unit)\r\
-						else\r\
-							-- Add to parent by negating first\r\
-							local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-							ob.object.SelTree:AppendItem(currNode,unit)\r\
-						end\r\
-					elseif ob.button==\"NOR\" or ob.button == \"OR\" then\r\
-						ob.object.SelTree:SetItemText(parent,\"NOT(OR)\")\r\
-						if ob.button == \"OR\" then\r\
-							-- Add to parent directly\r\
-							ob.object.SelTree:AppendItem(parent,unit)\r\
-						else\r\
-							-- Add to parent by negating first\r\
-							local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\r\
-							ob.object.SelTree:AppendItem(currNode,unit)\r\
-						end\r\
-					end\r\
-				else\r\
-					-- Now we need to move this single selected node to a new fresh node in its place and add unit also to that node\r\
-					if ob.button == \"AND\" or ob.button == \"NAND\" or ob.button == \"ANDN\" or ob.button == \"NANDN\" then\r\
-						parentText = \"(AND)\"\r\
-					elseif ob.button == \"OR\" or ob.button == \"NOR\" or ob.button == \"ORN\" or ob.button == \"NORN\" then\r\
-						parentText = \"(OR)\"\r\
-					end\r\
-					local currNode = ob.object.SelTree:AppendItem(parent,parentText)\r\
-					if ob.button == \"ANDN\" or ob.button ==\"NANDN\" or ob.button == \"ORN\" or ob.button == \"NORN\" then\r\
-						local negNode = ob.object.SelTree:AppendItem(currNode,\"NOT()\")\r\
-						CopyTree(ob.object,Sel[1],negNode)\r\
-					else \r\
-						CopyTree(ob.object,Sel[1],currNode)\r\
-					end		\r\
-					DelTree(ob.object,Sel[1])\r\
-					-- Add the unit\r\
-					if ob.button == \"AND\" or ob.button == \"OR\" or ob.button == \"ANDN\" or ob.button == \"ORN\" then\r\
-						-- Add to parent directly\r\
-						ob.object.SelTree:AppendItem(currNode,unit)\r\
-					else\r\
-						-- Add to parent by negating first\r\
-						local negNode = ob.object.SelTree:AppendItem(currNode,\"NOT()\")\r\
-						ob.object.SelTree:AppendItem(negNode,unit)\r\
-					end\r\
-				end		-- if (parentText == \"(OR)\" or parentText == \"NOT(OR)\") and  (ob.button == \"OR\" or ob.button == \"NOR\") then ends\r\
-			end		-- if selText == \"(OR)\" and (ob.button == \"OR\" or ob.button == \"NOR\") then ends\r\
-		end	-- if not added then ends\r\
-		--print(ob.object,ob.button)\r\
-		--print(BooleanTreeCtrl.BooleanExpression(ob.object.SelTree))	\r\
-	end\r\
-	\r\
---[[	local TreeSelChanged = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-        \r\
-        -- Update the Delete Button status\r\
-        local Sel = o.SelTree:GetSelections(Sel)\r\
-        if #Sel == 0 then\r\
-        	o.prevSel = {}\r\
-        	o.DeleteButton:Disable()\r\
-        	return nil\r\
-        end\r\
-        o.DeleteButton:Enable(true)\r\
-    	-- Check here if there are more than 1 difference between Sel and prevSel\r\
-    	local diff = 0\r\
-    	for i = 1,#Sel do\r\
-    		local found = nil\r\
-    		for j = 1,#o.prevSel do\r\
-    			if Sel[i]:GetValue() == o.prevSel[j]:GetValue() then\r\
-    				found = true\r\
-    				break\r\
-    			end\r\
-    		end\r\
-    		if not found then\r\
-    			diff = diff + 1\r\
-    		end\r\
-    	end\r\
-    	-- diff has number of elements in Sel but nout found in o.prevSel\r\
-    	for i = 1,#o.prevSel do\r\
-    		local found = nil\r\
-    		for j = 1,#Sel do\r\
-    			if Sel[j]:GetValue() == o.prevSel[i]:GetValue() then\r\
-    				found = true\r\
-    				break\r\
-    			end\r\
-    		end\r\
-    		if not found then\r\
-    			diff = diff + 1\r\
-    		end\r\
-    	end\r\
-        if #Sel > 1 and diff == 1 then\r\
-        	-- Check here if the selection needs to be modified to keep at the same level\r\
-        	local parent = o.SelTree:GetItemParent(Sel[1])\r\
-        	for i = 2,#Sel do\r\
-        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\r\
-        			-- Need to modify the selection here\r\
-        			-- Find which element was selected last here\r\
-        			local newElem = nil\r\
-        			for j = 1,#Sel do\r\
-        				local found = nil\r\
-        				for k = 1,#o.prevSel do\r\
-        					if Sel[j]:GetValue() == o.prevSel[k]:GetValue() then\r\
-        						found = true\r\
-        						break\r\
-        					end\r\
-        				end\r\
-        				if not found then\r\
-        					newElem = Sel[j]\r\
-        					break\r\
-        				end\r\
-        			end		-- for j = 1,#Sel do ends\r\
-        			-- Now newElem has the newest element so deselect everything and select that\r\
-        			for j = 1,#Sel do\r\
-        				o.SelTree:SelectItem(Sel[j],false)\r\
-        			end\r\
-        			o.SelTree:SelectItem(newElem,true)\r\
-	        		Sel = o.SelTree:GetSelections(Sel)\r\
-					o.prevSel = {}\r\
-					for i = 1,#Sel do\r\
-						o.prevSel[i] = Sel[i]\r\
-					end\r\
-        			break\r\
-        		end		-- if o.SelTree:GetItemParent(Sel[i]) ~= parent then ends\r\
-        	end		-- for i = 2,#Sel do ends\r\
-        end		-- if #Sel > 1 then\r\
---        if #Sel > 1 or o.SelTree:ItemHasChildren(Sel[1]) then\r\
---        	o.DeleteButton:Disable()\r\
---        else\r\
---        	o.DeleteButton:Enable(true)\r\
---        end\r\
-		-- Populate prevSel table\r\
-    	if diff == 1 and math.abs(#Sel-#o.prevSel) == 1 then\r\
-			o.prevSel = {}\r\
-			for i = 1,#Sel do\r\
-				o.prevSel[i] = Sel[i]\r\
-			end\r\
-		elseif diff > 1 and math.abs(#Sel-#o.prevSel) == diff then\r\
-			-- Selection made by Shift Key check if at same hierarchy then update prevSel otherwise rever to prevSel\r\
-        	local parent = o.SelTree:GetItemParent(Sel[1])\r\
-        	local updatePrev = true\r\
-        	for i = 2,#Sel do\r\
-        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\r\
-        			-- Now newElem has the newest element so deselect everything and select that\r\
-        			for j = 1,#Sel do\r\
-        				o.SelTree:SelectItem(Sel[j],false)\r\
-        			end\r\
-        			for j = 1,#o.prevSel do\r\
-        				o.SelTree:SelectItem(o.prevSel[j],true)\r\
-        			end\r\
-        			updatePrev = false\r\
-        			break\r\
-        		end		-- if o.SelTree:GetItemParent(Sel[i]) ~= parent then ends\r\
-        	end		-- for i = 2,#Sel do ends	\r\
-        	if updatePrev then		\r\
-				o.prevSel = {}\r\
-				for i = 1,#Sel do\r\
-					o.prevSel[i] = Sel[i]\r\
-				end\r\
-			end\r\
-		end\r\
-		\r\
-		--event:Skip()\r\
-		--print(o.SelTree:GetItemText(item))\r\
-	end,]]\r\
-	\r\
-	local TreeSelChanged = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-        \r\
-        -- Update the Delete Button status\r\
-        local Sel = o.SelTree:GetSelections(Sel)\r\
-        if #Sel == 0 then\r\
-        	o.prevSel = {}\r\
-        	o.DeleteButton:Disable()\r\
-        	o.NegateButton:Disable()\r\
-        	return nil\r\
-        end\r\
-        o.DeleteButton:Enable(true)\r\
-       	o.NegateButton:Enable(true)\r\
-		-- Check if parent of all selections is the same	\r\
-		if #Sel > 1 then\r\
-        	local parent = o.SelTree:GetItemParent(Sel[1])\r\
-        	for i = 2,#Sel do\r\
-        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\r\
-        			-- Deselect everything\r\
-        			for j = 1,#Sel do\r\
-        				o.SelTree:SelectItem(Sel[j],false)\r\
-        			end\r\
-        			-- Select the items with the largest parent\r\
-        			local parents = {}	-- To store parents and their numbers\r\
-        			for j =1,#Sel do\r\
-        				local found = nil\r\
-        				for k = 1,#parents do\r\
-        					if o.SelTree:GetItemParent(Sel[j]):GetValue() == parents[k].ID:GetValue() then\r\
-        						parents[k].count = parents[k].count + 1\r\
-        						found = true\r\
-        						break\r\
-        					end\r\
-        				end\r\
-        				if not found then\r\
-        					parents[#parents + 1] = {ID = o.SelTree:GetItemParent(Sel[j]), count = 1}\r\
-        				end\r\
-        			end\r\
-        			-- Find parent with largest number of children\r\
-        			local index = 1\r\
-        			for j = 2,#parents do\r\
-        				if parents[j].count > parents[index].count then\r\
-        					index = j\r\
-        				end\r\
-        			end\r\
-        			-- Select all items with parents[index].ID as parent\r\
-        			for j = 1,#Sel do\r\
-        				if o.SelTree:GetItemParent(Sel[j]):GetValue() == parents[index].ID:GetValue() then\r\
-        					o.SelTree:SelectItem(Sel[j],true)\r\
-        				end\r\
-        			end		-- for j = 1,#Sel do ends\r\
-        		end		-- if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then ends\r\
-        	end		-- for i = 2,#Sel do ends\r\
-        end		-- if #Sel > 1 then ends\r\
-        event:Skip()\r\
-	end\r\
-	\r\
-	BooleanTreeCtrl = function(parent,sizer,getInfoFunc)\r\
-		if not parent or not sizer or not getInfoFunc or type(getInfoFunc)~=\"function\" then\r\
-			return nil\r\
-		end\r\
-		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression, setExpression = setExpression}\r\
-		o.getInfo = getInfoFunc\r\
-		o.prevSel = {}\r\
-		o.parent = parent\r\
-		local ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-			local ID = NewID()\r\
-			o.ANDButton = wx.wxButton(parent, ID, \"AND\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"AND\"}\r\
-			ButtonSizer:Add(o.ANDButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.ORButton = wx.wxButton(parent, ID, \"OR\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"OR\"}\r\
-			ButtonSizer:Add(o.ORButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.NANDButton = wx.wxButton(parent, ID, \"NOT() AND\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"NAND\"}\r\
-			ButtonSizer:Add(o.NANDButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.NORButton = wx.wxButton(parent, ID, \"NOT() OR\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"NOR\"}\r\
-			ButtonSizer:Add(o.NORButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.ANDNButton = wx.wxButton(parent, ID, \"AND NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"ANDN\"}\r\
-			ButtonSizer:Add(o.ANDNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.ORNButton = wx.wxButton(parent, ID, \"OR NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"ORN\"}\r\
-			ButtonSizer:Add(o.ORNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.NANDNButton = wx.wxButton(parent, ID, \"NOT() AND NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"NANDN\"}\r\
-			ButtonSizer:Add(o.NANDNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			ID = NewID()\r\
-			o.NORNButton = wx.wxButton(parent, ID, \"NOT() OR NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = {object=o,button=\"NORN\"}\r\
-			ButtonSizer:Add(o.NORNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			local treeSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				ID = NewID()\r\
-				o.SelTree = wx.wxTreeCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,bit.bor(wx.wxTR_HAS_BUTTONS,wx.wxTR_MULTIPLE))\r\
-				objMap[ID] = o\r\
-				-- Add the root\r\
-				local root = o.SelTree:AddRoot(\"Expressions\")\r\
-				o.SelTree:SelectItem(root)\r\
-			treeSizer:Add(o.SelTree, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				-- Add the Delete and Negate Buttons\r\
-				ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					ID = NewID()\r\
-					o.DeleteButton = wx.wxButton(parent, ID, \"Delete\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-					objMap[ID] = {object=o,button=\"Delete\"}\r\
-				ButtonSizer:Add(o.DeleteButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				o.DeleteButton:Disable()\r\
-					ID = NewID()\r\
-					o.NegateButton = wx.wxButton(parent, ID, \"Negate\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-					objMap[ID] = {object=o,button=\"Negate\"}\r\
-				ButtonSizer:Add(o.NegateButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				o.NegateButton:Disable()\r\
-			treeSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)		\r\
-		sizer:Add(treeSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	\r\
-		-- Connect the buttons to the event handlers\r\
-		o.ANDButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.ORButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.NANDButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.NORButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.ANDNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.ORNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.NANDNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.NORNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\r\
-		o.DeleteButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,DeletePress)\r\
-		o.NegateButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,NegatePress)\r\
-		\r\
-		-- Connect the tree to the left click event\r\
-		o.SelTree:Connect(wx.wxEVT_COMMAND_TREE_SEL_CHANGED, TreeSelChanged)\r\
-		return o\r\
-	end\r\
-end		-- BooleanTreeCtrl ends\r\
-\r\
--- Control to select date Range\r\
-do\r\
-	local objMap = {}\r\
-	SelectDateRangeCtrl = function(parent,numInstances,returnFunc)\r\
-		if not objMap[parent] then\r\
-			objMap[parent] = 1\r\
-		elseif objMap[parent] >= numInstances then\r\
-			return false\r\
-		else\r\
-			objMap[parent] = objMap[parent] + 1\r\
-		end\r\
-		local drFrame = wx.wxFrame(parent, wx.wxID_ANY, \"Date Range Selection\", wx.wxDefaultPosition,\r\
-			wx.wxDefaultSize, wx.wxMINIMIZE_BOX + wx.wxSYSTEM_MENU + wx.wxCAPTION\r\
-			+ wx.wxCLOSE_BOX + wx.wxCLIP_CHILDREN)\r\
-		local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		local calSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-		local fromSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		local label = wx.wxStaticText(drFrame, wx.wxID_ANY, \"From:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-		fromSizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		local fromDate = wx.wxCalendarCtrl(drFrame,wx.wxID_ANY)\r\
-		fromSizer:Add(fromDate, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-		local toSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		label = wx.wxStaticText(drFrame, wx.wxID_ANY, \"To:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-		toSizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		local toDate = wx.wxCalendarCtrl(drFrame,wx.wxID_ANY)\r\
-		toSizer:Add(toDate, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		\r\
-		calSizer:Add(fromSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		calSizer:Add(toSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		\r\
-		-- Add Buttons\r\
-		local buttonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-		local selButton = wx.wxButton(drFrame, wx.wxID_ANY, \"Select\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-		buttonSizer:Add(selButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-		local CancelButton = wx.wxButton(drFrame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-		buttonSizer:Add(CancelButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-		\r\
-		\r\
-		MainSizer:Add(calSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		MainSizer:Add(buttonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		drFrame:SetSizer(MainSizer)\r\
-		MainSizer:SetSizeHints(drFrame)\r\
-	    drFrame:Layout() -- help sizing the windows before being shown\r\
-	    drFrame:Show(true)\r\
-	    \r\
-		selButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			returnFunc(fromDate:GetDate():Format(\"%m/%d/%Y\")..\"-\"..toDate:GetDate():Format(\"%m/%d/%Y\"))\r\
-			drFrame:Close()\r\
-			objMap[parent] = objMap[parent] - 1\r\
-		end	\r\
-		)\r\
-		CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			drFrame:Close() \r\
-			objMap[parent] = objMap[parent] - 1\r\
-		end\r\
-		)	    	\r\
-	end		-- display = function(parent,numInstances,returnFunc) ends\r\
-end		-- SelectDateRangeCtrl ends\r\
-\r\
--- Date Range Selection Control\r\
-do\r\
-	local objMap = {}		-- Private Static Variable\r\
-	\r\
-	local getSelectedItems = function(o)\r\
-		local selItems = {}\r\
-		local SelList = o.list\r\
-		local itemNum = -1\r\
-		while SelList:GetNextItem(itemNum) ~= -1 do\r\
-			itemNum = SelList:GetNextItem(itemNum)\r\
-			local itemText = SelList:GetItemText(itemNum)\r\
-			selItems[#selItems + 1] = itemText\r\
-		end\r\
-		-- Finally Check if none selection box exists\r\
-		if o.CheckBox and o.CheckBox:GetValue() then\r\
-			selItems[0] = \"true\"\r\
-		end\r\
-		return selItems\r\
-	end\r\
-\r\
-    local addRange = function(o,range)\r\
-		-- Check if the Item exists in the list control\r\
-		local itemNum = -1\r\
-		local conditionList = false\r\
-		while o.list:GetNextItem(itemNum) ~= -1 do\r\
-			local prevItemNum = itemNum\r\
-			itemNum = o.list:GetNextItem(itemNum)\r\
-			local itemText = o.list:GetItemText(itemNum)\r\
-			-- Now compare the dateRanges\r\
-			local comp = compareDateRanges(range,itemText)\r\
-			if comp == 1 then\r\
-				-- Ranges are same, do nothing\r\
-				drFrame:Close()\r\
-				return true\r\
-			elseif comp==2 then\r\
-				-- range1 lies entirely before range2\r\
-				itemNum = prevItemNum\r\
-				break\r\
-			elseif comp==3 then\r\
-				-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2\r\
-				range = combineDateRanges(range,itemText)\r\
-				-- Delete the current item\r\
-				o.list:DeleteItem(itemNum)\r\
-				itemNum = prevItemNum\r\
-				break\r\
-			elseif comp==4 then\r\
-				-- comp=4 range1 lies entirely inside range2\r\
-				-- range given is subset, do nothing\r\
-				return true\r\
-			elseif comp==5 or comp==7 then\r\
-				-- comp=5 range1 post overlaps range2\r\
-				-- comp=7 range2 lies entirely inside range1\r\
-				range = combineDateRanges(range,itemText)\r\
-				-- Delete the current item\r\
-				o.list:DeleteItem(itemNum)\r\
-				itemNum = prevItemNum\r\
-				conditionList = true	-- To condition the list to merge any overlapping ranges\r\
-				break\r\
-			elseif comp==6 then\r\
-				-- range1 lies entirely after range2\r\
-				-- Do nothing look at next item\r\
-			else\r\
-				return nil\r\
-			end\r\
-			--print(range..\">\"..tostring(comp))\r\
-		end\r\
-		-- itemNum contains the item after which to place item\r\
-		if itemNum == -1 then\r\
-			itemNum = 0\r\
-		else \r\
-			itemNum = itemNum + 1\r\
-		end\r\
-		local newItem = wx.wxListItem()\r\
-		newItem:SetId(itemNum)\r\
-		newItem:SetText(range)\r\
-		o.list:InsertItem(newItem)\r\
-		o.list:SetItem(itemNum,0,range)\r\
-		\r\
-		-- Condition the list here if required\r\
-		while conditionList and o.list:GetNextItem(itemNum) ~= -1 do\r\
-			local prevItemNum = itemNum\r\
-			itemNum = o.list:GetNextItem(itemNum)\r\
-			local itemText = o.list:GetItemText(itemNum)\r\
-			-- Now compare the dateRanges\r\
-			local comp = compareDateRanges(range,itemText)\r\
-			if comp == 1 then\r\
-				-- Ranges are same, delete this itemText range\r\
-				o.list:DeleteItem(itemNum)\r\
-				itemNum = prevItemNum\r\
-			elseif comp==2 then\r\
-				 -- range1 lies entirely before range2\r\
-				 conditionList = nil\r\
-			elseif comp==3 then\r\
-				-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2\r\
-				range = combineDateRanges(range,itemText)\r\
-				-- Delete the current item\r\
-				o.list:DeleteItem(itemNum)\r\
-				itemNum = prevItemNum\r\
-				o.list:SetItemText(itemNum,range)\r\
-				conditionList = nil\r\
-			elseif comp==4 then\r\
-				-- comp=4 range1 lies entirely inside range2\r\
-				error(\"Code Error: This condition should never occur!\",1)\r\
-			elseif comp==5 or comp==7 then\r\
-				-- comp=5 range1 post overlaps range2\r\
-				-- comp=7 range2 lies entirely inside range1\r\
-				range = combineDateRanges(range,itemText)\r\
-				-- Delete the current item\r\
-				o.list:DeleteItem(itemNum)\r\
-				itemNum = prevItemNum\r\
-				o.list:SetItemText(itemNum,range)\r\
-			elseif comp==6 then\r\
-				-- range1 lies entirely after range2\r\
-				error(\"Code Error: This condition should never occur!\",1)\r\
-			else\r\
-				error(\"Code Error: This condition should never occur!\",1)\r\
-			end				\r\
-		end		-- while conditionList and o.list:GetNextItem(itemNum) ~= -1 ends\r\
-		o.list:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)\r\
-    end		-- local addRange = function(range) ends\r\
-	\r\
-	local validateRange = function(range)\r\
-		-- Check if the given date range is valid\r\
-		-- Expected format is MM/DD/YYYY-MM/DD/YYYY here M and D can be single digits as well\r\
-		local _, _, im, id, iy, fm, fd, fy = string.find(range, \"(%d+)/(%d+)/(%d%d%d%d+)%s*-%s*(%d+)/(%d+)/(%d%d%d%d+)\")\r\
-		id = tonumber(id)\r\
-		im = tonumber(im)\r\
-		iy = tonumber(iy)\r\
-		fd = tonumber(fd)\r\
-		fm = tonumber(fm)\r\
-		fy = tonumber(fy)\r\
-		local ileap, fleap\r\
-		if not(id or im or iy or fd or fm or fy) then\r\
-			return false\r\
-		elseif not(id > 0 and id < 32 and fd > 0 and fd < 32 and im > 0 and im < 13 and fm > 0 and fm < 13 and iy > 0 and fy > 0) then\r\
-			return false\r\
-		end\r\
-		if fy < iy then\r\
-			return false\r\
-		end\r\
-		if iy == fy then\r\
-			if fm < im then\r\
-				return false\r\
-			end\r\
-			if im == fm then\r\
-				if fd < id then\r\
-					return false\r\
-				end\r\
-			end\r\
-		end \r\
-		if iy%100 == 0 and iy%400==0 then\r\
-			-- iy is leap year century\r\
-			ileap = true\r\
-		elseif iy%4 == 0 then\r\
-			-- iy is leap year\r\
-			ileap = true\r\
-		end\r\
-		if fy%100 == 0 and fy%400==0 then\r\
-			-- fy is leap year century\r\
-			fleap = true\r\
-		elseif fy%4 == 0 then\r\
-			-- fy is leap year\r\
-			fleap = true\r\
-		end \r\
-		--print(id,im,iy,fd,fm,fy,ileap,fleap)\r\
-		local validDate = function(leap,date,month)\r\
-			local limits = {31,28,31,30,31,30,31,31,30,31,30,31}\r\
-			if leap then\r\
-				limits[2] = limits[2] + 1\r\
-			end\r\
-			if limits[month] < date then\r\
-				return false\r\
-			else\r\
-				return true\r\
-			end\r\
-		end\r\
-		if not validDate(ileap,id,im) then\r\
-			return false\r\
-		end\r\
-		if not validDate(fleap,fd,fm) then\r\
-			return false\r\
-		end\r\
-		return true\r\
-	end\r\
-	\r\
-	local setRanges = function(o,ranges)\r\
-		for i = 1,#ranges do\r\
-			if validateRange(ranges[i]) then\r\
-				addRange(o,ranges[i])\r\
-			else\r\
-				error(\"Invalid Date Range given\", 2)\r\
-			end\r\
-		end\r\
-	end\r\
-	\r\
-	local setCheckBoxState = function(o,state)\r\
-		o.CheckBox:SetValue(state)\r\
-	end\r\
-	\r\
-	local AddPress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-		\r\
-		local addNewRange = function(range)\r\
-			addRange(o,range)\r\
-		end\r\
-		\r\
-		-- Create the frame to accept date range\r\
-		SelectDateRangeCtrl(o.parent,1,addNewRange)\r\
-	end\r\
-	\r\
-	local RemovePress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-		local item = o.list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-		local selItems = {}\r\
-		while item ~= -1 do\r\
-			selItems[#selItems + 1] = item	\r\
-			item = o.list:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-		end\r\
-		for i=#selItems,1,-1 do\r\
-			o.list:DeleteItem(selItems[i])\r\
-		end\r\
-	end\r\
-	\r\
-	local ClearPress = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-		o.list:DeleteAllItems()	\r\
-	end\r\
-	\r\
-	local ResetCtrl = function(o)\r\
-		o.list:DeleteAllItems()\r\
-		if o.CheckBox then\r\
-			o.CheckBox:SetValue(false)\r\
-		end\r\
-	end\r\
-	\r\
-	local ListSel = function(event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local o = objMap[event:GetId()]\r\
-        if o.list:GetSelectedItemCount() == 0 then\r\
-			o.RemoveButton:Disable()\r\
-        	return nil\r\
-        end\r\
-		o.RemoveButton:Enable(true)\r\
-	end\r\
-	\r\
-	DateRangeCtrl = function(parent, noneSelection, heading)\r\
-		-- parent is a wxPanel\r\
-		if not parent then\r\
-			return nil\r\
-		end\r\
-		local o = {ResetCtrl = ResetCtrl, getSelectedItems = getSelectedItems, setRanges = setRanges}	-- new object\r\
-		o.parent = parent\r\
-		-- Create the GUI elements here\r\
-		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		\r\
-		-- Heading\r\
-		local label = wx.wxStaticText(parent, wx.wxID_ANY, heading, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-		o.Sizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		\r\
-		-- List Control\r\
-		local ID\r\
-		ID = NewID()\r\
-		o.list = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\r\
-		o.list:InsertColumn(0,\"Ranges\")\r\
-		objMap[ID] = o \r\
-		o.list:InsertColumn(0,heading)\r\
-		o.Sizer:Add(o.list, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		\r\
-		-- none Selection check box\r\
-		if noneSelection then\r\
-			o.setCheckBoxState = setCheckBoxState\r\
-			ID = NewID()\r\
-			o.CheckBox = wx.wxCheckBox(parent, ID, \"None Also passes\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-			objMap[ID] = o \r\
-			o.Sizer:Add(o.CheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-		end\r\
-		\r\
-		-- Add Date Range Button\r\
-		ID = NewID()\r\
-		o.AddButton = wx.wxButton(parent, ID, \"Add Range\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-		o.Sizer:Add(o.AddButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-		objMap[ID] = o \r\
-\r\
-		-- Remove Date Range Button\r\
-		ID = NewID()\r\
-		o.RemoveButton = wx.wxButton(parent, ID, \"Remove Range\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-		o.Sizer:Add(o.RemoveButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-		objMap[ID] = o \r\
-		o.RemoveButton:Disable()\r\
-		\r\
-		-- Clear Date Ranges Button\r\
-		ID = NewID()\r\
-		o.ClearButton = wx.wxButton(parent, ID, \"Clear Ranges\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-		o.Sizer:Add(o.ClearButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-		objMap[ID] = o \r\
-		\r\
-		-- Associate Events\r\
-		o.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,AddPress)\r\
-		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,RemovePress)\r\
-		o.ClearButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,ClearPress)\r\
-\r\
-		o.list:Connect(wx.wxEVT_COMMAND_LIST_ITEM_SELECTED,ListSel)\r\
-		o.list:Connect(wx.wxEVT_COMMAND_LIST_ITEM_DESELECTED,ListSel)\r\
-		\r\
-		return o\r\
-	end\r\
-	\r\
+		__MANY2ONEFILES['CustomWidgets']="-----------------------------------------------------------------------------\
+-- Application: Various\
+-- Purpose:     Custom widgets using wxwidgets\
+-- Author:      Milind Gupta\
+-- Created:     2/09/2012\
+-- Requirements:WxWidgets should be present already in the lua space\
+-----------------------------------------------------------------------------\
+local prin\
+if Karm.Globals.__DEBUG then\
+	prin = print\
+end\
+local error = error\
+local print = prin \
+local wx = wx\
+local bit = bit\
+local type = type\
+local string = string\
+local tostring = tostring\
+local tonumber = tonumber\
+local pairs = pairs\
+local getfenv = getfenv\
+local setfenv = setfenv\
+local compareDateRanges = Karm.Utility.compareDateRanges\
+local combineDateRanges = Karm.Utility.combineDateRanges\
+\
+\
+local NewID = Karm.NewID    -- This is a function to generate a unique wxID for the application this module is used in\
+\
+local modname = ...\
+module(modname)\
+\
+if not NewID then\
+	local ID_IDCOUNTER = wx.wxID_HIGHEST + 1\
+	function NewID()\
+	    ID_IDCOUNTER = ID_IDCOUNTER + 1\
+	    return ID_IDCOUNTER\
+	end\
+end\
+	\
+-- Object to generate and manage a check list \
+do\
+	local objMap = {}		-- private static variable\
+	local imageList\
+	\
+	local getSelectedItems = function(o)\
+		local selItems = {}\
+		local itemNum = -1\
+\
+		while o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED) ~= -1 do\
+			itemNum = o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			local str\
+			local item = wx.wxListItem()\
+			item:SetId(itemNum)\
+			item:SetMask(wx.wxLIST_MASK_IMAGE)\
+			o.List:GetItem(item)\
+			if item:GetImage() == 0 then\
+				-- Item checked\
+				str = o.checkedText\
+			else\
+				-- Item Unchecked\
+				str = o.uncheckedText\
+			end\
+			item:SetId(itemNum)\
+			item:SetColumn(1)\
+			item:SetMask(wx.wxLIST_MASK_TEXT)\
+			o.List:GetItem(item)\
+			-- str = item:GetText()..\",\"..str\
+			selItems[#selItems + 1] = {itemText=item:GetText(),checked=str}\
+		end\
+		return selItems\
+	end\
+		\
+	local getAllItems = function(o)\
+		local selItems = {}\
+		local itemNum = -1\
+\
+		while o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL) ~= -1 do\
+			itemNum = o.List:GetNextItem(itemNum,wx.wxLIST_NEXT_ALL)\
+			local str\
+			local item = wx.wxListItem()\
+			item:SetId(itemNum)\
+			item:SetMask(wx.wxLIST_MASK_IMAGE)\
+			o.List:GetItem(item)\
+			if item:GetImage() == 0 then\
+				-- Item checked\
+				str = o.checkedText\
+			else\
+				-- Item Unchecked\
+				str = o.uncheckedText\
+			end\
+			item:SetId(itemNum)\
+			item:SetColumn(1)\
+			item:SetMask(wx.wxLIST_MASK_TEXT)\
+			o.List:GetItem(item)\
+			-- str = item:GetText()..\",\"..str\
+			selItems[#selItems + 1] = {itemText=item:GetText(),checked=str}\
+		end\
+		return selItems\
+	end\
+\
+	local InsertItem = function(o,Item,checked)\
+		local ListBox = o.List\
+		-- Check if the Item exists in the list control\
+		local itemNum = -1\
+		-- print(ListBox:GetNextItem(itemNum))\
+		while ListBox:GetNextItem(itemNum) ~= -1 do\
+			local prevItemNum = itemNum\
+			itemNum = ListBox:GetNextItem(itemNum)\
+			local obj = wx.wxListItem()\
+			obj:SetId(itemNum)\
+			obj:SetColumn(1)\
+			obj:SetMask(wx.wxLIST_MASK_TEXT)\
+			ListBox:GetItem(obj)\
+			local itemText = obj:GetText()\
+			if itemText == Item then\
+				-- Get checked status and update\
+				if checked then\
+					ListBox:SetItemImage(itemNum,0)\
+				else\
+					ListBox:SetItemImage(itemNum,1)\
+				end				\
+				return true\
+			end\
+			if itemText > Item then\
+				itemNum = prevItemNum\
+				break\
+			end \
+		end\
+		-- itemNum contains the item after which to place item\
+		if itemNum == -1 then\
+			itemNum = 0\
+		else \
+			itemNum = itemNum + 1\
+		end\
+		local newItem = wx.wxListItem()\
+		local img\
+		newItem:SetId(itemNum)\
+		--newItem:SetText(Item)\
+		if checked then\
+			newItem:SetImage(0)\
+		else\
+			newItem:SetImage(1)\
+		end				\
+		--newItem:SetTextColour(wx.wxColour(wx.wxBLACK))\
+		ListBox:InsertItem(newItem)\
+		ListBox:SetItem(itemNum,1,Item)\
+		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)		\
+		ListBox:SetColumnWidth(1,wx.wxLIST_AUTOSIZE)		\
+		return true\
+	end\
+\
+	local ResetCtrl = function(o)\
+		o.List:DeleteAllItems()\
+		o.List:SetImageList(imageList,wx.wxIMAGE_LIST_SMALL)\
+	end\
+\
+	local RightClick = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+		--o.List:SetImageList(o.mageList,wx.wxIMAGE_LIST_SMALL)\
+		local item = wx.wxListItem()\
+		local itemNum = event:GetIndex()\
+		item:SetId(itemNum)\
+		item:SetMask(wx.wxLIST_MASK_IMAGE)\
+		o.List:GetItem(item)\
+		if item:GetImage() == 0 then\
+			--item:SetImage(1)\
+			o.List:SetItemColumnImage(item:GetId(),0,1)\
+		else\
+			--item:SetImage(0)\
+			o.List:SetItemColumnImage(item:GetId(),0,0)\
+		end\
+		event:Skip()\
+	end\
+\
+	CheckListCtrl = function(parent,noneSelection,checkedText,uncheckedText,singleSelection)\
+		if not parent then\
+			return nil\
+		end\
+		local o = {ResetCtrl = ResetCtrl, InsertItem = InsertItem, getSelectedItems = getSelectedItems, getAllItems = getAllItems}	-- new object\
+		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		o.checkedText = checkedText or \"YES\"\
+		o.uncheckedText = uncheckedText or \"NO\"\
+		local ID\
+		ID = NewID()	\
+		if singleSelection then	\
+			o.List = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_SINGLE_SEL+wx.wxLC_NO_HEADER)\
+		else\
+			o.List = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\
+		end\
+		objMap[ID] = o\
+		-- Create the imagelist and add check and uncheck icons\
+		imageList = wx.wxImageList(16,16,true,0)\
+		local icon = wx.wxIcon()\
+		icon:LoadFile(\"images/checked.xpm\",wx.wxBITMAP_TYPE_XPM)\
+		imageList:Add(icon)\
+		icon:LoadFile(\"images/unchecked.xpm\",wx.wxBITMAP_TYPE_XPM)\
+		imageList:Add(icon)\
+		o.List:SetImageList(imageList,wx.wxIMAGE_LIST_SMALL)\
+		-- Add Items\
+		o.List:InsertColumn(0,\"Check\")\
+		o.List:InsertColumn(1,\"Options\")\
+		o.Sizer:Add(o.List, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		o.List:Connect(wx.wxEVT_COMMAND_LIST_ITEM_RIGHT_CLICK, RightClick)\
+		return o\
+	end\
+	\
+end	-- CheckListCtrl ends\
+\
+\
+-- Two List boxes and 2 buttons in between class\
+do\
+	local objMap = {}	-- Private Static variable\
+\
+	-- This is exposed to the module since it is a generic function for a listBox\
+	InsertItem = function(ListBox,Item)\
+		-- Check if the Item exists in the list control\
+		local itemNum = -1\
+		while ListBox:GetNextItem(itemNum) ~= -1 do\
+			local prevItemNum = itemNum\
+			itemNum = ListBox:GetNextItem(itemNum)\
+			local itemText = ListBox:GetItemText(itemNum)\
+			if itemText == Item then\
+				return true\
+			end\
+			if itemText > Item then\
+				itemNum = prevItemNum\
+				break\
+			end \
+		end\
+		-- itemNum contains the item after which to place item\
+		if itemNum == -1 then\
+			itemNum = 0\
+		else \
+			itemNum = itemNum + 1\
+		end\
+		local newItem = wx.wxListItem()\
+		newItem:SetId(itemNum)\
+		newItem:SetText(Item)\
+		newItem:SetTextColour(wx.wxColour(wx.wxBLACK))\
+		ListBox:InsertItem(newItem)\
+		ListBox:SetItem(itemNum,0,Item)\
+		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)\
+		return true\
+	end\
+	\
+	local getSelectedItems = function(o)\
+		-- Function to return all the selected items in an array\
+		-- if the index 0 of the array is true then the none selection checkbox is checked\
+		local selItems = {}\
+		local SelList = o.SelList\
+		local itemNum = -1\
+		while SelList:GetNextItem(itemNum) ~= -1 do\
+			itemNum = SelList:GetNextItem(itemNum)\
+			local itemText = SelList:GetItemText(itemNum)\
+			selItems[#selItems + 1] = itemText\
+		end\
+		-- Finally Check if none selection box exists\
+		if o.CheckBox and o.CheckBox:GetValue() then\
+			selItems[0] = \"true\"\
+		end\
+		return selItems\
+	end\
+	\
+	local AddPress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		-- Transfer all selected items from List to SelList\
+		local item\
+		local o = objMap[event:GetId()]\
+		local list = o.List\
+		local selList = o.SelList\
+		item = list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+		local selItems = {}\
+		while item ~= -1 do\
+			local itemText = list:GetItemText(item)\
+			InsertItem(selList,itemText)			\
+			selItems[#selItems + 1] = item	\
+			item = list:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+		end\
+		for i=#selItems,1,-1 do\
+			list:DeleteItem(selItems[i])\
+		end\
+		if o.TextBox and o.TextBox:GetValue() ~= \"\" then\
+			InsertItem(selList,o.TextBox:GetValue())\
+			o.TextBox:SetValue(\"\")\
+		end\
+	end\
+	\
+	local ResetCtrl = function(o)\
+		o.SelList:DeleteAllItems()\
+		o.List:DeleteAllItems()\
+		if o.CheckBox then\
+			o.CheckBox:SetValue(false)\
+		end\
+	end\
+	\
+	local RemovePress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		-- Transfer all selected items from SelList to List\
+		local item\
+		local o = objMap[event:GetId()]\
+		local list = o.List\
+		local selList = o.SelList\
+		item = selList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+		local selItems = {}\
+		while item ~= -1 do\
+			local itemText = selList:GetItemText(item)\
+			InsertItem(list,itemText)			\
+			selItems[#selItems + 1] = item	\
+			item = selList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+		end\
+		for i=#selItems,1,-1 do\
+			selList:DeleteItem(selItems[i])\
+		end\
+	end\
+	\
+	local AddListData = function(o,items)\
+		if items then\
+			for i = 1,#items do\
+				InsertItem(o.List,items[i])\
+			end\
+		end\
+	end\
+	\
+	local AddSelListData = function(o,items)\
+		for i = 1,#items do\
+			local item = o.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL)\
+			while item ~= -1 do\
+				local itemText = o.List:GetItemText(item)\
+				if itemText == items[i] then\
+					o.List:DeleteItem(item)\
+					break\
+				end		\
+				item = o.List:GetNextItem(item,wx.wxLIST_NEXT_ALL)	\
+			end\
+			InsertItem(o.SelList,items[i])\
+		end	\
+	end\
+	\
+	MultiSelectCtrl = function(parent, LItems, RItems, noneSelection, textEntry)\
+		if not parent then\
+			return nil\
+		end\
+		LItems = LItems or {}\
+		RItems = RItems or {} \
+		local o = {AddSelListData=AddSelListData, AddListData=AddListData, ResetCtrl=ResetCtrl, getSelectedItems = getSelectedItems}	-- new object\
+		-- Create the GUI elements here\
+		o.Sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\
+			o.List = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\
+			-- Add Items\
+			--local col = wx.wxListItem()\
+			--col:SetId(0)\
+			o.List:InsertColumn(0,\"Options\")\
+			o:AddListData(LItems)\
+			sizer1:Add(o.List, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			local ID\
+			if textEntry then\
+				o.TextBox = wx.wxTextCtrl(parent, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize)\
+				sizer1:Add(o.TextBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			end\
+			if noneSelection then\
+				ID = NewID()\
+				local str\
+				if type(noneSelection) ~= \"string\" then\
+					str = \"None Also Passes\"\
+				else\
+					str = noneSelection\
+				end\
+				o.CheckBox = wx.wxCheckBox(parent, ID, str, wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				objMap[ID] = o \
+				sizer1:Add(o.CheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			end\
+			o.Sizer:Add(sizer1, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			local ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+				ID = NewID()\
+				o.AddButton = wx.wxButton(parent, ID, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				ButtonSizer:Add(o.AddButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				objMap[ID] = o \
+				ID = NewID()\
+				o.RemoveButton = wx.wxButton(parent, ID, \"<\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				ButtonSizer:Add(o.RemoveButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				objMap[ID] = o\
+			o.Sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			o.SelList = wx.wxListCtrl(parent, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\
+			-- Add Items\
+			--col = wx.wxListItem()\
+			--col:SetId(0)\
+			o.SelList:InsertColumn(0,\"Selections\")\
+			o:AddListData(RItems)\
+			o.Sizer:Add(o.SelList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		-- Connect the buttons to the event handlers\
+		o.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,AddPress)\
+		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,RemovePress)\
+		return o\
+	end\
+end\
+--  MultiSelectCtrl ends\
+\
+-- Boolean Tree and Boolean buttons\
+do\
+\
+	local objMap = {}	-- Private Static variable\
+	\
+	-- Function to convert a boolean string to a Table\
+	-- Table elements '#AND#', '#OR#', '#NOT()#', '#NOT(AND)#' and '#NOT(OR)#' are reserved and their children are the ones \
+	-- on which this operation is performed.\
+	-- The table consist of:\
+	-- 1. Item - contains the item name\
+	-- 2. Parent - contains the parent table\
+	-- 3. Children - contains a sequence of tables starting from index = 1 similar to the root table\
+	local function convertBoolStr2Tab(str)\
+		local boolTab = {Item=\"\",Parent=nil,Children = {},currChild=nil}\
+		local strLevel = {}\
+		local subMap = {}\
+		\
+		local getUniqueSubst = function(str,subMap)\
+			if not subMap.latest then\
+				subMap.latest = 1\
+			else \
+				subMap.latest = subMap.latest + 1\
+			end\
+			-- Generate prospective nique string\
+			local uStr = \"A\"..tostring(subMap.latest)\
+			local done = false\
+			while not done do\
+				-- Check if this unique string exists in str\
+				while string.find(str,\"[%(%s]\"..uStr..\"[%)%s]\") or \
+				  string.find(string.sub(str,1,string.len(uStr) + 1),uStr..\"[%)%s]\") or \
+				  string.find(string.sub(str,-(string.len(uStr) + 1),-1),\"[%(%s]\"..uStr) do\
+					subMap.latest = subMap.latest + 1\
+					uStr = \"A\"..tostring(subMap.latest)\
+				end\
+				done = true\
+				-- Check if the str exists in subMap mappings already replaced\
+				for k,v in pairs(subMap) do\
+					if k ~= \"latest\" then\
+						while string.find(v,\"[%(%s]\"..uStr..\"[%)%s]\") or \
+						  string.find(string.sub(v,1,string.len(uStr) + 1),uStr..\"[%)%s]\") or \
+						  string.find(string.sub(v,-(string.len(uStr) + 1),-1),\"[%(%s]\"..uStr) do\
+							done = false\
+							subMap.latest = subMap.latest + 1\
+							uStr = \"A\"..tostring(subMap.latest)\
+						end\
+						if done==false then \
+							break \
+						end\
+					end\
+				end		-- for k,v in pairs(subMap) do ends\
+			end		-- while not done do ends\
+			return uStr\
+		end		-- function getUniqueSubst(str,subMap) ends\
+		\
+		local bracketReplace = function(str,subMap)\
+			-- Function to replace brackets with substitutions and fill up the subMap (substitution map)\
+			-- Make sure the brackets are consistent\
+			local _,stBrack = string.gsub(str,\"%(\",\"t\")\
+			local _,enBrack = string.gsub(str,\"%)\",\"t\")\
+			if stBrack ~= enBrack then\
+				error(\"String does not have consistent opening and closing brackets\",2)\
+			end\
+			local brack = string.find(str,\"%(\")\
+			while brack do\
+				local init = brack + 1\
+				local fin\
+				-- find the ending bracket for this one\
+				local count = 0	-- to track additional bracket openings\
+				for i = init,str:len() do\
+					if string.sub(str,i,i) == \"(\" then\
+						count = count + 1\
+					elseif string.sub(str,i,i) == \")\" then\
+						if count == 0 then\
+							-- this is the matching bracket\
+							fin = i-1\
+							break\
+						else\
+							count = count - 1\
+						end\
+					end\
+				end		-- for i = init,str:len() do ends\
+				if count ~= 0 then\
+					error(\"String does not have consistent opening and closing brackets\",2)\
+				end\
+				local uStr = getUniqueSubst(str,subMap)\
+				local pre = \"\"\
+				local post = \"\"\
+				if init > 2 then\
+					pre = string.sub(str,1,init-2)\
+				end\
+				if fin < str:len() - 2 then\
+					post = string.sub(str,fin + 2,str:len())\
+				end\
+				subMap[uStr] = string.sub(str,init,fin)\
+				str = pre..\" \"..uStr..\" \"..post\
+				-- Now find the next\
+				brack = string.find(str,\"%(\")\
+			end		-- while brack do ends\
+			str = string.gsub(str,\"%s+\",\" \")		-- Remove duplicate spaces\
+			str = string.match(str,\"^%s*(.-)%s*$\")\
+			return str\
+		end		-- function(str,subMap) ends\
+		\
+		local OperSubst = function(str, subMap,op)\
+			-- Function to make the str a simple OR expression\
+			op = string.lower(string.match(op,\"%s*([%w%W]+)%s*\"))\
+			if not(string.find(str,\" \"..op..\" \") or string.find(str,\" \"..string.upper(op)..\" \")) then\
+				return str\
+			end\
+			str = string.gsub(str,\" \"..string.upper(op)..\" \", \" \"..op..\" \")\
+			-- Starting chunk\
+			local strt,stp,subStr = string.find(str,\"(.-) \"..op..\" \")\
+			local uStr = getUniqueSubst(str,subMap)\
+			local newStr = {count = 0} \
+			newStr.count = newStr.count + 1\
+			newStr[newStr.count] = uStr\
+			subMap[uStr] = subStr\
+			-- Middle chunks\
+			strt,stp,subStr = string.find(str,\" \"..op..\" (.-) \"..op..\" \",stp-op:len()-1)\
+			while strt do\
+				uStr = getUniqueSubst(str,subMap)\
+				newStr.count = newStr.count + 1\
+				newStr[newStr.count] = uStr\
+				subMap[uStr] = subStr			\
+				strt,stp,subStr = string.find(str,\" \"..op..\" (.-) \"..op..\" \",stp-op:len()-1)	\
+			end\
+			-- Last Chunk\
+			strt,stp,subStr = string.find(str,\"^.+ \"..op..\" (.-)$\")\
+			uStr = getUniqueSubst(str,subMap)\
+			newStr.count = newStr.count + 1\
+			newStr[newStr.count] = uStr\
+			subMap[uStr] = subStr\
+			return newStr\
+		end		-- local function ORsubst(str) ends\
+		\
+		-- First replace all quoted strings in the string with substitutions\
+		local strSubMap = {}\
+		local _,numQuotes = string.gsub(str,\"%'\",\"t\")\
+		if numQuotes%2 ~= 0 then\
+			error(\"String does not have consistent opening and closing quotes \\\"'\\\"\",2)\
+		end\
+		local init,fin = string.find(str,\"'.-'\")\
+		while init do\
+			local uStr = getUniqueSubst(str,subMap)\
+			local pre = \"\"\
+			local post = \"\"\
+			if init > 1 then\
+				pre = string.sub(str,1,init-1)\
+			end\
+			if fin < str:len() then\
+				post = string.sub(str,fin + 1,str:len())\
+			end\
+			strSubMap[uStr] = str:sub(init,fin)\
+			str = pre..\" \"..uStr..\" \"..post\
+			-- Now find the next\
+			init,fin = string.find(str,\"'.-'\")\
+		end		-- while brack do ends\
+		strLevel[boolTab] = str\
+		-- Start recursive loop here\
+		local currTab = boolTab\
+		while currTab do\
+			-- Remove all brackets\
+			strLevel[currTab] = string.gsub(strLevel[currTab],\"%s+\",\" \")\
+			strLevel[currTab] = bracketReplace(strLevel[currTab],subMap)\
+			-- Check what type of element this is\
+			if not(string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") \
+			  or string.find(strLevel[currTab],\" and \") or string.find(strLevel[currTab],\" AND \") \
+			  or string.find(strLevel[currTab],\" not \") or string.find(strLevel[currTab],\" NOT \")\
+			  or string.upper(string.sub(strLevel[currTab],1,4)) == \"NOT \"\
+			  or subMap[strLevel[currTab]]) then\
+				-- This is a simple element\
+				if currTab.Item == \"#NOT()#\" then\
+					currTab.Children[1] = {Item = strLevel[currTab],Parent=currTab}\
+				else\
+					currTab.Item = strLevel[currTab]\
+					currTab.Children = nil\
+				end\
+				-- Return one level up\
+				currTab = currTab.Parent\
+				while currTab do\
+					if currTab.currChild < #currTab.Children then\
+						currTab.currChild = currTab.currChild + 1\
+						currTab = currTab.Children[currTab.currChild]\
+						break\
+					else\
+						currTab.currChild = nil\
+						currTab = currTab.Parent\
+					end\
+				end\
+			elseif not(string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") \
+			  or string.find(strLevel[currTab],\" and \") or string.find(strLevel[currTab],\" AND \") \
+			  or string.find(strLevel[currTab],\" not \") or string.find(strLevel[currTab],\" NOT \")\
+			  or string.upper(string.sub(strLevel[currTab],1,4)) == \"NOT \")\
+			  and subMap[strLevel[currTab]] then\
+				-- This is a substitution as a whole\
+				local temp = strLevel[currTab] \
+				strLevel[currTab] = subMap[temp]\
+				subMap[temp] = nil\
+			else\
+				-- This is a normal expression\
+				if string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") then\
+					-- The expression has OR operators\
+					-- Transform to a simple OR expression\
+					local simpStr = OperSubst(strLevel[currTab],subMap,\"OR\")\
+					if currTab.Item == \"#NOT()#\" then\
+						currTab.Item = \"#NOT(OR)#\"\
+					else\
+						currTab.Item = \"#OR#\"\
+					end\
+					-- Now allchildren need to be added and we must evaluate each child\
+					for i = 1,#simpStr do\
+						currTab.Children[#currTab.Children + 1] = {Item=\"\", Parent = currTab,Children={},currChild=nil}\
+						strLevel[currTab.Children[#currTab.Children]] = simpStr[i]\
+					end \
+					currTab.currChild = 1\
+					currTab = currTab.Children[1]\
+				elseif string.find(strLevel[currTab],\" and \") or string.find(strLevel[currTab],\" AND \") then\
+					-- The expression does not have OR operators but has AND operators\
+					-- Transform to a simple AND expression\
+					local simpStr = OperSubst(strLevel[currTab],subMap,\"AND\")\
+					if currTab.Item == \"#NOT()#\" then\
+						currTab.Item = \"#NOT(AND)#\"\
+					else\
+						currTab.Item = \"#AND#\"\
+					end\
+					-- Now allchildren need to be added and we must evaluate each child\
+					for i = 1,#simpStr do\
+						currTab.Children[#currTab.Children + 1] = {Item=\"\", Parent = currTab,Children={},currChild=nil}\
+						strLevel[currTab.Children[#currTab.Children]] = simpStr[i]\
+					end \
+					currTab.currChild = 1\
+					currTab = currTab.Children[1]\
+				else\
+					-- This is a NOT element\
+					strLevel[currTab] = string.gsub(strLevel[currTab],\"NOT\", \"not\")\
+					local elem = string.match(strLevel[currTab],\"%s*not%s+([%w%W]+)%s*\")\
+					currTab.Item = \"#NOT()#\"\
+					strLevel[currTab] = elem\
+				end		-- if string.find(strLevel[currTab],\" or \") or string.find(strLevel[currTab],\" OR \") then ends\
+			end \
+		end		-- while currTab do ends\
+		-- Now recurse boolTab to substitute all the strings back\
+		local t = boolTab\
+		if strSubMap[t.Item] then\
+			t.Item = string.match(strSubMap[t.Item],\"'(.-)'\")\
+		end\
+		if t.Children then\
+			-- Traverse the table to fill up the tree\
+			local tIndex = {}\
+			tIndex[t] = 1\
+			while tIndex[t] <= #t.Children or t.Parent do\
+				if tIndex[t] > #t.Children then\
+					tIndex[t] = nil\
+					t = t.Parent\
+				else\
+					-- Handle the current element\
+					if strSubMap[t.Children[tIndex[t]].Item] then\
+						t.Children[tIndex[t]].Item = strSubMap[t.Children[tIndex[t]].Item]:match(\"'(.-)'\")\
+					end\
+					tIndex[t] = tIndex[t] + 1\
+					-- Check if this has children\
+					if t.Children[tIndex[t]-1].Children then\
+						-- go deeper in the hierarchy\
+						t = t.Children[tIndex[t]-1]\
+						tIndex[t] = 1\
+					end\
+				end		-- if tIndex[t] > #t then ends\
+			end		-- while tIndex[t] <= #t and t.Parent do ends\
+		end	-- if t.Children then ends\
+		return boolTab\
+	end		-- function convertBoolStr2Tab(str) ends\
+\
+	-- Function to set the boolean string expression in the tree\
+	local function setExpression(o,str)\
+		local t = convertBoolStr2Tab(str)\
+		local tIndex = {}\
+		local tNode = {}\
+		local itemText = function(itemStr)\
+			-- To return the item text\
+			if itemStr == \"#AND#\" then\
+				return \"(AND)\"\
+			elseif itemStr == \"#OR#\" then\
+				return \"(OR)\"\
+			elseif itemStr == \"#NOT()#\" then\
+				return \"NOT()\"\
+			elseif itemStr == \"#NOT(AND)#\" then\
+				return \"NOT(AND)\"\
+			elseif itemStr == \"#NOT(OR)#\" then\
+				return \"NOT(OR)\"\
+			else\
+				return itemStr\
+			end\
+		end\
+		-- Clear the control\
+		o:ResetCtrl()\
+		tNode[t] = o.SelTree:AppendItem(o.SelTree:GetRootItem(),itemText(t.Item))\
+		if t.Children then\
+			-- Traverse the table to fill up the tree\
+			tIndex[t] = 1\
+			while tIndex[t] <= #t.Children or t.Parent do\
+				if tIndex[t] > #t.Children then\
+					tIndex[t] = nil\
+					t = t.Parent\
+				else\
+					-- Handle the current element\
+					local parentNode \
+					parentNode = tNode[t]\
+					tNode[t.Children[tIndex[t]]] = o.SelTree:AppendItem(parentNode,itemText(t.Children[tIndex[t]].Item)) \
+					tIndex[t] = tIndex[t] + 1\
+					-- Check if this has children\
+					if t.Children[tIndex[t]-1].Children then\
+						-- go deeper in the hierarchy\
+						t = t.Children[tIndex[t]-1]\
+						tIndex[t] = 1\
+					end\
+				end		-- if tIndex[t] > #t then ends\
+			end		-- while tIndex[t] <= #t and t.Parent do ends\
+		end	-- if t.Children then ends\
+		o.SelTree:Expand(o.SelTree:GetRootItem())\
+	end		-- local function setExpression(o,str) ends\
+	\
+	local treeRecRef\
+	local treeRecurse = function(tree,node)\
+		local itemText = tree:GetItemText(node) \
+		if itemText == \"(AND)\" or itemText == \"(OR)\" or itemText == \"NOT(OR)\" or itemText == \"NOT(AND)\" then\
+			local retText = \"(\" \
+			local logic = string.lower(\" \"..string.match(itemText,\"%((.-)%)\")..\" \")\
+			if string.sub(itemText,1,3) == \"NOT\" then\
+				retText = \"not(\"\
+			end\
+			local currNode = tree:GetFirstChild(node)\
+			retText = retText..treeRecRef(tree,currNode)\
+			currNode = tree:GetNextSibling(currNode)\
+			while currNode:IsOk() do\
+				retText = retText..logic..treeRecRef(tree,currNode)\
+				currNode = tree:GetNextSibling(currNode)\
+			end\
+			return retText..\")\"\
+		elseif itemText == \"NOT()\" then\
+			return \"not(\"..treeRecRef(tree,tree:GetFirstChild(node))..\")\"\
+		else\
+			return \"'\"..itemText..\"'\"\
+		end\
+	end\
+	treeRecRef = treeRecurse\
+\
+	local BooleanExpression = function(o)\
+		local tree = o.SelTree\
+		local currNode = tree:GetFirstChild(tree:GetRootItem())\
+		if currNode:IsOk() then\
+			local expr = treeRecurse(tree,currNode)\
+			return expr\
+		else\
+			return nil\
+		end		\
+	end\
+		\
+	local CopyTree = function(treeObj,srcItem,destItem)\
+		-- This will copy the srcItem and its child tree to as a child of destItem\
+		if not srcItem:IsOk() or not destItem:IsOk() then\
+			error(\"Expected wxTreeItemIds\",2)\
+		end\
+		local tree = treeObj.SelTree\
+		local currSrcNode = srcItem\
+		local currDestNode = destItem\
+		-- Copy the currSrcNode under the currDestNode\
+		currDestNode = tree:AppendItem(currDestNode,tree:GetItemText(currSrcNode))\
+		-- Check if any children\
+		if tree:ItemHasChildren(currSrcNode) then\
+			currSrcNode = tree:GetFirstChild(currSrcNode)\
+			while true do\
+				-- Copy the currSrcNode under the currDestNode\
+				local currNode = tree:AppendItem(currDestNode,tree:GetItemText(currSrcNode))\
+				-- Check if any children\
+				if tree:ItemHasChildren(currSrcNode) then\
+					currDestNode = currNode\
+					currSrcNode = tree:GetFirstChild(currSrcNode)\
+				elseif tree:GetNextSibling(currSrcNode):IsOk() then\
+					-- There are more items in the same level\
+					currSrcNode = tree:GetNextSibling(currSrcNode)\
+				else\
+					-- No children and no further siblings so go up\
+					currSrcNode = tree:GetItemParent(currSrcNode)\
+					currDestNode = tree:GetItemParent(currDestNode)\
+					while not tree:GetNextSibling(currSrcNode):IsOk() and not(currSrcNode:GetValue() == srcItem:GetValue()) do\
+						currSrcNode = tree:GetItemParent(currSrcNode)\
+						currDestNode = tree:GetItemParent(currDestNode)\
+					end\
+					if currSrcNode:GetValue() == srcItem:GetValue() then\
+						break\
+					end\
+					currSrcNode = tree:GetNextSibling(currSrcNode)\
+				end		-- if tree:ItemHasChildren(currSrcNode) then ends\
+			end		-- while true do ends\
+		end		-- if tree:ItemHasChildren(currSrcNode) then ends\
+	end\
+	\
+	local DelTree = function(treeObj,item)\
+		if not item:IsOk() then\
+			error(\"Expected proper wxTreeItemId\",2)\
+		end\
+		local tree = treeObj.SelTree\
+		local currNode = item\
+		if tree:ItemHasChildren(currNode) then\
+			currNode = tree:GetFirstChild(currNode)\
+			while true do\
+				-- Check if any children\
+				if tree:ItemHasChildren(currNode) then\
+					currNode = tree:GetFirstChild(currNode)\
+				elseif tree:GetNextSibling(currNode):IsOk() then\
+					-- delete this node\
+					-- There are more items in the same level\
+					local next = tree:GetNextSibling(currNode)\
+					tree:Delete(currNode)\
+					currNode = next \
+				else\
+					-- No children and no further siblings so delete and go up\
+					local parent = tree:GetItemParent(currNode)\
+					tree:Delete(currNode)\
+					currNode = parent\
+					while not tree:GetNextSibling(currNode):IsOk() and not(currNode:GetValue() == item:GetValue()) do\
+						parent = tree:GetItemParent(currNode)\
+						tree:Delete(currNode)\
+						currNode = parent\
+					end\
+					if currNode:GetValue() == item:GetValue() then\
+						break\
+					end\
+					currNode = tree:GetNextSibling(currNode)\
+				end		-- if tree:ItemHasChildren(currSrcNode) then ends\
+			end		-- while true do ends\
+		end		-- if tree:ItemHasChildren(currNode) then ends\
+		tree:Delete(currNode)		\
+	end\
+	\
+	local ResetCtrl = function(o)\
+		if o.SelTree:GetFirstChild(o.SelTree:GetRootItem()):IsOk() then\
+			DelTree(o,o.SelTree:GetFirstChild(o.SelTree:GetRootItem()))\
+		end\
+	end\
+	\
+	local DeletePress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local ob = objMap[event:GetId()]\
+		local Sel = ob.object.SelTree:GetSelections(Sel)	\
+		-- Check if anything selected\
+		if #Sel == 0 then\
+			return nil\
+		end\
+		-- Get list of Parents\
+		local parents = {}\
+		-- Delete all selected\
+		for i=1,#Sel do\
+			local parent = ob.object.SelTree:GetItemParent(Sel[i])\
+			local addParent = true\
+			for j = 1,#parents do\
+				if parents[j]:GetValue() == parent:GetValue() then\
+					addParent = nil\
+					break\
+				end\
+			end\
+			if addParent then\
+				parents[#parents + 1] = parent\
+			end\
+			if Sel[i]:GetValue() ~= ob.object.SelTree:GetRootItem():GetValue() then\
+				DelTree(ob.object,Sel[i])\
+			end\
+		end\
+		-- Check for any parents that are logic nodes with only 1 child under them\
+		for i = 1,#parents do\
+			if ob.object.SelTree:GetChildrenCount(parents[i],false) == 1 then\
+				local nodeText = ob.object.SelTree:GetItemText(parents[i])\
+				if nodeText == \"(OR)\" or nodeText == \"(AND)\" then\
+					-- This is a logic node without NOT()\
+					-- Delete the Parent and move the children up 1 level\
+					-- Move it up the hierarchy\
+					local pParent = ob.object.SelTree:GetItemParent(parents[i])\
+					-- Copy all children to pParent\
+					local currNode = ob.object.SelTree:GetFirstChild(parents[i])\
+					while currNode:IsOk() do\
+						CopyTree(ob.object,currNode,pParent)\
+						currNode = ob.object.SelTree:GetNextSibling(currNode)\
+					end\
+					DelTree(ob.object,parents[i])\
+				elseif nodeText == \"NOT(OR)\" or nodeText == \"NOT(AND)\"  then\
+					-- Just change the text to NOT()\
+					ob.object.SelTree:SetItemText(node,\"NOT(OR)\")\
+				end\
+			end\
+		end\
+		if ob.object.SelTree:GetChildrenCount(ob.object.SelTree:GetRootItem()) == 1 then\
+			ob.object.DeleteButton:Disable()\
+		end\
+	end\
+	\
+	local NegatePress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local ob = objMap[event:GetId()]\
+		local Sel = ob.object.SelTree:GetSelections(Sel)	\
+		-- Check if anything selected\
+		if #Sel == 0 then\
+			return nil\
+		end\
+		local parent = ob.object.SelTree:GetItemParent(Sel[1])\
+		for i = 2,#Sel do\
+			if ob.object.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\
+				wx.wxMessageBox(\"For multiple selection negate they must all be under the same node.\",\"Selections not at the same level\", wx.wxOK + wx.wxCENTRE, o.parent)\
+				return\
+			end\
+		end\
+		if parent:IsOk() then\
+			if #Sel == 1 then\
+				-- Single Selection\
+				-- Check if this is a Logic node\
+				local nodeText = ob.object.SelTree:GetItemText(Sel[1])\
+				if nodeText == \"(OR)\" or nodeText == \"(AND)\" or nodeText == \"NOT(OR)\" or nodeText == \"NOT(AND)\" or nodeText == \"NOT()\" then\
+					-- Just negation of the node has to be done\
+					local node = Sel[1]\
+					if nodeText == \"(OR)\" then\
+						ob.object.SelTree:SetItemText(node,\"NOT(OR)\")\
+					elseif nodeText == \"(AND)\" then\
+						ob.object.SelTree:SetItemText(node,\"NOT(AND)\")\
+					elseif nodeText == \"NOT(OR)\" then\
+						ob.object.SelTree:SetItemText(node,\"(OR)\")\
+					elseif nodeText == \"NOT(AND)\" then\
+						ob.object.SelTree:SetItemText(node,\"(AND)\")\
+					else\
+						-- NOT()\
+						-- Move it up the hierarchy\
+						local pParent = ob.object.SelTree:GetItemParent(node)\
+						-- Copy all children to pParent\
+						local currNode = ob.object.SelTree:GetFirstChild(node)\
+						while currNode:IsOk() do\
+							CopyTree(ob.object,currNode,pParent)\
+							currNode = ob.object.SelTree:GetNextSibling(currNode)\
+						end\
+						DelTree(ob.object,node)\
+					end		-- if parentText == \"(OR)\" then ends here\
+				-- Check if the parent just has this child\
+				elseif ob.object.SelTree:GetChildrenCount(parent,false) == 1 then\
+					local node = parent\
+					nodeText = ob.object.SelTree:GetItemText(parent)\
+					if nodeText == \"(OR)\" then\
+						ob.object.SelTree:SetItemText(node,\"NOT(OR)\")\
+					elseif nodeText == \"(AND)\" then\
+						ob.object.SelTree:SetItemText(node,\"NOT(AND)\")\
+					elseif nodeText == \"NOT(OR)\" then\
+						ob.object.SelTree:SetItemText(node,\"(OR)\")\
+					elseif nodeText == \"NOT(AND)\" then\
+						ob.object.SelTree:SetItemText(node,\"(AND)\")\
+					else\
+						-- NOT()\
+						-- Move it up the hierarchy\
+						local pParent = ob.object.SelTree:GetItemParent(node)\
+						CopyTree(ob.object,Sel[1],pParent)\
+						DelTree(ob.object,node)\
+					end		-- if parentText == \"(OR)\" then ends here\
+				else\
+					local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+					CopyTree(ob.object,Sel[1],currNode)\
+					DelTree(ob.object,Sel[1])\
+				end		-- if type of node - Logic Node, Single Child node of a parent or one of many children\
+			else\
+				-- Multiple Selection\
+				-- Check if the parent just has these children\
+				local parentText = ob.object.SelTree:GetItemText(parent)\
+				if ob.object.SelTree:GetChildrenCount(parent,false) == #Sel then\
+					-- Just modify the parent text\
+					if parentText == \"(OR)\" then\
+						ob.object.SelTree:SetItemText(parent,\"NOT(OR)\")\
+					elseif parentText == \"(AND)\" then\
+						ob.object.SelTree:SetItemText(parent,\"NOT(AND)\")\
+					elseif parentText == \"NOT(OR)\" then\
+						ob.object.SelTree:SetItemText(parent,\"(OR)\")\
+					else -- parentText == \"NOT(AND)\" \
+						ob.object.SelTree:SetItemText(parent,\"(AND)\")\
+					end\
+				else\
+					-- First move the selections to a correct new node\
+					if parentText == \"(OR)\" or parentText == \"NOT(OR)\" then\
+						parentText = \"NOT(OR)\"\
+					elseif parentText == \"(AND)\" or parentText == \"NOT(AND)\" then\
+						parentText = \"NOT(AND)\" \
+					end\
+					parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)\
+					for i = 1,#Sel do\
+						CopyTree(ob.object,Sel[i],parent)\
+						DelTree(ob.object,Sel[i])\
+					end\
+				end\
+			end\
+		end	-- if parent:IsOk() then\
+	end\
+	\
+	local LogicPress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local ob = objMap[event:GetId()]\
+		-- Get the Logic Unit\
+		local unit = ob.object.getInfo()\
+		if not unit then\
+			return nil\
+		end\
+		\
+		local root = ob.object.SelTree:GetRootItem()\
+		if ob.object.SelTree:GetCount() == 1 then\
+			-- Just add this first object\
+			local currNode = ob.object.SelTree:AppendItem(root,unit)\
+			ob.object.SelTree:Expand(root)\
+			return nil\
+		end\
+		-- More than 1 item in the tree so now find the selections and  modify the tree\
+		local Sel = ob.object.SelTree:GetSelections(Sel)\
+		-- Check if anything selected\
+		if #Sel == 0 then\
+			return nil\
+		end\
+		\
+		-- Check if parent of all selections is the same	\
+		if #Sel > 1 then\
+        	local parent = ob.object.SelTree:GetItemParent(Sel[1])\
+        	for i = 2,#Sel do\
+        		if ob.object.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\
+        			-- Parent is not common. \
+        			wx.wxMessageBox(\"All selected items not siblings!\",\"Error applying operation\", wx.wxICON_ERROR)\
+        			return nil\
+        		end\
+        	end\
+        end\
+		\
+		-- Check if root node selected\
+		if #Sel == 1 and ob.object.SelTree:GetRootItem():GetValue() == Sel[1]:GetValue() then\
+			-- Root item selected clear Sel and fill up with all children of root\
+			Sel = {}\
+			local node = ob.object.SelTree:GetFirstChild(ob.object.SelTree:GetRootItem())\
+			Sel[#Sel + 1] = node\
+			node = ob.object.SelTree:GetNextSibling(node)\
+			while node:IsOk() do\
+				Sel[#Sel + 1] = node\
+				node = ob.object.SelTree:GetNextSibling(node)\
+			end\
+		end\
+		local added = nil\
+		if #Sel > 1 then\
+			-- Check if all children selected\
+			local parent = ob.object.SelTree:GetItemParent(Sel[1])\
+			if #Sel == ob.object.SelTree:GetChildrenCount(parent,false) then\
+				-- All children of parent are selected\
+				-- Check if the unit can be added under the parent itself\
+				local parentText = ob.object.SelTree:GetItemText(parent)\
+				if ((ob.button == \"AND\" or ob.button == \"NAND\" or ob.button == \"ANDN\" or ob.button == \"NANDN\") and \
+						(parentText == \"(AND)\" or parentText == \"NOT(AND)\")) or\
+				   ((ob.button == \"OR\" or ob.button == \"NOR\" or ob.button == \"ORN\" or ob.button == \"NORN\") and \
+				   		(parentText == \"(OR)\" or parentText == \"NOT(OR)\")) then\
+					-- Add the unit under parent\
+					if ob.button == \"AND\" or ob.button == \"OR\" then\
+						-- Add to parent directly\
+						ob.object.SelTree:AppendItem(parent,unit)\
+					elseif ob.button == \"NAND\" or ob.button == \"NOR\" then\
+						-- Add to parent by negating first\
+						local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+						ob.object.SelTree:AppendItem(currNode,unit)\
+					elseif ob.button == \"ANDN\" or ob.button == \"ORN\" or ob.button == \"NANDN\" or ob.button == \"NORN\" then\
+						if parentText == \"(AND)\" or parentText == \"(OR)\"then\
+							-- Move all selected to a negated subnode\
+							local newPText \
+							if parentText == \"(OR)\" then\
+								newPText = \"NOT(OR)\"\
+							elseif parentText == \"(AND)\" then\
+								newPText = \"NOT(AND)\" \
+							end\
+							local newParent = ob.object.SelTree:AppendItem(parent,newPText)\
+							for i = 1,#Sel do\
+								CopyTree(ob.object,Sel[i],newParent)\
+								DelTree(ob.object,Sel[i])\
+							end\
+						elseif parentText == \"NOT(AND)\" then\
+							ob.object.SelTree:SetItemText(parent,\"(AND)\")\
+						elseif parentText == \"NOT(OR)\" then\
+							ob.object.SelTree:SetItemText(parent,\"(OR)\")\
+						end\
+						-- Now add the unit to the parent\
+						if ob.button == \"NANDN\" or ob.button == \"NORN\" then\
+							local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+							ob.object.SelTree:AppendItem(currNode,unit)\
+						else\
+							ob.object.SelTree:AppendItem(parent,unit)\
+						end\
+					end\
+					added = true\
+				end\
+			end		-- if #Sel < ob.object.SelTree:GetChildrenCount(parent) then ends\
+			if not added then\
+				-- Move all selected to sub node\
+				local parentText = ob.object.SelTree:GetItemText(parent)\
+				if parentText == \"(OR)\" or parentText == \"NOT(OR)\" then\
+					parentText = \"(OR)\"\
+				elseif parentText == \"(AND)\" or parentText == \"NOT(AND)\" then\
+					parentText = \"(AND)\" \
+				end\
+				parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)\
+				for i = 1,#Sel do\
+					CopyTree(ob.object,Sel[i],parent)\
+					DelTree(ob.object,Sel[i])\
+				end\
+				Sel = {parent}\
+			end\
+		end\
+		if not added then\
+			-- Single item selection case\
+			-- Check if this is a logic node and the unit can directly be added to it\
+			local selText = ob.object.SelTree:GetItemText(Sel[1])\
+			if selText == \"(OR)\" and (ob.button == \"OR\" or ob.button == \"NOR\") then\
+				if ob.button == \"OR\" then\
+					-- Add to parent directly\
+					ob.object.SelTree:AppendItem(Sel[1],unit)\
+				else\
+					-- Add to parent by negating first\
+					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\
+					ob.object.SelTree:AppendItem(currNode,unit)\
+				end\
+			elseif  selText == \"(AND)\" and (ob.button == \"AND\" or ob.button == \"NAND\") then\
+				if ob.button == \"AND\" then\
+					-- Add to parent directly\
+					ob.object.SelTree:AppendItem(Sel[1],unit)\
+				else\
+					-- Add to parent by negating first\
+					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\
+					ob.object.SelTree:AppendItem(currNode,unit)\
+				end\
+			elseif selText == \"NOT(OR)\" and (ob.button == \"ORN\" or ob.button == \"NORN\") then\
+				if ob.button == \"ORN\" then\
+					-- Add to parent directly\
+					ob.object.SelTree:AppendItem(Sel[1],unit)\
+				else\
+					-- Add to parent by negating first\
+					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\
+					ob.object.SelTree:AppendItem(currNode,unit)\
+				end\
+				ob.object.SelTree:SetItemText(Sel[1],\"(OR)\")\
+			elseif selText == \"NOT(AND)\" and (ob.button == \"ANDN\" or ob.button == \"NANDN\") then\
+				if ob.button == \"ANDN\" then\
+					-- Add to parent directly\
+					ob.object.SelTree:AppendItem(Sel[1],unit)\
+				else\
+					-- Add to parent by negating first\
+					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\
+					ob.object.SelTree:AppendItem(currNode,unit)\
+				end\
+				ob.object.SelTree:SetItemText(Sel[1],\"(AND)\")\
+			elseif selText == \"NOT()\" and (ob.button == \"ANDN\" or ob.button == \"NANDN\" or ob.button == \"ORN\" or ob.button == \"NORN\")then\
+				if ob.button == \"ANDN\" then\
+					ob.object.SelTree:SetItemText(Sel[1],\"(AND)\")\
+					ob.object.SelTree:AppendItem(Sel[1],unit)\
+				elseif ob.button == \"NANDN\" then\
+					ob.object.SelTree:SetItemText(Sel[1],\"(AND)\")\
+					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\
+					ob.object.SelTree:AppendItem(currNode,unit)\
+				elseif ob.button == \"ORN\" then\
+					ob.object.SelTree:SetItemText(Sel[1],\"(OR)\")\
+					ob.object.SelTree:AppendItem(Sel[1],unit)\
+				else\
+					ob.object.SelTree:SetItemText(Sel[1],\"(OR)\")\
+					local currNode = ob.object.SelTree:AppendItem(Sel[1],\"NOT()\")\
+					ob.object.SelTree:AppendItem(currNode,unit)\
+				end\
+			else\
+				-- Unit cannot be added to the selected node since that is also a unit\
+				local parent = ob.object.SelTree:GetItemParent(Sel[1])\
+				local parentText = ob.object.SelTree:GetItemText(parent)\
+				-- Handle the directly adding unit to parent cases\
+				if (parentText == \"(OR)\" or parentText == \"NOT(OR)\") and  (ob.button == \"OR\" or ob.button == \"NOR\") then\
+					if ob.button == \"OR\" then\
+						-- Add to parent directly\
+						ob.object.SelTree:AppendItem(parent,unit)\
+					else\
+						-- Add to parent by negating first\
+						local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+						ob.object.SelTree:AppendItem(currNode,unit)\
+					end\
+				elseif (parentText == \"(AND)\" or parentText == \"NOT(AND)\") and (ob.button == \"AND\" or ob.button == \"NAND\") then\
+					if ob.button == \"AND\" then\
+						-- Add to parent directly\
+						ob.object.SelTree:AppendItem(parent,unit)\
+					else\
+						-- Add to parent by negating first\
+						local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+						ob.object.SelTree:AppendItem(currNode,unit)\
+					end\
+				elseif parentText == \"NOT()\" and (ob.button == \"AND\" or ob.button == \"NAND\" or ob.button == \"OR\" or ob.button == \"NOR\") then\
+					-- parentText = \"NOT()\"\
+					-- Change Parent text\
+					if ob.button == \"NAND\" or ob.button == \"AND\" then\
+						ob.object.SelTree:SetItemText(parent,\"NOT(AND)\")\
+						if ob.button == \"AND\" then\
+							-- Add to parent directly\
+							ob.object.SelTree:AppendItem(parent,unit)\
+						else\
+							-- Add to parent by negating first\
+							local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+							ob.object.SelTree:AppendItem(currNode,unit)\
+						end\
+					elseif ob.button==\"NOR\" or ob.button == \"OR\" then\
+						ob.object.SelTree:SetItemText(parent,\"NOT(OR)\")\
+						if ob.button == \"OR\" then\
+							-- Add to parent directly\
+							ob.object.SelTree:AppendItem(parent,unit)\
+						else\
+							-- Add to parent by negating first\
+							local currNode = ob.object.SelTree:AppendItem(parent,\"NOT()\")\
+							ob.object.SelTree:AppendItem(currNode,unit)\
+						end\
+					end\
+				else\
+					-- Now we need to move this single selected node to a new fresh node in its place and add unit also to that node\
+					if ob.button == \"AND\" or ob.button == \"NAND\" or ob.button == \"ANDN\" or ob.button == \"NANDN\" then\
+						parentText = \"(AND)\"\
+					elseif ob.button == \"OR\" or ob.button == \"NOR\" or ob.button == \"ORN\" or ob.button == \"NORN\" then\
+						parentText = \"(OR)\"\
+					end\
+					local currNode = ob.object.SelTree:AppendItem(parent,parentText)\
+					if ob.button == \"ANDN\" or ob.button ==\"NANDN\" or ob.button == \"ORN\" or ob.button == \"NORN\" then\
+						local negNode = ob.object.SelTree:AppendItem(currNode,\"NOT()\")\
+						CopyTree(ob.object,Sel[1],negNode)\
+					else \
+						CopyTree(ob.object,Sel[1],currNode)\
+					end		\
+					DelTree(ob.object,Sel[1])\
+					-- Add the unit\
+					if ob.button == \"AND\" or ob.button == \"OR\" or ob.button == \"ANDN\" or ob.button == \"ORN\" then\
+						-- Add to parent directly\
+						ob.object.SelTree:AppendItem(currNode,unit)\
+					else\
+						-- Add to parent by negating first\
+						local negNode = ob.object.SelTree:AppendItem(currNode,\"NOT()\")\
+						ob.object.SelTree:AppendItem(negNode,unit)\
+					end\
+				end		-- if (parentText == \"(OR)\" or parentText == \"NOT(OR)\") and  (ob.button == \"OR\" or ob.button == \"NOR\") then ends\
+			end		-- if selText == \"(OR)\" and (ob.button == \"OR\" or ob.button == \"NOR\") then ends\
+		end	-- if not added then ends\
+		--print(ob.object,ob.button)\
+		--print(BooleanTreeCtrl.BooleanExpression(ob.object.SelTree))	\
+	end\
+	\
+--[[	local TreeSelChanged = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+        \
+        -- Update the Delete Button status\
+        local Sel = o.SelTree:GetSelections(Sel)\
+        if #Sel == 0 then\
+        	o.prevSel = {}\
+        	o.DeleteButton:Disable()\
+        	return nil\
+        end\
+        o.DeleteButton:Enable(true)\
+    	-- Check here if there are more than 1 difference between Sel and prevSel\
+    	local diff = 0\
+    	for i = 1,#Sel do\
+    		local found = nil\
+    		for j = 1,#o.prevSel do\
+    			if Sel[i]:GetValue() == o.prevSel[j]:GetValue() then\
+    				found = true\
+    				break\
+    			end\
+    		end\
+    		if not found then\
+    			diff = diff + 1\
+    		end\
+    	end\
+    	-- diff has number of elements in Sel but nout found in o.prevSel\
+    	for i = 1,#o.prevSel do\
+    		local found = nil\
+    		for j = 1,#Sel do\
+    			if Sel[j]:GetValue() == o.prevSel[i]:GetValue() then\
+    				found = true\
+    				break\
+    			end\
+    		end\
+    		if not found then\
+    			diff = diff + 1\
+    		end\
+    	end\
+        if #Sel > 1 and diff == 1 then\
+        	-- Check here if the selection needs to be modified to keep at the same level\
+        	local parent = o.SelTree:GetItemParent(Sel[1])\
+        	for i = 2,#Sel do\
+        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\
+        			-- Need to modify the selection here\
+        			-- Find which element was selected last here\
+        			local newElem = nil\
+        			for j = 1,#Sel do\
+        				local found = nil\
+        				for k = 1,#o.prevSel do\
+        					if Sel[j]:GetValue() == o.prevSel[k]:GetValue() then\
+        						found = true\
+        						break\
+        					end\
+        				end\
+        				if not found then\
+        					newElem = Sel[j]\
+        					break\
+        				end\
+        			end		-- for j = 1,#Sel do ends\
+        			-- Now newElem has the newest element so deselect everything and select that\
+        			for j = 1,#Sel do\
+        				o.SelTree:SelectItem(Sel[j],false)\
+        			end\
+        			o.SelTree:SelectItem(newElem,true)\
+	        		Sel = o.SelTree:GetSelections(Sel)\
+					o.prevSel = {}\
+					for i = 1,#Sel do\
+						o.prevSel[i] = Sel[i]\
+					end\
+        			break\
+        		end		-- if o.SelTree:GetItemParent(Sel[i]) ~= parent then ends\
+        	end		-- for i = 2,#Sel do ends\
+        end		-- if #Sel > 1 then\
+--        if #Sel > 1 or o.SelTree:ItemHasChildren(Sel[1]) then\
+--        	o.DeleteButton:Disable()\
+--        else\
+--        	o.DeleteButton:Enable(true)\
+--        end\
+		-- Populate prevSel table\
+    	if diff == 1 and math.abs(#Sel-#o.prevSel) == 1 then\
+			o.prevSel = {}\
+			for i = 1,#Sel do\
+				o.prevSel[i] = Sel[i]\
+			end\
+		elseif diff > 1 and math.abs(#Sel-#o.prevSel) == diff then\
+			-- Selection made by Shift Key check if at same hierarchy then update prevSel otherwise rever to prevSel\
+        	local parent = o.SelTree:GetItemParent(Sel[1])\
+        	local updatePrev = true\
+        	for i = 2,#Sel do\
+        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\
+        			-- Now newElem has the newest element so deselect everything and select that\
+        			for j = 1,#Sel do\
+        				o.SelTree:SelectItem(Sel[j],false)\
+        			end\
+        			for j = 1,#o.prevSel do\
+        				o.SelTree:SelectItem(o.prevSel[j],true)\
+        			end\
+        			updatePrev = false\
+        			break\
+        		end		-- if o.SelTree:GetItemParent(Sel[i]) ~= parent then ends\
+        	end		-- for i = 2,#Sel do ends	\
+        	if updatePrev then		\
+				o.prevSel = {}\
+				for i = 1,#Sel do\
+					o.prevSel[i] = Sel[i]\
+				end\
+			end\
+		end\
+		\
+		--event:Skip()\
+		--print(o.SelTree:GetItemText(item))\
+	end,]]\
+	\
+	local TreeSelChanged = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+        \
+        -- Update the Delete Button status\
+        local Sel = o.SelTree:GetSelections(Sel)\
+        if #Sel == 0 then\
+        	o.prevSel = {}\
+        	o.DeleteButton:Disable()\
+        	o.NegateButton:Disable()\
+        	return nil\
+        end\
+        o.DeleteButton:Enable(true)\
+       	o.NegateButton:Enable(true)\
+		-- Check if parent of all selections is the same	\
+		if #Sel > 1 then\
+        	local parent = o.SelTree:GetItemParent(Sel[1])\
+        	for i = 2,#Sel do\
+        		if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then\
+        			-- Deselect everything\
+        			for j = 1,#Sel do\
+        				o.SelTree:SelectItem(Sel[j],false)\
+        			end\
+        			-- Select the items with the largest parent\
+        			local parents = {}	-- To store parents and their numbers\
+        			for j =1,#Sel do\
+        				local found = nil\
+        				for k = 1,#parents do\
+        					if o.SelTree:GetItemParent(Sel[j]):GetValue() == parents[k].ID:GetValue() then\
+        						parents[k].count = parents[k].count + 1\
+        						found = true\
+        						break\
+        					end\
+        				end\
+        				if not found then\
+        					parents[#parents + 1] = {ID = o.SelTree:GetItemParent(Sel[j]), count = 1}\
+        				end\
+        			end\
+        			-- Find parent with largest number of children\
+        			local index = 1\
+        			for j = 2,#parents do\
+        				if parents[j].count > parents[index].count then\
+        					index = j\
+        				end\
+        			end\
+        			-- Select all items with parents[index].ID as parent\
+        			for j = 1,#Sel do\
+        				if o.SelTree:GetItemParent(Sel[j]):GetValue() == parents[index].ID:GetValue() then\
+        					o.SelTree:SelectItem(Sel[j],true)\
+        				end\
+        			end		-- for j = 1,#Sel do ends\
+        		end		-- if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then ends\
+        	end		-- for i = 2,#Sel do ends\
+        end		-- if #Sel > 1 then ends\
+        event:Skip()\
+	end\
+	\
+	BooleanTreeCtrl = function(parent,sizer,getInfoFunc)\
+		if not parent or not sizer or not getInfoFunc or type(getInfoFunc)~=\"function\" then\
+			return nil\
+		end\
+		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression, setExpression = setExpression}\
+		o.getInfo = getInfoFunc\
+		o.prevSel = {}\
+		o.parent = parent\
+		local ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+			local ID = NewID()\
+			o.ANDButton = wx.wxButton(parent, ID, \"AND\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"AND\"}\
+			ButtonSizer:Add(o.ANDButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.ORButton = wx.wxButton(parent, ID, \"OR\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"OR\"}\
+			ButtonSizer:Add(o.ORButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.NANDButton = wx.wxButton(parent, ID, \"NOT() AND\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"NAND\"}\
+			ButtonSizer:Add(o.NANDButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.NORButton = wx.wxButton(parent, ID, \"NOT() OR\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"NOR\"}\
+			ButtonSizer:Add(o.NORButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.ANDNButton = wx.wxButton(parent, ID, \"AND NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"ANDN\"}\
+			ButtonSizer:Add(o.ANDNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.ORNButton = wx.wxButton(parent, ID, \"OR NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"ORN\"}\
+			ButtonSizer:Add(o.ORNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.NANDNButton = wx.wxButton(parent, ID, \"NOT() AND NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"NANDN\"}\
+			ButtonSizer:Add(o.NANDNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			ID = NewID()\
+			o.NORNButton = wx.wxButton(parent, ID, \"NOT() OR NOT\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = {object=o,button=\"NORN\"}\
+			ButtonSizer:Add(o.NORNButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			local treeSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+				ID = NewID()\
+				o.SelTree = wx.wxTreeCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,bit.bor(wx.wxTR_HAS_BUTTONS,wx.wxTR_MULTIPLE))\
+				objMap[ID] = o\
+				-- Add the root\
+				local root = o.SelTree:AddRoot(\"Expressions\")\
+				o.SelTree:SelectItem(root)\
+			treeSizer:Add(o.SelTree, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				-- Add the Delete and Negate Buttons\
+				ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					ID = NewID()\
+					o.DeleteButton = wx.wxButton(parent, ID, \"Delete\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+					objMap[ID] = {object=o,button=\"Delete\"}\
+				ButtonSizer:Add(o.DeleteButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				o.DeleteButton:Disable()\
+					ID = NewID()\
+					o.NegateButton = wx.wxButton(parent, ID, \"Negate\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+					objMap[ID] = {object=o,button=\"Negate\"}\
+				ButtonSizer:Add(o.NegateButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				o.NegateButton:Disable()\
+			treeSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)		\
+		sizer:Add(treeSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	\
+		-- Connect the buttons to the event handlers\
+		o.ANDButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.ORButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.NANDButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.NORButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.ANDNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.ORNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.NANDNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.NORNButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,LogicPress)\
+		o.DeleteButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,DeletePress)\
+		o.NegateButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,NegatePress)\
+		\
+		-- Connect the tree to the left click event\
+		o.SelTree:Connect(wx.wxEVT_COMMAND_TREE_SEL_CHANGED, TreeSelChanged)\
+		return o\
+	end\
+end		-- BooleanTreeCtrl ends\
+\
+-- Control to select date Range\
+do\
+	local objMap = {}\
+	SelectDateRangeCtrl = function(parent,numInstances,returnFunc)\
+		if not objMap[parent] then\
+			objMap[parent] = 1\
+		elseif objMap[parent] >= numInstances then\
+			return false\
+		else\
+			objMap[parent] = objMap[parent] + 1\
+		end\
+		local drFrame = wx.wxFrame(parent, wx.wxID_ANY, \"Date Range Selection\", wx.wxDefaultPosition,\
+			wx.wxDefaultSize, wx.wxMINIMIZE_BOX + wx.wxSYSTEM_MENU + wx.wxCAPTION\
+			+ wx.wxCLOSE_BOX + wx.wxCLIP_CHILDREN)\
+		local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		local calSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+		local fromSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		local label = wx.wxStaticText(drFrame, wx.wxID_ANY, \"From:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+		fromSizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		local fromDate = wx.wxCalendarCtrl(drFrame,wx.wxID_ANY)\
+		fromSizer:Add(fromDate, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+		local toSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		label = wx.wxStaticText(drFrame, wx.wxID_ANY, \"To:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+		toSizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		local toDate = wx.wxCalendarCtrl(drFrame,wx.wxID_ANY)\
+		toSizer:Add(toDate, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		\
+		calSizer:Add(fromSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		calSizer:Add(toSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		\
+		-- Add Buttons\
+		local buttonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+		local selButton = wx.wxButton(drFrame, wx.wxID_ANY, \"Select\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+		buttonSizer:Add(selButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+		local CancelButton = wx.wxButton(drFrame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+		buttonSizer:Add(CancelButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+		\
+		\
+		MainSizer:Add(calSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		MainSizer:Add(buttonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		drFrame:SetSizer(MainSizer)\
+		MainSizer:SetSizeHints(drFrame)\
+	    drFrame:Layout() -- help sizing the windows before being shown\
+	    drFrame:Show(true)\
+	    \
+		selButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,function(event)\
+			setfenv(1,package.loaded[modname])\
+			returnFunc(fromDate:GetDate():Format(\"%m/%d/%Y\")..\"-\"..toDate:GetDate():Format(\"%m/%d/%Y\"))\
+			drFrame:Close()\
+			objMap[parent] = objMap[parent] - 1\
+		end	\
+		)\
+		CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,function(event)\
+			setfenv(1,package.loaded[modname])\
+			drFrame:Close() \
+			objMap[parent] = objMap[parent] - 1\
+		end\
+		)	    	\
+	end		-- display = function(parent,numInstances,returnFunc) ends\
+end		-- SelectDateRangeCtrl ends\
+\
+-- Date Range Selection Control\
+do\
+	local objMap = {}		-- Private Static Variable\
+	\
+	local getSelectedItems = function(o)\
+		local selItems = {}\
+		local SelList = o.list\
+		local itemNum = -1\
+		while SelList:GetNextItem(itemNum) ~= -1 do\
+			itemNum = SelList:GetNextItem(itemNum)\
+			local itemText = SelList:GetItemText(itemNum)\
+			selItems[#selItems + 1] = itemText\
+		end\
+		-- Finally Check if none selection box exists\
+		if o.CheckBox and o.CheckBox:GetValue() then\
+			selItems[0] = \"true\"\
+		end\
+		return selItems\
+	end\
+\
+    local addRange = function(o,range)\
+		-- Check if the Item exists in the list control\
+		local itemNum = -1\
+		local conditionList = false\
+		while o.list:GetNextItem(itemNum) ~= -1 do\
+			local prevItemNum = itemNum\
+			itemNum = o.list:GetNextItem(itemNum)\
+			local itemText = o.list:GetItemText(itemNum)\
+			-- Now compare the dateRanges\
+			local comp = compareDateRanges(range,itemText)\
+			if comp == 1 then\
+				-- Ranges are same, do nothing\
+				drFrame:Close()\
+				return true\
+			elseif comp==2 then\
+				-- range1 lies entirely before range2\
+				itemNum = prevItemNum\
+				break\
+			elseif comp==3 then\
+				-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2\
+				range = combineDateRanges(range,itemText)\
+				-- Delete the current item\
+				o.list:DeleteItem(itemNum)\
+				itemNum = prevItemNum\
+				break\
+			elseif comp==4 then\
+				-- comp=4 range1 lies entirely inside range2\
+				-- range given is subset, do nothing\
+				return true\
+			elseif comp==5 or comp==7 then\
+				-- comp=5 range1 post overlaps range2\
+				-- comp=7 range2 lies entirely inside range1\
+				range = combineDateRanges(range,itemText)\
+				-- Delete the current item\
+				o.list:DeleteItem(itemNum)\
+				itemNum = prevItemNum\
+				conditionList = true	-- To condition the list to merge any overlapping ranges\
+				break\
+			elseif comp==6 then\
+				-- range1 lies entirely after range2\
+				-- Do nothing look at next item\
+			else\
+				return nil\
+			end\
+			--print(range..\">\"..tostring(comp))\
+		end\
+		-- itemNum contains the item after which to place item\
+		if itemNum == -1 then\
+			itemNum = 0\
+		else \
+			itemNum = itemNum + 1\
+		end\
+		local newItem = wx.wxListItem()\
+		newItem:SetId(itemNum)\
+		newItem:SetText(range)\
+		o.list:InsertItem(newItem)\
+		o.list:SetItem(itemNum,0,range)\
+		\
+		-- Condition the list here if required\
+		while conditionList and o.list:GetNextItem(itemNum) ~= -1 do\
+			local prevItemNum = itemNum\
+			itemNum = o.list:GetNextItem(itemNum)\
+			local itemText = o.list:GetItemText(itemNum)\
+			-- Now compare the dateRanges\
+			local comp = compareDateRanges(range,itemText)\
+			if comp == 1 then\
+				-- Ranges are same, delete this itemText range\
+				o.list:DeleteItem(itemNum)\
+				itemNum = prevItemNum\
+			elseif comp==2 then\
+				 -- range1 lies entirely before range2\
+				 conditionList = nil\
+			elseif comp==3 then\
+				-- comp=3 range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2\
+				range = combineDateRanges(range,itemText)\
+				-- Delete the current item\
+				o.list:DeleteItem(itemNum)\
+				itemNum = prevItemNum\
+				o.list:SetItemText(itemNum,range)\
+				conditionList = nil\
+			elseif comp==4 then\
+				-- comp=4 range1 lies entirely inside range2\
+				error(\"Code Error: This condition should never occur!\",1)\
+			elseif comp==5 or comp==7 then\
+				-- comp=5 range1 post overlaps range2\
+				-- comp=7 range2 lies entirely inside range1\
+				range = combineDateRanges(range,itemText)\
+				-- Delete the current item\
+				o.list:DeleteItem(itemNum)\
+				itemNum = prevItemNum\
+				o.list:SetItemText(itemNum,range)\
+			elseif comp==6 then\
+				-- range1 lies entirely after range2\
+				error(\"Code Error: This condition should never occur!\",1)\
+			else\
+				error(\"Code Error: This condition should never occur!\",1)\
+			end				\
+		end		-- while conditionList and o.list:GetNextItem(itemNum) ~= -1 ends\
+		o.list:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)\
+    end		-- local addRange = function(range) ends\
+	\
+	local validateRange = function(range)\
+		-- Check if the given date range is valid\
+		-- Expected format is MM/DD/YYYY-MM/DD/YYYY here M and D can be single digits as well\
+		local _, _, im, id, iy, fm, fd, fy = string.find(range, \"(%d+)/(%d+)/(%d%d%d%d+)%s*-%s*(%d+)/(%d+)/(%d%d%d%d+)\")\
+		id = tonumber(id)\
+		im = tonumber(im)\
+		iy = tonumber(iy)\
+		fd = tonumber(fd)\
+		fm = tonumber(fm)\
+		fy = tonumber(fy)\
+		local ileap, fleap\
+		if not(id or im or iy or fd or fm or fy) then\
+			return false\
+		elseif not(id > 0 and id < 32 and fd > 0 and fd < 32 and im > 0 and im < 13 and fm > 0 and fm < 13 and iy > 0 and fy > 0) then\
+			return false\
+		end\
+		if fy < iy then\
+			return false\
+		end\
+		if iy == fy then\
+			if fm < im then\
+				return false\
+			end\
+			if im == fm then\
+				if fd < id then\
+					return false\
+				end\
+			end\
+		end \
+		if iy%100 == 0 and iy%400==0 then\
+			-- iy is leap year century\
+			ileap = true\
+		elseif iy%4 == 0 then\
+			-- iy is leap year\
+			ileap = true\
+		end\
+		if fy%100 == 0 and fy%400==0 then\
+			-- fy is leap year century\
+			fleap = true\
+		elseif fy%4 == 0 then\
+			-- fy is leap year\
+			fleap = true\
+		end \
+		--print(id,im,iy,fd,fm,fy,ileap,fleap)\
+		local validDate = function(leap,date,month)\
+			local limits = {31,28,31,30,31,30,31,31,30,31,30,31}\
+			if leap then\
+				limits[2] = limits[2] + 1\
+			end\
+			if limits[month] < date then\
+				return false\
+			else\
+				return true\
+			end\
+		end\
+		if not validDate(ileap,id,im) then\
+			return false\
+		end\
+		if not validDate(fleap,fd,fm) then\
+			return false\
+		end\
+		return true\
+	end\
+	\
+	local setRanges = function(o,ranges)\
+		for i = 1,#ranges do\
+			if validateRange(ranges[i]) then\
+				addRange(o,ranges[i])\
+			else\
+				error(\"Invalid Date Range given\", 2)\
+			end\
+		end\
+	end\
+	\
+	local setCheckBoxState = function(o,state)\
+		o.CheckBox:SetValue(state)\
+	end\
+	\
+	local AddPress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+		\
+		local addNewRange = function(range)\
+			addRange(o,range)\
+		end\
+		\
+		-- Create the frame to accept date range\
+		SelectDateRangeCtrl(o.parent,1,addNewRange)\
+	end\
+	\
+	local RemovePress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+		local item = o.list:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+		local selItems = {}\
+		while item ~= -1 do\
+			selItems[#selItems + 1] = item	\
+			item = o.list:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+		end\
+		for i=#selItems,1,-1 do\
+			o.list:DeleteItem(selItems[i])\
+		end\
+	end\
+	\
+	local ClearPress = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+		o.list:DeleteAllItems()	\
+	end\
+	\
+	local ResetCtrl = function(o)\
+		o.list:DeleteAllItems()\
+		if o.CheckBox then\
+			o.CheckBox:SetValue(false)\
+		end\
+	end\
+	\
+	local ListSel = function(event)\
+		setfenv(1,package.loaded[modname])\
+		local o = objMap[event:GetId()]\
+        if o.list:GetSelectedItemCount() == 0 then\
+			o.RemoveButton:Disable()\
+        	return nil\
+        end\
+		o.RemoveButton:Enable(true)\
+	end\
+	\
+	DateRangeCtrl = function(parent, noneSelection, heading)\
+		-- parent is a wxPanel\
+		if not parent then\
+			return nil\
+		end\
+		local o = {ResetCtrl = ResetCtrl, getSelectedItems = getSelectedItems, setRanges = setRanges}	-- new object\
+		o.parent = parent\
+		-- Create the GUI elements here\
+		o.Sizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		\
+		-- Heading\
+		local label = wx.wxStaticText(parent, wx.wxID_ANY, heading, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+		o.Sizer:Add(label, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		\
+		-- List Control\
+		local ID\
+		ID = NewID()\
+		o.list = wx.wxListCtrl(parent, ID, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\
+		o.list:InsertColumn(0,\"Ranges\")\
+		objMap[ID] = o \
+		o.list:InsertColumn(0,heading)\
+		o.Sizer:Add(o.list, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		\
+		-- none Selection check box\
+		if noneSelection then\
+			o.setCheckBoxState = setCheckBoxState\
+			ID = NewID()\
+			o.CheckBox = wx.wxCheckBox(parent, ID, \"None Also passes\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+			objMap[ID] = o \
+			o.Sizer:Add(o.CheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+		end\
+		\
+		-- Add Date Range Button\
+		ID = NewID()\
+		o.AddButton = wx.wxButton(parent, ID, \"Add Range\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+		o.Sizer:Add(o.AddButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+		objMap[ID] = o \
+\
+		-- Remove Date Range Button\
+		ID = NewID()\
+		o.RemoveButton = wx.wxButton(parent, ID, \"Remove Range\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+		o.Sizer:Add(o.RemoveButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+		objMap[ID] = o \
+		o.RemoveButton:Disable()\
+		\
+		-- Clear Date Ranges Button\
+		ID = NewID()\
+		o.ClearButton = wx.wxButton(parent, ID, \"Clear Ranges\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+		o.Sizer:Add(o.ClearButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+		objMap[ID] = o \
+		\
+		-- Associate Events\
+		o.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,AddPress)\
+		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,RemovePress)\
+		o.ClearButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,ClearPress)\
+\
+		o.list:Connect(wx.wxEVT_COMMAND_LIST_ITEM_SELECTED,ListSel)\
+		o.list:Connect(wx.wxEVT_COMMAND_LIST_ITEM_DESELECTED,ListSel)\
+		\
+		return o\
+	end\
+	\
 end		-- DateRangeCtrl ends"
 __MANY2ONEFILES['TaskForm']="local requireLuaString = requireLuaString\
------------------------------------------------------------------------------\r\
--- Application: Karm\r\
--- Purpose:     Karm application Task Entry form UI creation and handling file\r\
--- Author:      Milind Gupta\r\
--- Created:     4/11/2012\r\
------------------------------------------------------------------------------\r\
-\r\
-local prin\r\
-if Karm.Globals.__DEBUG then\r\
-	prin = print\r\
-end\r\
-local error = error\r\
-local tonumber = tonumber\r\
-local tostring = tostring\r\
-local print = prin \r\
-local modname = ...\r\
-local wx = wx\r\
-local wxaui = wxaui\r\
-local setfenv = setfenv\r\
-local pairs = pairs\r\
-local GUI = Karm.GUI\r\
-local bit = bit\r\
-local Globals = Karm.Globals\r\
-local XMLDate2wxDateTime = Karm.Utility.XMLDate2wxDateTime\r\
-local toXMLDate = Karm.Utility.toXMLDate\r\
-local task2IncSchTasks = Karm.TaskObject.incSchTasks\r\
-local getLatestScheduleDates = Karm.TaskObject.getLatestScheduleDates\r\
-local getWorkDoneDates = Karm.TaskObject.getWorkDoneDates\r\
-local tableToString = Karm.Utility.tableToString\r\
-local getEmptyTask = Karm.getEmptyTask\r\
-local copyTask = Karm.TaskObject.copy\r\
-local collectFilterDataHier = Karm.accumulateTaskDataHier\r\
-local togglePlanningDate = Karm.TaskObject.togglePlanningDate\r\
-local type = type\r\
-local checkTask = function() \r\
-					return checkTask\r\
-				end\r\
-local SData = function()\r\
-		return Karm.SporeData\r\
-	end\r\
-\r\
-local CW = requireLuaString('CustomWidgets')\r\
-\r\
-\r\
-module(modname)\r\
-\r\
-local taskData	-- To store the task data locally\r\
-local filterData = {}\r\
-\r\
-local function dateRangeChangeEvent(event)\r\
-	setfenv(1,package.loaded[modname])\r\
-	local startDate = dateStartPick:GetValue()\r\
-	local finDate = dateFinPick:GetValue()\r\
-	taskTree:dateRangeChange(startDate,finDate)\r\
-	wdTaskTree:dateRangeChange(startDate,finDate)\r\
-	event:Skip()\r\
-end\r\
-\r\
-local function dateRangeChange()\r\
-	local startDate = dateStartPick:GetValue()\r\
-	local finDate = dateFinPick:GetValue()\r\
-	taskTree:dateRangeChange(startDate,finDate)\r\
-	wdTaskTree:dateRangeChange(startDate,finDate)\r\
-end\r\
-\r\
--- Function to create the task\r\
--- If task is not nil then the previous schedules from that are copied over by starting with a copy of the task\r\
-local function makeTask(task)\r\
-	if not task then\r\
-		error(\"Need a task object with at least a task ID\",2)\r\
-	end\r\
-	local newTask = copyTask(task)\r\
---	if task then\r\
---		-- Since copyTask does not replicate that\r\
---		newTask.DBDATA = task.DBDATA\r\
---	end\r\
-	newTask.Modified = true\r\
-	if pubPrivate:GetValue() == \"Public\" then\r\
-		newTask.Private = false\r\
-	else\r\
-		newTask.Private = true\r\
-	end \r\
-	newTask.Title = titleBox:GetValue()\r\
-	if newTask.Title == \"\" then\r\
-		wx.wxMessageBox(\"The task Title cannot be blank. Please enter a title\", \"No Title Entered\",wx.wxOK + wx.wxCENTRE, frame)\r\
-	    return nil\r\
-	end\r\
-	newTask.Start = toXMLDate(dateStarted:GetValue():Format(\"%m/%d/%Y\"))\r\
-	-- newTask.TaskID = task.TaskID -- Already has task ID from copyTask\r\
-	-- Status\r\
-	newTask.Status = status:GetValue()\r\
-	-- Fin\r\
-	local todayDate = wx.wxDateTime()\r\
-	todayDate:SetToCurrent()\r\
-	todayDate = toXMLDate(todayDate:Format(\"%m/%d/%Y\"))\r\
-	if task and task.Status ~= \"Done\" and newTask.Status == \"Done\" then\r\
-		newTask.Fin = todayDate\r\
-	elseif newTask.Status ~= \"Done\" then\r\
-		newTask.Fin = nil\r\
-	end\r\
-	if priority:GetValue() ~= \"\" then\r\
-		newTask.Priority = priority:GetValue()\r\
-	else\r\
-		newTask.Priority = nil\r\
-	end\r\
-	if DueDateEN:GetValue() then\r\
-		newTask.Due = toXMLDate(dueDate:GetValue():Format(\"%m/%d/%Y\"))\r\
-	else\r\
-		newTask.Due = nil\r\
-	end\r\
-	-- Who List\r\
-	local list = whoList:getAllItems()\r\
-	if list[1] then\r\
-		local WhoTable = {[0]=\"Who\", count = #list}\r\
-		-- Loop through all the items in the list\r\
-		for i = 1,#list do\r\
-			WhoTable[i] = {ID = list[i].itemText, Status = list[i].checked}\r\
-		end\r\
-		newTask.Who = WhoTable\r\
-	else\r\
-		wx.wxMessageBox(\"The task should be assigned to someone. It cannot be blank. Please choose the people responsible.\", \"Task not assigned\",wx.wxOK + wx.wxCENTRE, frame)\r\
-	    return nil\r\
-	end\r\
-	-- Access List\r\
-	list = accList:getAllItems()\r\
-	if list[1] then\r\
-		local AccTable = {[0]=\"Access\", count = #list}\r\
-		-- Loop through all the items in the Locked element Access List\r\
-		for i = 1,#list do\r\
-			AccTable[i] = {ID = list[i].itemText, Status = list[i].checked}\r\
-		end\r\
-		newTask.Access = AccTable\r\
-	else\r\
-		newTask.Access = nil\r\
-	end		\r\
-	-- Assignee List\r\
-	list = {}\r\
-	local itemNum = -1\r\
-	while assigList:GetNextItem(itemNum) ~= -1 do\r\
-		itemNum = assigList:GetNextItem(itemNum)\r\
-		local itemText = assigList:GetItemText(itemNum)\r\
-		list[#list + 1] = itemText\r\
-	end\r\
-	if list[1] then\r\
-		local assignee = {[0]=\"Assignee\", count = #list}\r\
-		-- Loop through all the items in the Assignee List\r\
-		for i = 1,#list do\r\
-			assignee[i] = {ID = list[i]}\r\
-		end				\r\
-		newTask.Assignee = assignee					\r\
-	else\r\
-		newTask.Assignee = nil\r\
-	end		\r\
-	-- Comments\r\
-	if commentBox:GetValue() ~= \"\" then\r\
-		newTask.Comments = commentBox:GetValue()\r\
-	else \r\
-		newTask.Comments = nil\r\
-	end\r\
-	-- Category\r\
-	if Category:GetValue() ~= \"\" then\r\
-		newTask.Cat = Category:GetValue()\r\
-	else\r\
-		newTask.Cat = nil\r\
-	end\r\
-	--SubCategory\r\
-	if SubCategory:GetValue() ~= \"\" then \r\
-		newTask.SubCat = SubCategory:GetValue()\r\
-	else\r\
-		newTask.SubCat = nil\r\
-	end\r\
-	-- Tags\r\
-	list = TagsCtrl:getSelectedItems()\r\
-	if list[1] then\r\
-		local tagTable = {[0]=\"Tags\", count = #list}\r\
-		-- Loop through all the items in the Tags element\r\
-		for i = 1,#list do\r\
-			tagTable[i] = list[i]\r\
-		end\r\
-		newTask.Tags = tagTable\r\
-	else\r\
-		newTask.Tags = nil\r\
-	end		\r\
-	-- Normal Schedule\r\
-	if HoldPlanning:GetValue() then\r\
-		newTask.Planning = taskTree.taskList[1].Planning\r\
-	else\r\
-		list = getLatestScheduleDates(taskTree.taskList[1],true)\r\
-		if list then\r\
-			local list1 = getLatestScheduleDates(newTask)\r\
-			-- Compare the schedules\r\
-			local same = true\r\
-			if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and \r\
-			  not(list1.typeSchedule==\"Commit\" and list.typeSchedule == \"Revs\")) then\r\
-				same = false\r\
-			else\r\
-				for i = 1,#list do\r\
-					if list[i] ~= list1[i] then\r\
-						same = false\r\
-						break\r\
-					end\r\
-				end\r\
-			end\r\
-			if not same then\r\
-				-- Add the schedule here\r\
-				if not newTask.Schedules then\r\
-					newTask.Schedules = {}\r\
-				end\r\
-				if not newTask.Schedules[list.typeSchedule] then\r\
-					-- Schedule type does not exist so create it\r\
-					newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}\r\
-				end\r\
-				-- Schedule type already exists so just add it to the next index\r\
-				local newSched = {[0]=list.typeSchedule}\r\
-				local str = \"WD\"\r\
-				if list.typeSchedule ~= \"Actual\" then\r\
-					if schCommentBox:GetValue() ~= \"\" then\r\
-						newSched.Comment = schCommentBox:GetValue()\r\
-					end\r\
-					newSched.Updated = todayDate\r\
-					str = \"DP\"\r\
-				else\r\
-					error(\"Got Actual schedule type while processing schedule.\")\r\
-				end\r\
-				-- Update the period\r\
-				newSched.Period = {[0] = \"Period\", count = #list}\r\
-				for i = 1,#list do\r\
-					newSched.Period[i] = {[0] = str, Date = list[i]}\r\
-				end\r\
-				newTask.Schedules[list.typeSchedule][list.index] = newSched\r\
-				newTask.Schedules[list.typeSchedule].count = list.index\r\
-			end\r\
-		end		-- if list ends here\r\
-		newTask.Planning = nil\r\
-	end		-- if HoldPlanning.GetValue() then ends\r\
-	-- Work done Schedule\r\
-	list = getLatestScheduleDates(wdTaskTree.taskList[1],true)\r\
-	if list then\r\
-		local list1 = getWorkDoneDates(newTask)\r\
-		-- Compare the schedules\r\
-		local same = true\r\
-		if not list1 or #list1 ~= #list then\r\
-			same = false\r\
-		else\r\
-			for i = 1,#list do\r\
-				if list[i] ~= list1[i] then\r\
-					same = false\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		if not same then\r\
-			-- Add the schedule here\r\
-			if not newTask.Schedules then\r\
-				newTask.Schedules = {}\r\
-			end\r\
-			if not newTask.Schedules[list.typeSchedule] then\r\
-				-- Schedule type does not exist so create it\r\
-				newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}\r\
-			end\r\
-			-- Schedule type already exists so just add it to the next index\r\
-			local newSched = {[0]=list.typeSchedule, Updated = todayDate}\r\
-			local str = \"WD\"\r\
-			-- Update the period\r\
-			newSched.Period = {[0] = \"Period\", count = #list}\r\
-			for i = 1,#list do\r\
-				newSched.Period[i] = wdTaskTree.taskList[1].Planning.Period[i]\r\
-			end\r\
-			newTask.Schedules[list.typeSchedule][list.index] = newSched\r\
-			newTask.Schedules[list.typeSchedule].count = list.index\r\
-		end\r\
-	end		-- if list ends here\r\
---	print(tableToString(list))\r\
---	print(tableToString(newTask))\r\
-	local chkTask = checkTask()\r\
-	if type(chkTask) == \"function\" then\r\
-		local err,msg = chkTask(newTask)\r\
-		if not err then\r\
-			msg = msg or \"Error in the task. Please review.\"\r\
-			wx.wxMessageBox(msg, \"Task Error\",wx.wxOK + wx.wxCENTRE, frame)\r\
-			return nil\r\
-		end\r\
-	end\r\
-	return newTask\r\
-end\r\
-\r\
-function taskFormActivate(parent, callBack, task)\r\
-	local SporeData = SData()\r\
-	-- Accumulate Filter Data across all spores\r\
-	-- Loop through all the spores\r\
-	for k,v in pairs(SporeData) do\r\
-		if k~=0 then\r\
-			collectFilterDataHier(filterData,v)\r\
-		end		-- if k~=0 then ends\r\
-	end		-- for k,v in pairs(SporeData) do ends\r\
-	frame = wx.wxFrame(parent, wx.wxID_ANY, \"Task Form\", wx.wxDefaultPosition,\r\
-		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)\r\
-\r\
-	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		-- Create the tab book\r\
-		MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)\r\
-		-- Basic Task Info\r\
-		TInfo = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				local sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				local textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Title:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				if task and task.Title then\r\
-					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Title, wx.wxDefaultPosition, wx.wxDefaultSize)\r\
-				else\r\
-					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize)\r\
-				end				\r\
-				sizer2:Add(titleBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					-- Start Date\r\
-					local sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Start Date:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					if task and task.Start then\r\
-						dateStarted = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Start), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\r\
-					else\r\
-						dateStarted = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\r\
-					end					\r\
-					sizer3:Add(dateStarted, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					-- Due Date\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Due Date:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					local sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					DueDateEN = wx.wxCheckBox(TInfo, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-					DueDateEN:SetValue(false)\r\
-					sizer4:Add(DueDateEN, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					if task and task.Due then\r\
-						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Due), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\r\
-					else\r\
-						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\r\
-					end	\r\
-					-- dueDate:SetRange(XMLDate2wxDateTime(\"1900-01-01\"),XMLDate2wxDateTime(\"3000-01-01\"))					\r\
-					sizer4:Add(dueDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer3:Add(sizer4,1,bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					-- Priority\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Priority:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					local list = {\"\"}\r\
-					for i = 1,#Globals.PriorityList do\r\
-						list[i+1] = Globals.PriorityList[i]\r\
-					end\r\
-					if task and task.Priority then\r\
-						priority = wx.wxComboBox(TInfo, wx.wxID_ANY,task.Priority, wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\r\
-					else\r\
-						priority = wx.wxComboBox(TInfo, wx.wxID_ANY,\"\", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\r\
-					end\r\
-					sizer3:Add(priority, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-\r\
-				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-\r\
-				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					-- Private/Public\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Private/Public:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					list = {\"Public\",\"Private\"}\r\
-					if task and task.Private then\r\
-						pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,\"Private\", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\r\
-					else\r\
-						pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,\"Public\", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\r\
-					end\r\
-					sizer3:Add(pubPrivate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					-- Status\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Status:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					if task and task.Status then\r\
-						status = wx.wxComboBox(TInfo, wx.wxID_ANY,task.Status, wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)\r\
-					else\r\
-						status = wx.wxComboBox(TInfo, wx.wxID_ANY,Globals.StatusList[1], wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)\r\
-					end					\r\
-					sizer3:Add(status, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				-- Comment\r\
-				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Comment:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\r\
-				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				if task and task.Comments then\r\
-					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Comments, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)\r\
-				else\r\
-					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)\r\
-				end\r\
-				sizer2:Add(commentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-\r\
-				\r\
-				TInfo:SetSizer(sizer1)\r\
-			sizer1:SetSizeHints(TInfo)\r\
-		MainBook:AddPage(TInfo, \"Basic Info\")				\r\
-\r\
-		-- Classification Page\r\
-		TClass = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-\r\
-				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, \"Category:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					list = {\"\"}\r\
-					for i = 1,#Globals.Categories do\r\
-						list[i+1] = Globals.Categories[i]\r\
-					end\r\
-					if task and task.Cat then\r\
-						Category = wx.wxComboBox(TClass, wx.wxID_ANY,task.Cat, wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\r\
-					else\r\
-						Category = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\r\
-					end					\r\
-					sizer3:Add(Category, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, \"Sub-Category:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					list = {\"\"}\r\
-					for i = 1,#Globals.SubCategories do\r\
-						list[i+1] = Globals.SubCategories[i]\r\
-					end\r\
-					if task and task.SubCat then\r\
-						SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,task.SubCat, wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\r\
-					else\r\
-						SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\r\
-					end					\r\
-					sizer3:Add(SubCategory, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-\r\
-				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-\r\
-				textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, \"Tags:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\r\
-				sizer1:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				TagsCtrl = CW.MultiSelectCtrl(TClass,filterData.Tags,nil,false,true)\r\
-				if task and task.Tags then\r\
-					TagsCtrl:AddSelListData(task.Tags)\r\
-				end\r\
-				sizer1:Add(TagsCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-				TClass:SetSizer(sizer1)\r\
-			sizer1:SetSizeHints(TClass)\r\
-		MainBook:AddPage(TClass, \"Classification\")				\r\
-\r\
-		-- People Page\r\
-		TPeople = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				-- Resources\r\
-				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"People:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\r\
-				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				resourceList = wx.wxListCtrl(TPeople, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\r\
-				resourceList:InsertColumn(0,\"Options\")\r\
-				-- Populate the resources\r\
-				if not Globals.Resources or #Globals.Resources == 0 then\r\
-					wx.wxMessageBox(\"There are no people in the Globals.Resources setting. Please add a list of people to which task can be assigned\", \"No People found\",wx.wxOK + wx.wxCENTRE, frame) \r\
-					frame:Close()\r\
-					callBack(nil)\r\
-					return\r\
-				end\r\
-				\r\
-				for i = 1,#Globals.Resources do\r\
-					CW.InsertItem(resourceList,Globals.Resources[i])\r\
-				end\r\
-				CW.InsertItem(resourceList,Globals.User)\r\
-				sizer2:Add(resourceList, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				-- Selection boxes and buttons\r\
-				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				AddWhoButton = wx.wxButton(TPeople, wx.wxID_ANY, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				sizer4:Add(AddWhoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				RemoveWhoButton = wx.wxButton(TPeople, wx.wxID_ANY, \"X\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				sizer4:Add(RemoveWhoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"Who: (Checked=InActive)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\r\
-				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				whoList = CW.CheckListCtrl(TPeople,false,\"Inactive\",\"Active\")\r\
-				if task and task.Who then\r\
-					for i = 1,#task.Who do\r\
-						local id = task.Who[i].ID\r\
-						if task.Who[i].Status == \"Active\" then\r\
-							whoList:InsertItem(id)\r\
-						else\r\
-							whoList:InsertItem(id,true)\r\
-						end\r\
-					end\r\
-				end\r\
-				sizer4:Add(whoList.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				AddAccButton = wx.wxButton(TPeople, wx.wxID_ANY, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				sizer4:Add(AddAccButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				RemoveAccButton = wx.wxButton(TPeople, wx.wxID_ANY, \"X\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				sizer4:Add(RemoveAccButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"Access: (Checked=Read/Write)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\r\
-				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				accList = CW.CheckListCtrl(TPeople,false,\"Read/Write\",\"Read Only\")\r\
-				if task and task.Access then\r\
-					for i = 1,#task.Access do\r\
-						local id = task.Access[i].ID\r\
-						if task.Access[i].Status == \"Read/Write\" then\r\
-							accList:InsertItem(id,true)\r\
-						else\r\
-							accList:InsertItem(id)\r\
-						end\r\
-					end\r\
-				end				\r\
-				sizer4:Add(accList.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-\r\
-				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				AddAssigButton = wx.wxButton(TPeople, wx.wxID_ANY, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				sizer4:Add(AddAssigButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				RemoveAssigButton = wx.wxButton(TPeople, wx.wxID_ANY, \"X\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				sizer4:Add(RemoveAssigButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"Assignee:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\r\
-				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				assigList = wx.wxListCtrl(TPeople, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\r\
-				assigList:InsertColumn(0,\"Assignees\")\r\
-				if task and task.Assignee then\r\
-					for i = 1,#task.Assignee do\r\
-						CW.InsertItem(assigList,task.Assignee[i].ID)\r\
-					end\r\
-				end\r\
-				sizer4:Add(assigList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				TPeople:SetSizer(sizer1)\r\
-			sizer1:SetSizeHints(TPeople)\r\
-		MainBook:AddPage(TPeople, \"People\")				\r\
-\r\
-		-- Schedule Page\r\
-		TSch = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\r\
-					startDate = dateStartPick:GetValue()\r\
-					local month = wx.wxDateSpan(0,1,0,0)\r\
-					dateFinPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\r\
-					sizer2:Add(dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				local staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, \"Work Done\")\r\
-					wdTaskTree = GUI.newTreeGantt(TSch,true)\r\
-					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					sizer3:Add(wdTaskTree.horSplitWin, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					local wdDateLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Date: XX/XX/XXXX\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\r\
-					sizer4:Add(wdDateLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					local wdHourLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Hours: \", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\r\
-					sizer4:Add(wdHourLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					sizer2:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					local wdCommentLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Comment: \", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					sizer2:Add(wdCommentLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					local wdCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE + wx.wxTE_READONLY)\r\
-					sizer2:Add(wdCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					sizer3:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-					staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				sizer1:Add(staticBoxSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, \"Schedules\")\r\
-				sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				\r\
-				taskTree = GUI.newTreeGantt(TSch,true)\r\
-				sizer3:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				dateRangeChange()\r\
-				taskTree:layout()\r\
-				wdTaskTree:layout()\r\
-				local localTask1, localTask2\r\
-				if not task.Title then\r\
-					localTask1 = getEmptyTask()\r\
-					localTask2 = getEmptyTask()\r\
-				else\r\
-					localTask1 = copyTask(task)\r\
-					localTask2 = copyTask(task)\r\
-				end\r\
-				-- Create the 1st row for the task\r\
-				localTask1.Planning = nil	-- Since we will use this task for Work Done Entry and Work done never maintains the Planning\r\
-			    wdTaskTree:Clear()\r\
-			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}\r\
-			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor\r\
-			    taskTree:Clear()\r\
-			    taskTree:AddNode{Key=localTask2.TaskID, Text = localTask2.Title, Task = localTask2}\r\
-			    taskTree.Nodes[localTask2.TaskID].ForeColor = GUI.nodeForeColor\r\
-			    local prevKey = localTask1.TaskID\r\
-				-- Get list of mock tasks with incremental schedule\r\
-				if task and task.Schedules then\r\
-					local taskList = task2IncSchTasks(task)\r\
-					-- Now add these tasks\r\
-					for i = 1,#taskList do\r\
-						taskList[i].Planning = nil	-- To make sure that a task already having Planning does not propagate that in successive schedules\r\
-		            	taskTree:AddNode{Relative=prevKey, Relation=\"Next Sibling\", Key=taskList[i].TaskID, Text=taskList[i].Title, Task = taskList[i]}\r\
-		            	taskTree.Nodes[taskList[i].TaskID].ForeColor = GUI.nodeForeColor\r\
-		            	prevKey = taskList[i].TaskID\r\
-		            end\r\
-				end\r\
-				-- Enable planning mode for the task\r\
-				taskTree:enablePlanningMode({localTask2},\"NORMAL\")\r\
-				wdTaskTree:enablePlanningMode({localTask1},\"WORKDONE\")\r\
-				-- Add the comment box\r\
-				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Comment:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\r\
-				sizer4:Add(textLabel, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				HoldPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, \"Hold Planning\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				HoldPlanning:SetValue(false)\r\
-				sizer4:Add(HoldPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize)\r\
-				sizer3:Add(schCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-				staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				sizer1:Add(staticBoxSizer, 2, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\r\
-				\r\
-				TSch:SetSizer(sizer1)\r\
-			sizer1:SetSizeHints(TSch)\r\
-		MainBook:AddPage(TSch, \"Schedules\")	\r\
-		\r\
-	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-	CancelButton = wx.wxButton(frame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	sizer1:Add(CancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	DoneButton = wx.wxButton(frame, wx.wxID_ANY, \"Done\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	sizer1:Add(DoneButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	MainSizer:Add(sizer1, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-	frame:SetSizer(MainSizer)\r\
-\r\
-	-- Event handler for the Work Done elements\r\
-	local workDoneHourCommentEntry = function(task,row,col,date)\r\
-		-- First check whether the date is in the schedule\r\
-		local exist = false\r\
-		local prevHours, prevComment\r\
-		if localTask1.Planning then\r\
-			for i = 1,#localTask1.Planning.Period do\r\
-				if date == localTask1.Planning.Period[i].Date then\r\
-					prevHours = localTask1.Planning.Period[i].Hours or \"\"\r\
-					prevComment = localTask1.Planning.Period[i].Comment or \"\"\r\
-					exist = true\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		if exist then\r\
-			local wdFrame = wx.wxFrame(frame, wx.wxID_ANY, \"Work Done Details for date \"..date, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxDEFAULT_FRAME_STYLE)\r\
-			local wdSizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				-- Data entry UI\r\
-				local wdSizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-					local wdSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					wdTextLabel = wx.wxStaticText(wdFrame, wx.wxID_ANY, \"Hours:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\r\
-					wdSizer3:Add(wdTextLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					local wdList = {\"1\", \"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\",\"9\",\"10\"}\r\
-					local wdHours = wx.wxComboBox(wdFrame, wx.wxID_ANY,prevHours, wx.wxDefaultPosition, wx.wxDefaultSize,wdList)\r\
-					wdSizer3:Add(wdHours, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					wdSizer2:Add(wdSizer3, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					wdSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					wdTextLabel = wx.wxStaticText(wdFrame, wx.wxID_ANY, \"Comment:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-					wdSizer3:Add(wdTextLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-					wdSizer2:Add(wdSizer3, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					local w = 0.5*GUI.initFrameW\r\
-					local l = 0.5*GUI.initFrameH\r\
-					w = w - w%1\r\
-					l = l - l%1\r\
-					local wdComment = wx.wxTextCtrl(wdFrame, wx.wxID_ANY, prevComment, wx.wxDefaultPosition, wx.wxSize(w, l), wx.wxTE_MULTILINE)\r\
-					wdSizer2:Add(wdComment, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				wdSizer1:Add(wdSizer2, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				-- Buttons\r\
-				wdSizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					local wdCancelButton = wx.wxButton(wdFrame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-					wdSizer2:Add(wdCancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					local wdDoneButton = wx.wxButton(wdFrame, wx.wxID_ANY, \"Done\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-					wdSizer2:Add(wdDoneButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				wdSizer1:Add(wdSizer2, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			wdFrame:SetSizer(wdSizer1)\r\
-			wdSizer1:SetSizeHints(wdFrame)\r\
-			wdCancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-				function (event)\r\
-					wdFrame:Close()\r\
-				end\r\
-			)\r\
-			wdDoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-				function (event)\r\
-					setfenv(1,package.loaded[modname])\r\
-					local hours = wdHours:GetValue()\r\
-					local comment = wdComment:GetValue()\r\
-					if tonumber(hours) then\r\
-						hours = tostring(tonumber(hours))\r\
-					else\r\
-						hours = \"\"\r\
-					end\r\
-					if hours ~= \"\" or comment ~= \"\" then\r\
-						-- Add the hours and Comment information to the task here\r\
-						for i = 1,#localTask1.Planning.Period do\r\
-							if localTask1.Planning.Period[i].Date == date then\r\
-								if hours ~= \"\" then\r\
-									localTask1.Planning.Period[i].Hours = hours\r\
-								end\r\
-								if comment ~= \"\" then\r\
-									localTask1.Planning.Period[i].Comment = comment\r\
-								end\r\
-								break\r\
-							end\r\
-						end\r\
-						-- Update the hours and comment box\r\
-						wdDateLabel:SetLabel(\"Date: \"..date:sub(-5,-4)..\"/\"..date:sub(-2,-1)..\"/\"..date:sub(1,4))\r\
-						wdHourLabel:SetLabel(\"Hours: \"..hours)\r\
-						wdCommentBox:SetValue(comment)\r\
-					end		-- if hours ~= \"\" or comment ~= \"\" then ends\r\
-					wdFrame:Close()\r\
-				end\r\
-			)\r\
-		    wdFrame:Layout() -- help sizing the windows before being shown\r\
-		    wdFrame:Show(true)\r\
-		end	-- if exist then ends		\r\
-	end\r\
-	\r\
-	local prevDate, wdPlanning\r\
-	wdPlanning = {Planning = {Type = \"Actual\", index = 1}}\r\
-	\r\
-	local function updateHoursComment(task,row,col,date)\r\
-		if not prevDate then\r\
-			prevDate = date\r\
-		end\r\
-		-- First check whether the date is in the schedule\r\
-		local exist = false\r\
-		local existwd = false\r\
-		local perNum, wdNum\r\
-		if localTask1.Planning then\r\
-			for i = 1,#localTask1.Planning.Period do\r\
-				if date == localTask1.Planning.Period[i].Date then\r\
-					perNum = i\r\
-					exist = true\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		if wdPlanning.Planning.Period then\r\
-			for i = 1,#wdPlanning.Planning.Period do\r\
-				if date == wdPlanning.Planning.Period[i].Date then\r\
-					wdNum = i\r\
-					existwd = true\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		\r\
-		if exist then\r\
-			if not existwd then\r\
-				-- Add it to wdPlanning\r\
-				if not wdPlanning.Planning.Period then\r\
-					wdPlanning.Planning.Period = {}\r\
-				end\r\
-				wdPlanning.Planning.Period[#wdPlanning.Planning.Period + 1] = localTask1.Planning.Period[perNum]\r\
-			end\r\
-		else\r\
-			if existwd then\r\
-				if prevDate ~= date then\r\
-					-- Add it back in the task\r\
-					togglePlanningDate(localTask1,date,\"WORKDONE\")\r\
-					for i = 1,#localTask1.Planning.Period do\r\
-						if localTask1.Planning.Period[i].Date == date then\r\
-							localTask1.Planning.Period[i].Hours = wdPlanning.Planning.Period[wdNum].Hours\r\
-							localTask1.Planning.Period[i].Comment = wdPlanning.Planning.Period[wdNum].Comment\r\
-							break\r\
-						end\r\
-					end\r\
-					-- Update GUI\r\
-					wdTaskTree:RefreshNode(localTask1)\r\
-				else\r\
-					-- Remove it from wdPlanning\r\
-					for i = wdNum,#wdPlanning.Planning.Period - 1 do\r\
-						wdPlanning.Planning.Period[i] = wdPlanning.Planning.Period[i+1]\r\
-					end\r\
-					wdPlanning.Planning.Period[#wdPlanning.Planning.Period] = nil\r\
-				end\r\
-			end\r\
-		end\r\
-		prevDate = date\r\
-		local hours, comment\r\
-		-- Extract the hours and comments\r\
-		if localTask1.Planning then\r\
-			for i = 1,#localTask1.Planning.Period do\r\
-				if date == localTask1.Planning.Period[i].Date then\r\
-					hours = localTask1.Planning.Period[i].Hours\r\
-					comment = localTask1.Planning.Period[i].Comment\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		-- Update the hours and comment box\r\
-		wdDateLabel:SetLabel(\"Date: \"..date:sub(-5,-4)..\"/\"..date:sub(-2,-1)..\"/\"..date:sub(1,4))\r\
-		if hours then\r\
-			wdHourLabel:SetLabel(\"Hours: \"..hours)\r\
-		else\r\
-			wdHourLabel:SetLabel(\"Hours: \")\r\
-		end\r\
-		if comment then\r\
-			wdCommentBox:SetValue(comment)\r\
-		else\r\
-			wdCommentBox:SetValue(\"\")\r\
-		end		\r\
-	end\r\
-	\r\
-	wdTaskTree:associateEventFunc({ganttCellDblClickCallBack = workDoneHourCommentEntry, ganttCellClickCallBack = updateHoursComment})\r\
-	-- Connect event handlers to the buttons\r\
-	RemoveAccButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local item = accList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			while item ~= -1 do\r\
-				accList.List:DeleteItem(item)			\r\
-				item = accList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-			end\r\
-		end\r\
-	)\r\
-\r\
-	RemoveAssigButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local item = assigList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			while item ~= -1 do\r\
-				assigList:DeleteItem(item)			\r\
-				item = assigList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-			end\r\
-		end\r\
-	)\r\
-\r\
-	RemoveWhoButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local selItems = {}\r\
-			local item = whoList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			while item ~= -1 do\r\
-				whoList.List:DeleteItem(item)\r\
-				item = whoList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-			end\r\
-		end\r\
-	)\r\
-\r\
-	AddAccButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local item = resourceList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			while item ~= -1 do\r\
-				local itemText = resourceList:GetItemText(item)\r\
-				accList:InsertItem(itemText)			\r\
-				item = resourceList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-			end\r\
-		end\r\
-	)\r\
-	\r\
-	AddAssigButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local item = resourceList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			while item ~= -1 do\r\
-				local itemText = resourceList:GetItemText(item)\r\
-				CW.InsertItem(assigList,itemText)		\r\
-				item = resourceList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-			end\r\
-		end\r\
-	)\r\
-\r\
-	AddWhoButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local item = resourceList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-			while item ~= -1 do\r\
-				local itemText = resourceList:GetItemText(item)\r\
-				whoList:InsertItem(itemText)			\r\
-				item = resourceList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\r\
-			end\r\
-		end\r\
-	)\r\
-\r\
-	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function (event)\r\
-			setfenv(1,package.loaded[modname])		\r\
-			frame:Close()\r\
-			callBack(nil)\r\
-		end\r\
-	)\r\
-	\r\
-	frame:Connect(wx.wxEVT_CLOSE_WINDOW,\r\
-		function (event)\r\
-			setfenv(1,package.loaded[modname])		\r\
-			event:Skip()\r\
-			callBack(nil)\r\
-		end\r\
-	)\r\
-\r\
-	DoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local newTask = makeTask(task)\r\
-			if newTask then\r\
-				callBack(newTask)\r\
-				frame:Close()\r\
-			end\r\
-		end		\r\
-	)\r\
-	\r\
-	DueDateEN:Connect(wx.wxEVT_COMMAND_CHECKBOX_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			if DueDateEN:GetValue() then\r\
-				dueDate:Enable(true)\r\
-			else\r\
-				dueDate:Disable()\r\
-			end\r\
-		end\r\
-	)\r\
-	\r\
-	-- Date Picker Events\r\
-	dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,dateRangeChangeEvent)\r\
-	dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,dateRangeChangeEvent)\r\
-	\r\
-\r\
-    frame:Layout() -- help sizing the windows before being shown\r\
-    frame:Show(true)\r\
-\r\
+-----------------------------------------------------------------------------\
+-- Application: Karm\
+-- Purpose:     Karm application Task Entry form UI creation and handling file\
+-- Author:      Milind Gupta\
+-- Created:     4/11/2012\
+-----------------------------------------------------------------------------\
+\
+local prin\
+if Karm.Globals.__DEBUG then\
+	prin = print\
+end\
+local error = error\
+local tonumber = tonumber\
+local tostring = tostring\
+local print = prin \
+local modname = ...\
+local wx = wx\
+local wxaui = wxaui\
+local setfenv = setfenv\
+local pairs = pairs\
+local GUI = Karm.GUI\
+local bit = bit\
+local Globals = Karm.Globals\
+local XMLDate2wxDateTime = Karm.Utility.XMLDate2wxDateTime\
+local toXMLDate = Karm.Utility.toXMLDate\
+local task2IncSchTasks = Karm.TaskObject.incSchTasks\
+local getLatestScheduleDates = Karm.TaskObject.getLatestScheduleDates\
+local getWorkDoneDates = Karm.TaskObject.getWorkDoneDates\
+local tableToString = Karm.Utility.tableToString\
+local getEmptyTask = Karm.getEmptyTask\
+local copyTask = Karm.TaskObject.copy\
+local collectFilterDataHier = Karm.accumulateTaskDataHier\
+local togglePlanningDate = Karm.TaskObject.togglePlanningDate\
+local type = type\
+local checkTask = function() \
+					return checkTask\
+				end\
+local SData = function()\
+		return Karm.SporeData\
+	end\
+\
+local CW = requireLuaString('CustomWidgets')\
+\
+\
+module(modname)\
+\
+local taskData	-- To store the task data locally\
+local filterData = {}\
+\
+local function dateRangeChangeEvent(event)\
+	setfenv(1,package.loaded[modname])\
+	local startDate = dateStartPick:GetValue()\
+	local finDate = dateFinPick:GetValue()\
+	taskTree:dateRangeChange(startDate,finDate)\
+	wdTaskTree:dateRangeChange(startDate,finDate)\
+	event:Skip()\
+end\
+\
+local function dateRangeChange()\
+	local startDate = dateStartPick:GetValue()\
+	local finDate = dateFinPick:GetValue()\
+	taskTree:dateRangeChange(startDate,finDate)\
+	wdTaskTree:dateRangeChange(startDate,finDate)\
+end\
+\
+-- Function to create the task\
+-- If task is not nil then the previous schedules from that are copied over by starting with a copy of the task\
+local function makeTask(task)\
+	if not task then\
+		error(\"Need a task object with at least a task ID\",2)\
+	end\
+	local newTask = copyTask(task)\
+--	if task then\
+--		-- Since copyTask does not replicate that\
+--		newTask.DBDATA = task.DBDATA\
+--	end\
+	newTask.Modified = true\
+	if pubPrivate:GetValue() == \"Public\" then\
+		newTask.Private = false\
+	else\
+		newTask.Private = true\
+	end \
+	newTask.Title = titleBox:GetValue()\
+	if newTask.Title == \"\" then\
+		wx.wxMessageBox(\"The task Title cannot be blank. Please enter a title\", \"No Title Entered\",wx.wxOK + wx.wxCENTRE, frame)\
+	    return nil\
+	end\
+	newTask.Start = toXMLDate(dateStarted:GetValue():Format(\"%m/%d/%Y\"))\
+	-- newTask.TaskID = task.TaskID -- Already has task ID from copyTask\
+	-- Status\
+	newTask.Status = status:GetValue()\
+	-- Fin\
+	local todayDate = wx.wxDateTime()\
+	todayDate:SetToCurrent()\
+	todayDate = toXMLDate(todayDate:Format(\"%m/%d/%Y\"))\
+	if task and task.Status ~= \"Done\" and newTask.Status == \"Done\" then\
+		newTask.Fin = todayDate\
+	elseif newTask.Status ~= \"Done\" then\
+		newTask.Fin = nil\
+	end\
+	if priority:GetValue() ~= \"\" then\
+		newTask.Priority = priority:GetValue()\
+	else\
+		newTask.Priority = nil\
+	end\
+	if DueDateEN:GetValue() then\
+		newTask.Due = toXMLDate(dueDate:GetValue():Format(\"%m/%d/%Y\"))\
+	else\
+		newTask.Due = nil\
+	end\
+	-- Who List\
+	local list = whoList:getAllItems()\
+	if list[1] then\
+		local WhoTable = {[0]=\"Who\", count = #list}\
+		-- Loop through all the items in the list\
+		for i = 1,#list do\
+			WhoTable[i] = {ID = list[i].itemText, Status = list[i].checked}\
+		end\
+		newTask.Who = WhoTable\
+	else\
+		wx.wxMessageBox(\"The task should be assigned to someone. It cannot be blank. Please choose the people responsible.\", \"Task not assigned\",wx.wxOK + wx.wxCENTRE, frame)\
+	    return nil\
+	end\
+	-- Access List\
+	list = accList:getAllItems()\
+	if list[1] then\
+		local AccTable = {[0]=\"Access\", count = #list}\
+		-- Loop through all the items in the Locked element Access List\
+		for i = 1,#list do\
+			AccTable[i] = {ID = list[i].itemText, Status = list[i].checked}\
+		end\
+		newTask.Access = AccTable\
+	else\
+		newTask.Access = nil\
+	end		\
+	-- Assignee List\
+	list = {}\
+	local itemNum = -1\
+	while assigList:GetNextItem(itemNum) ~= -1 do\
+		itemNum = assigList:GetNextItem(itemNum)\
+		local itemText = assigList:GetItemText(itemNum)\
+		list[#list + 1] = itemText\
+	end\
+	if list[1] then\
+		local assignee = {[0]=\"Assignee\", count = #list}\
+		-- Loop through all the items in the Assignee List\
+		for i = 1,#list do\
+			assignee[i] = {ID = list[i]}\
+		end				\
+		newTask.Assignee = assignee					\
+	else\
+		newTask.Assignee = nil\
+	end		\
+	-- Comments\
+	if commentBox:GetValue() ~= \"\" then\
+		newTask.Comments = commentBox:GetValue()\
+	else \
+		newTask.Comments = nil\
+	end\
+	-- Category\
+	if Category:GetValue() ~= \"\" then\
+		newTask.Cat = Category:GetValue()\
+	else\
+		newTask.Cat = nil\
+	end\
+	--SubCategory\
+	if SubCategory:GetValue() ~= \"\" then \
+		newTask.SubCat = SubCategory:GetValue()\
+	else\
+		newTask.SubCat = nil\
+	end\
+	-- Tags\
+	list = TagsCtrl:getSelectedItems()\
+	if list[1] then\
+		local tagTable = {[0]=\"Tags\", count = #list}\
+		-- Loop through all the items in the Tags element\
+		for i = 1,#list do\
+			tagTable[i] = list[i]\
+		end\
+		newTask.Tags = tagTable\
+	else\
+		newTask.Tags = nil\
+	end		\
+	-- Normal Schedule\
+	if HoldPlanning:GetValue() then\
+		newTask.Planning = taskTree.taskList[1].Planning\
+	else\
+		list = getLatestScheduleDates(taskTree.taskList[1],true)\
+		if list then\
+			local list1 = getLatestScheduleDates(newTask)\
+			-- Compare the schedules\
+			local same = true\
+			if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and \
+			  not(list1.typeSchedule==\"Commit\" and list.typeSchedule == \"Revs\")) then\
+				same = false\
+			else\
+				for i = 1,#list do\
+					if list[i] ~= list1[i] then\
+						same = false\
+						break\
+					end\
+				end\
+			end\
+			if not same then\
+				-- Add the schedule here\
+				if not newTask.Schedules then\
+					newTask.Schedules = {}\
+				end\
+				if not newTask.Schedules[list.typeSchedule] then\
+					-- Schedule type does not exist so create it\
+					newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}\
+				end\
+				-- Schedule type already exists so just add it to the next index\
+				local newSched = {[0]=list.typeSchedule}\
+				local str = \"WD\"\
+				if list.typeSchedule ~= \"Actual\" then\
+					if schCommentBox:GetValue() ~= \"\" then\
+						newSched.Comment = schCommentBox:GetValue()\
+					end\
+					newSched.Updated = todayDate\
+					str = \"DP\"\
+				else\
+					error(\"Got Actual schedule type while processing schedule.\")\
+				end\
+				-- Update the period\
+				newSched.Period = {[0] = \"Period\", count = #list}\
+				for i = 1,#list do\
+					newSched.Period[i] = {[0] = str, Date = list[i]}\
+				end\
+				newTask.Schedules[list.typeSchedule][list.index] = newSched\
+				newTask.Schedules[list.typeSchedule].count = list.index\
+			end\
+		end		-- if list ends here\
+		newTask.Planning = nil\
+	end		-- if HoldPlanning.GetValue() then ends\
+	-- Work done Schedule\
+	list = getLatestScheduleDates(wdTaskTree.taskList[1],true)\
+	if list then\
+		local list1 = getWorkDoneDates(newTask)\
+		-- Compare the schedules\
+		local same = true\
+		if not list1 or #list1 ~= #list then\
+			same = false\
+		else\
+			for i = 1,#list do\
+				if list[i] ~= list1[i] then\
+					same = false\
+					break\
+				end\
+			end\
+		end\
+		if not same then\
+			-- Add the schedule here\
+			if not newTask.Schedules then\
+				newTask.Schedules = {}\
+			end\
+			if not newTask.Schedules[list.typeSchedule] then\
+				-- Schedule type does not exist so create it\
+				newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}\
+			end\
+			-- Schedule type already exists so just add it to the next index\
+			local newSched = {[0]=list.typeSchedule, Updated = todayDate}\
+			local str = \"WD\"\
+			-- Update the period\
+			newSched.Period = {[0] = \"Period\", count = #list}\
+			for i = 1,#list do\
+				newSched.Period[i] = wdTaskTree.taskList[1].Planning.Period[i]\
+			end\
+			newTask.Schedules[list.typeSchedule][list.index] = newSched\
+			newTask.Schedules[list.typeSchedule].count = list.index\
+		end\
+	end		-- if list ends here\
+--	print(tableToString(list))\
+--	print(tableToString(newTask))\
+	local chkTask = checkTask()\
+	if type(chkTask) == \"function\" then\
+		local err,msg = chkTask(newTask)\
+		if not err then\
+			msg = msg or \"Error in the task. Please review.\"\
+			wx.wxMessageBox(msg, \"Task Error\",wx.wxOK + wx.wxCENTRE, frame)\
+			return nil\
+		end\
+	end\
+	return newTask\
+end\
+\
+function taskFormActivate(parent, callBack, task)\
+	local SporeData = SData()\
+	-- Accumulate Filter Data across all spores\
+	-- Loop through all the spores\
+	for k,v in pairs(SporeData) do\
+		if k~=0 then\
+			collectFilterDataHier(filterData,v)\
+		end		-- if k~=0 then ends\
+	end		-- for k,v in pairs(SporeData) do ends\
+	frame = wx.wxFrame(parent, wx.wxID_ANY, \"Task Form\", wx.wxDefaultPosition,\
+		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)\
+\
+	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		-- Create the tab book\
+		MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)\
+		-- Basic Task Info\
+		TInfo = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				local sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				local textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Title:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				if task and task.Title then\
+					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Title, wx.wxDefaultPosition, wx.wxDefaultSize)\
+				else\
+					titleBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize)\
+				end				\
+				sizer2:Add(titleBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					-- Start Date\
+					local sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Start Date:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					if task and task.Start then\
+						dateStarted = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Start), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\
+					else\
+						dateStarted = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\
+					end					\
+					sizer3:Add(dateStarted, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					-- Due Date\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Due Date:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					local sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					DueDateEN = wx.wxCheckBox(TInfo, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+					DueDateEN:SetValue(false)\
+					sizer4:Add(DueDateEN, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+					if task and task.Due then\
+						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,XMLDate2wxDateTime(task.Due), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\
+					else\
+						dueDate = wx.wxDatePickerCtrl(TInfo, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\
+					end	\
+					-- dueDate:SetRange(XMLDate2wxDateTime(\"1900-01-01\"),XMLDate2wxDateTime(\"3000-01-01\"))					\
+					sizer4:Add(dueDate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer3:Add(sizer4,1,bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					-- Priority\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Priority:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					local list = {\"\"}\
+					for i = 1,#Globals.PriorityList do\
+						list[i+1] = Globals.PriorityList[i]\
+					end\
+					if task and task.Priority then\
+						priority = wx.wxComboBox(TInfo, wx.wxID_ANY,task.Priority, wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\
+					else\
+						priority = wx.wxComboBox(TInfo, wx.wxID_ANY,\"\", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\
+					end\
+					sizer3:Add(priority, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+\
+				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+\
+				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					-- Private/Public\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Private/Public:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					list = {\"Public\",\"Private\"}\
+					if task and task.Private then\
+						pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,\"Private\", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\
+					else\
+						pubPrivate = wx.wxComboBox(TInfo, wx.wxID_ANY,\"Public\", wx.wxDefaultPosition, wx.wxDefaultSize,list, wx.wxCB_READONLY)\
+					end\
+					sizer3:Add(pubPrivate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					-- Status\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Status:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					if task and task.Status then\
+						status = wx.wxComboBox(TInfo, wx.wxID_ANY,task.Status, wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)\
+					else\
+						status = wx.wxComboBox(TInfo, wx.wxID_ANY,Globals.StatusList[1], wx.wxDefaultPosition, wx.wxDefaultSize, Globals.StatusList, wx.wxCB_READONLY)\
+					end					\
+					sizer3:Add(status, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				-- Comment\
+				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, \"Comment:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\
+				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				if task and task.Comments then\
+					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, task.Comments, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)\
+				else\
+					commentBox = wx.wxTextCtrl(TInfo, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)\
+				end\
+				sizer2:Add(commentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+\
+				\
+				TInfo:SetSizer(sizer1)\
+			sizer1:SetSizeHints(TInfo)\
+		MainBook:AddPage(TInfo, \"Basic Info\")				\
+\
+		-- Classification Page\
+		TClass = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\
+\
+				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, \"Category:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					list = {\"\"}\
+					for i = 1,#Globals.Categories do\
+						list[i+1] = Globals.Categories[i]\
+					end\
+					if task and task.Cat then\
+						Category = wx.wxComboBox(TClass, wx.wxID_ANY,task.Cat, wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\
+					else\
+						Category = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\
+					end					\
+					sizer3:Add(Category, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, \"Sub-Category:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					list = {\"\"}\
+					for i = 1,#Globals.SubCategories do\
+						list[i+1] = Globals.SubCategories[i]\
+					end\
+					if task and task.SubCat then\
+						SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,task.SubCat, wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\
+					else\
+						SubCategory = wx.wxComboBox(TClass, wx.wxID_ANY,list[1], wx.wxDefaultPosition, wx.wxDefaultSize, list, wx.wxCB_READONLY)\
+					end					\
+					sizer3:Add(SubCategory, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+\
+				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+\
+				textLabel = wx.wxStaticText(TClass, wx.wxID_ANY, \"Tags:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\
+				sizer1:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				TagsCtrl = CW.MultiSelectCtrl(TClass,filterData.Tags,nil,false,true)\
+				if task and task.Tags then\
+					TagsCtrl:AddSelListData(task.Tags)\
+				end\
+				sizer1:Add(TagsCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+				TClass:SetSizer(sizer1)\
+			sizer1:SetSizeHints(TClass)\
+		MainBook:AddPage(TClass, \"Classification\")				\
+\
+		-- People Page\
+		TPeople = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				-- Resources\
+				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"People:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\
+				sizer2:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				resourceList = wx.wxListCtrl(TPeople, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\
+				resourceList:InsertColumn(0,\"Options\")\
+				-- Populate the resources\
+				if not Globals.Resources or #Globals.Resources == 0 then\
+					wx.wxMessageBox(\"There are no people in the Globals.Resources setting. Please add a list of people to which task can be assigned\", \"No People found\",wx.wxOK + wx.wxCENTRE, frame) \
+					frame:Close()\
+					callBack(nil)\
+					return\
+				end\
+				\
+				for i = 1,#Globals.Resources do\
+					CW.InsertItem(resourceList,Globals.Resources[i])\
+				end\
+				CW.InsertItem(resourceList,Globals.User)\
+				sizer2:Add(resourceList, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				-- Selection boxes and buttons\
+				sizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				AddWhoButton = wx.wxButton(TPeople, wx.wxID_ANY, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				sizer4:Add(AddWhoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				RemoveWhoButton = wx.wxButton(TPeople, wx.wxID_ANY, \"X\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				sizer4:Add(RemoveWhoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"Who: (Checked=InActive)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\
+				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				whoList = CW.CheckListCtrl(TPeople,false,\"Inactive\",\"Active\")\
+				if task and task.Who then\
+					for i = 1,#task.Who do\
+						local id = task.Who[i].ID\
+						if task.Who[i].Status == \"Active\" then\
+							whoList:InsertItem(id)\
+						else\
+							whoList:InsertItem(id,true)\
+						end\
+					end\
+				end\
+				sizer4:Add(whoList.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				AddAccButton = wx.wxButton(TPeople, wx.wxID_ANY, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				sizer4:Add(AddAccButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				RemoveAccButton = wx.wxButton(TPeople, wx.wxID_ANY, \"X\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				sizer4:Add(RemoveAccButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"Access: (Checked=Read/Write)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\
+				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				accList = CW.CheckListCtrl(TPeople,false,\"Read/Write\",\"Read Only\")\
+				if task and task.Access then\
+					for i = 1,#task.Access do\
+						local id = task.Access[i].ID\
+						if task.Access[i].Status == \"Read/Write\" then\
+							accList:InsertItem(id,true)\
+						else\
+							accList:InsertItem(id)\
+						end\
+					end\
+				end				\
+				sizer4:Add(accList.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+\
+				sizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				AddAssigButton = wx.wxButton(TPeople, wx.wxID_ANY, \">\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				sizer4:Add(AddAssigButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				RemoveAssigButton = wx.wxButton(TPeople, wx.wxID_ANY, \"X\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				sizer4:Add(RemoveAssigButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				textLabel = wx.wxStaticText(TPeople, wx.wxID_ANY, \"Assignee:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTER)\
+				sizer4:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				assigList = wx.wxListCtrl(TPeople, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxLC_REPORT+wx.wxLC_NO_HEADER)\
+				assigList:InsertColumn(0,\"Assignees\")\
+				if task and task.Assignee then\
+					for i = 1,#task.Assignee do\
+						CW.InsertItem(assigList,task.Assignee[i].ID)\
+					end\
+				end\
+				sizer4:Add(assigList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				sizer1:Add(sizer2, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				TPeople:SetSizer(sizer1)\
+			sizer1:SetSizeHints(TPeople)\
+		MainBook:AddPage(TPeople, \"People\")				\
+\
+		-- Schedule Page\
+		TSch = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\
+					startDate = dateStartPick:GetValue()\
+					local month = wx.wxDateSpan(0,1,0,0)\
+					dateFinPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,startDate:Add(month), wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)\
+					sizer2:Add(dateStartPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)\
+					sizer2:Add(dateFinPick,1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL, 	wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				local staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, \"Work Done\")\
+					wdTaskTree = GUI.newTreeGantt(TSch,true)\
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					sizer3:Add(wdTaskTree.horSplitWin, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					sizer4 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					local wdDateLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Date: XX/XX/XXXX\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\
+					sizer4:Add(wdDateLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					local wdHourLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Hours: \", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\
+					sizer4:Add(wdHourLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					sizer2:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					local wdCommentLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Comment: \", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					sizer2:Add(wdCommentLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					local wdCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE + wx.wxTE_READONLY)\
+					sizer2:Add(wdCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+					sizer3:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+					staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				sizer1:Add(staticBoxSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, \"Schedules\")\
+				sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				\
+				taskTree = GUI.newTreeGantt(TSch,true)\
+				sizer3:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				dateRangeChange()\
+				taskTree:layout()\
+				wdTaskTree:layout()\
+				local localTask1, localTask2\
+				if not task.Title then\
+					localTask1 = getEmptyTask()\
+					localTask2 = getEmptyTask()\
+				else\
+					localTask1 = copyTask(task)\
+					localTask2 = copyTask(task)\
+				end\
+				-- Create the 1st row for the task\
+				localTask1.Planning = nil	-- Since we will use this task for Work Done Entry and Work done never maintains the Planning\
+			    wdTaskTree:Clear()\
+			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}\
+			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor\
+			    taskTree:Clear()\
+			    taskTree:AddNode{Key=localTask2.TaskID, Text = localTask2.Title, Task = localTask2}\
+			    taskTree.Nodes[localTask2.TaskID].ForeColor = GUI.nodeForeColor\
+			    local prevKey = localTask1.TaskID\
+				-- Get list of mock tasks with incremental schedule\
+				if task and task.Schedules then\
+					local taskList = task2IncSchTasks(task)\
+					-- Now add these tasks\
+					for i = 1,#taskList do\
+						taskList[i].Planning = nil	-- To make sure that a task already having Planning does not propagate that in successive schedules\
+		            	taskTree:AddNode{Relative=prevKey, Relation=\"Next Sibling\", Key=taskList[i].TaskID, Text=taskList[i].Title, Task = taskList[i]}\
+		            	taskTree.Nodes[taskList[i].TaskID].ForeColor = GUI.nodeForeColor\
+		            	prevKey = taskList[i].TaskID\
+		            end\
+				end\
+				-- Enable planning mode for the task\
+				taskTree:enablePlanningMode({localTask2},\"NORMAL\")\
+				wdTaskTree:enablePlanningMode({localTask1},\"WORKDONE\")\
+				-- Add the comment box\
+				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, \"Comment:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\
+				sizer4:Add(textLabel, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				HoldPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, \"Hold Planning\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				HoldPlanning:SetValue(false)\
+				sizer4:Add(HoldPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize)\
+				sizer3:Add(schCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+				staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				sizer1:Add(staticBoxSizer, 2, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)\
+				\
+				TSch:SetSizer(sizer1)\
+			sizer1:SetSizeHints(TSch)\
+		MainBook:AddPage(TSch, \"Schedules\")	\
+		\
+	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+	CancelButton = wx.wxButton(frame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	sizer1:Add(CancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	DoneButton = wx.wxButton(frame, wx.wxID_ANY, \"Done\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	sizer1:Add(DoneButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	MainSizer:Add(sizer1, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+	frame:SetSizer(MainSizer)\
+\
+	-- Event handler for the Work Done elements\
+	local workDoneHourCommentEntry = function(task,row,col,date)\
+		-- First check whether the date is in the schedule\
+		local exist = false\
+		local prevHours, prevComment\
+		if localTask1.Planning then\
+			for i = 1,#localTask1.Planning.Period do\
+				if date == localTask1.Planning.Period[i].Date then\
+					prevHours = localTask1.Planning.Period[i].Hours or \"\"\
+					prevComment = localTask1.Planning.Period[i].Comment or \"\"\
+					exist = true\
+					break\
+				end\
+			end\
+		end\
+		if exist then\
+			local wdFrame = wx.wxFrame(frame, wx.wxID_ANY, \"Work Done Details for date \"..date, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxDEFAULT_FRAME_STYLE)\
+			local wdSizer1 = wx.wxBoxSizer(wx.wxVERTICAL)\
+				-- Data entry UI\
+				local wdSizer2 = wx.wxBoxSizer(wx.wxVERTICAL)\
+					local wdSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					wdTextLabel = wx.wxStaticText(wdFrame, wx.wxID_ANY, \"Hours:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\
+					wdSizer3:Add(wdTextLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					local wdList = {\"1\", \"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\",\"9\",\"10\"}\
+					local wdHours = wx.wxComboBox(wdFrame, wx.wxID_ANY,prevHours, wx.wxDefaultPosition, wx.wxDefaultSize,wdList)\
+					wdSizer3:Add(wdHours, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					wdSizer2:Add(wdSizer3, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+					wdSizer3 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					wdTextLabel = wx.wxStaticText(wdFrame, wx.wxID_ANY, \"Comment:\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+					wdSizer3:Add(wdTextLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+					wdSizer2:Add(wdSizer3, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+					local w = 0.5*GUI.initFrameW\
+					local l = 0.5*GUI.initFrameH\
+					w = w - w%1\
+					l = l - l%1\
+					local wdComment = wx.wxTextCtrl(wdFrame, wx.wxID_ANY, prevComment, wx.wxDefaultPosition, wx.wxSize(w, l), wx.wxTE_MULTILINE)\
+					wdSizer2:Add(wdComment, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				wdSizer1:Add(wdSizer2, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				-- Buttons\
+				wdSizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					local wdCancelButton = wx.wxButton(wdFrame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+					wdSizer2:Add(wdCancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+					local wdDoneButton = wx.wxButton(wdFrame, wx.wxID_ANY, \"Done\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+					wdSizer2:Add(wdDoneButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				wdSizer1:Add(wdSizer2, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			wdFrame:SetSizer(wdSizer1)\
+			wdSizer1:SetSizeHints(wdFrame)\
+			wdCancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+				function (event)\
+					wdFrame:Close()\
+				end\
+			)\
+			wdDoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+				function (event)\
+					setfenv(1,package.loaded[modname])\
+					local hours = wdHours:GetValue()\
+					local comment = wdComment:GetValue()\
+					if tonumber(hours) then\
+						hours = tostring(tonumber(hours))\
+					else\
+						hours = \"\"\
+					end\
+					if hours ~= \"\" or comment ~= \"\" then\
+						-- Add the hours and Comment information to the task here\
+						for i = 1,#localTask1.Planning.Period do\
+							if localTask1.Planning.Period[i].Date == date then\
+								if hours ~= \"\" then\
+									localTask1.Planning.Period[i].Hours = hours\
+								end\
+								if comment ~= \"\" then\
+									localTask1.Planning.Period[i].Comment = comment\
+								end\
+								break\
+							end\
+						end\
+						-- Update the hours and comment box\
+						wdDateLabel:SetLabel(\"Date: \"..date:sub(-5,-4)..\"/\"..date:sub(-2,-1)..\"/\"..date:sub(1,4))\
+						wdHourLabel:SetLabel(\"Hours: \"..hours)\
+						wdCommentBox:SetValue(comment)\
+					end		-- if hours ~= \"\" or comment ~= \"\" then ends\
+					wdFrame:Close()\
+				end\
+			)\
+		    wdFrame:Layout() -- help sizing the windows before being shown\
+		    wdFrame:Show(true)\
+		end	-- if exist then ends		\
+	end\
+	\
+	local prevDate, wdPlanning\
+	wdPlanning = {Planning = {Type = \"Actual\", index = 1}}\
+	\
+	local function updateHoursComment(task,row,col,date)\
+		if not prevDate then\
+			prevDate = date\
+		end\
+		-- First check whether the date is in the schedule\
+		local exist = false\
+		local existwd = false\
+		local perNum, wdNum\
+		if localTask1.Planning then\
+			for i = 1,#localTask1.Planning.Period do\
+				if date == localTask1.Planning.Period[i].Date then\
+					perNum = i\
+					exist = true\
+					break\
+				end\
+			end\
+		end\
+		if wdPlanning.Planning.Period then\
+			for i = 1,#wdPlanning.Planning.Period do\
+				if date == wdPlanning.Planning.Period[i].Date then\
+					wdNum = i\
+					existwd = true\
+					break\
+				end\
+			end\
+		end\
+		\
+		if exist then\
+			if not existwd then\
+				-- Add it to wdPlanning\
+				if not wdPlanning.Planning.Period then\
+					wdPlanning.Planning.Period = {}\
+				end\
+				wdPlanning.Planning.Period[#wdPlanning.Planning.Period + 1] = localTask1.Planning.Period[perNum]\
+			end\
+		else\
+			if existwd then\
+				if prevDate ~= date then\
+					-- Add it back in the task\
+					togglePlanningDate(localTask1,date,\"WORKDONE\")\
+					for i = 1,#localTask1.Planning.Period do\
+						if localTask1.Planning.Period[i].Date == date then\
+							localTask1.Planning.Period[i].Hours = wdPlanning.Planning.Period[wdNum].Hours\
+							localTask1.Planning.Period[i].Comment = wdPlanning.Planning.Period[wdNum].Comment\
+							break\
+						end\
+					end\
+					-- Update GUI\
+					wdTaskTree:RefreshNode(localTask1)\
+				else\
+					-- Remove it from wdPlanning\
+					for i = wdNum,#wdPlanning.Planning.Period - 1 do\
+						wdPlanning.Planning.Period[i] = wdPlanning.Planning.Period[i+1]\
+					end\
+					wdPlanning.Planning.Period[#wdPlanning.Planning.Period] = nil\
+				end\
+			end\
+		end\
+		prevDate = date\
+		local hours, comment\
+		-- Extract the hours and comments\
+		if localTask1.Planning then\
+			for i = 1,#localTask1.Planning.Period do\
+				if date == localTask1.Planning.Period[i].Date then\
+					hours = localTask1.Planning.Period[i].Hours\
+					comment = localTask1.Planning.Period[i].Comment\
+					break\
+				end\
+			end\
+		end\
+		-- Update the hours and comment box\
+		wdDateLabel:SetLabel(\"Date: \"..date:sub(-5,-4)..\"/\"..date:sub(-2,-1)..\"/\"..date:sub(1,4))\
+		if hours then\
+			wdHourLabel:SetLabel(\"Hours: \"..hours)\
+		else\
+			wdHourLabel:SetLabel(\"Hours: \")\
+		end\
+		if comment then\
+			wdCommentBox:SetValue(comment)\
+		else\
+			wdCommentBox:SetValue(\"\")\
+		end		\
+	end\
+	\
+	wdTaskTree:associateEventFunc({ganttCellDblClickCallBack = workDoneHourCommentEntry, ganttCellClickCallBack = updateHoursComment})\
+	-- Connect event handlers to the buttons\
+	RemoveAccButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local item = accList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			while item ~= -1 do\
+				accList.List:DeleteItem(item)			\
+				item = accList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+			end\
+		end\
+	)\
+\
+	RemoveAssigButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local item = assigList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			while item ~= -1 do\
+				assigList:DeleteItem(item)			\
+				item = assigList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+			end\
+		end\
+	)\
+\
+	RemoveWhoButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local selItems = {}\
+			local item = whoList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			while item ~= -1 do\
+				whoList.List:DeleteItem(item)\
+				item = whoList.List:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+			end\
+		end\
+	)\
+\
+	AddAccButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local item = resourceList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			while item ~= -1 do\
+				local itemText = resourceList:GetItemText(item)\
+				accList:InsertItem(itemText)			\
+				item = resourceList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+			end\
+		end\
+	)\
+	\
+	AddAssigButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local item = resourceList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			while item ~= -1 do\
+				local itemText = resourceList:GetItemText(item)\
+				CW.InsertItem(assigList,itemText)		\
+				item = resourceList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+			end\
+		end\
+	)\
+\
+	AddWhoButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local item = resourceList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+			while item ~= -1 do\
+				local itemText = resourceList:GetItemText(item)\
+				whoList:InsertItem(itemText)			\
+				item = resourceList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	\
+			end\
+		end\
+	)\
+\
+	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function (event)\
+			setfenv(1,package.loaded[modname])		\
+			frame:Close()\
+			callBack(nil)\
+		end\
+	)\
+	\
+	frame:Connect(wx.wxEVT_CLOSE_WINDOW,\
+		function (event)\
+			setfenv(1,package.loaded[modname])		\
+			event:Skip()\
+			callBack(nil)\
+		end\
+	)\
+\
+	DoneButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local newTask = makeTask(task)\
+			if newTask then\
+				callBack(newTask)\
+				frame:Close()\
+			end\
+		end		\
+	)\
+	\
+	DueDateEN:Connect(wx.wxEVT_COMMAND_CHECKBOX_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			if DueDateEN:GetValue() then\
+				dueDate:Enable(true)\
+			else\
+				dueDate:Disable()\
+			end\
+		end\
+	)\
+	\
+	-- Date Picker Events\
+	dateStartPick:Connect(wx.wxEVT_DATE_CHANGED,dateRangeChangeEvent)\
+	dateFinPick:Connect(wx.wxEVT_DATE_CHANGED,dateRangeChangeEvent)\
+	\
+\
+    frame:Layout() -- help sizing the windows before being shown\
+    frame:Show(true)\
+\
 end	-- function taskFormActivate(parent, callBack)"
-__MANY2ONEFILES['Filter']="-- Data structure to store the Global Filter Criteria\r\
-Karm.Filter = {}\r\
-Karm.FilterObject = {}\r\
-\r\
--- Function to create a text summary of the Filter\r\
-function Karm.FilterObject.getSummary(filter)\r\
-	local filterSummary = \"\"\r\
-	-- Tasks\r\
-	if filter.Tasks then\r\
-		-- Get the task name\r\
-		for i=1,#filter.Tasks do\r\
-			if i>1 then\r\
-				filterSummary = filterSummary..\"\\n\"\r\
-			else\r\
-				filterSummary = \"TASKS: \"\r\
-			end\r\
-			filterSummary = filterSummary..filter.Tasks[i].Title\r\
-			if filter.Tasks[i].Children then\r\
-				filterSummary = filterSummary..\" and Children\"\r\
-			end\r\
-		end\r\
-		filterSummary = filterSummary..\"\\n\"\r\
-	end\r\
-	-- Who\r\
-	if filter.Who then\r\
-		filterSummary = filterSummary..\"PEOPLE: \"..filter.Who..\"\\n\"\r\
-	end\r\
-	-- Start Date\r\
-	if filter.Start then\r\
-		filterSummary = filterSummary..\"START DATE: \"..filter.Start..\"\\n\"\r\
-	end\r\
-	-- Finish Date\r\
-	if filter.Fin then\r\
-		filterSummary = filterSummary..\"FINISH DATE: \"..filter.Fin..\"\\n\"\r\
-	end\r\
-	-- Access IDs\r\
-	if filter.Access then\r\
-		filterSummary = filterSummary..\"ACCESS: \"..filter.Access..\"\\n\"\r\
-	end\r\
-	-- Status\r\
-	if filter.Status then\r\
-		filterSummary = filterSummary..\"STATUS: \"..filter.Status..\"\\n\"\r\
-	end\r\
-	-- Priority\r\
-	if filter.Priority then\r\
-		filterSummary = filterSummary..\"PRIORITY: \"..filter.Priority..\"\\n\"\r\
-	end\r\
-	-- Due Date\r\
-	if filter.Due then\r\
-		filterSummary = filterSummary..\"DUE DATE: \"..filter.Due..\"\\n\"\r\
-	end\r\
-	-- Category\r\
-	if filter.Cat then\r\
-		filterSummary = filterSummary..\"CATEGORY: \"..filter.Cat..\"\\n\"\r\
-	end\r\
-	-- Sub-Category\r\
-	if filter.SubCat then\r\
-		filterSummary = filterSummary..\"SUB-CATEGORY: \"..filter.SubCat..\"\\n\"\r\
-	end\r\
-	-- Tags\r\
-	if filter.Tags then\r\
-		filterSummary = filterSummary..\"TAGS: \"..filter.Tags..\"\\n\"\r\
-	end\r\
-	-- Schedules\r\
-	if filter.Schedules then\r\
-		filterSummary = filterSummary..\"SCHEDULES: \"..filter.Schedules..\"\\n\"\r\
-	end\r\
-	if filter.Script then\r\
-		filterSummary = filterSummary..\"CUSTOM SCRIPT APPLIED\"..\"\\n\"\r\
-	end\r\
-	if filterSummary == \"\" then\r\
-		filterSummary = \"No Filtering\"\r\
-	end\r\
-	return filterSummary\r\
-end\r\
-\r\
--- Function to filter out tasks from the task hierarchy\r\
-function Karm.FilterObject.applyFilterHier(filter, taskHier)\r\
-	local hier = taskHier\r\
-	local returnList = {count = 0}\r\
-	local data = {returnList = returnList, filter = filter}\r\
-	for i = 1,#hier do\r\
-		data = Karm.TaskObject.applyFuncHier(hier[i],function(task,data)\r\
-							  	local passed = Karm.FilterObject.validateTask(data.filter,task)\r\
-							  	if passed then\r\
-							  		data.returnList.count = data.returnList.count + 1\r\
-							  		data.returnList[data.returnList.count] = task\r\
-							  	end\r\
-							  	return data\r\
-							  end, data\r\
-		)\r\
-	end\r\
-	return data.returnList\r\
-end\r\
-\r\
--- Old Version\r\
---function Karm.FilterObject.applyFilterHier(filter, taskHier)\r\
---	local hier = taskHier\r\
---	local hierCount = {}\r\
---	local returnList = {count = 0}\r\
-----[[	-- Reset the hierarchy if not already done so\r\
---	while hier.parent do\r\
---		hier = hier.parent\r\
---	end]]\r\
---	-- Traverse the task hierarchy here\r\
---	hierCount[hier] = 0\r\
---	while hierCount[hier] < #hier or hier.parent do\r\
---		if not(hierCount[hier] < #hier) then\r\
---			if hier == taskHier then\r\
---				-- Do not go above the passed task\r\
---				break\r\
---			end \r\
---			hier = hier.parent\r\
---		else\r\
---			-- Increment the counter\r\
---			hierCount[hier] = hierCount[hier] + 1\r\
---			local passed = Karm.FilterObject.validateTask(filter,hier[hierCount[hier]])\r\
---			if passed then\r\
---				returnList.count = returnList.count + 1\r\
---				returnList[returnList.count] = hier[hierCount[hier]]\r\
---			end\r\
---			if hier[hierCount[hier]].SubTasks then\r\
---				-- This task has children so go deeper in the hierarchy\r\
---				hier = hier[hierCount[hier]].SubTasks\r\
---				hierCount[hier] = 0\r\
---			end\r\
---		end\r\
---	end		-- while hierCount[hier] < #hier or hier.parent do ends here\r\
---	return returnList\r\
---end\r\
-\r\
--- Function to filter out tasks from a list of tasks\r\
-function Karm.FilterObject.applyFilterList(filter, taskList)\r\
-	local returnList = {count = 0}\r\
-	for i=1,#taskList do\r\
-		local passed = Karm.FilterObject.validateTask(filter,taskList[i])\r\
-		if passed then\r\
-			returnList.count = returnList.count + 1\r\
-			returnList[returnList.count] = taskList[i]\r\
-		end\r\
-	end\r\
-	return returnList\r\
-end\r\
-\r\
---[[ The Task Filter should filter the following:\r\
-\r\
-1. Tasks - Particular tasks with or without its children - This is a table with each element (starting from 1) has a Specified Task ID, Task Title, with 'children' flag. If TaskID = Karm.Globals.ROOTKEY..(Spore File name) then the whole spore will pass the filter\r\
-2. Who - People responsible for the task (Boolean) - Boolean string with people IDs with their status in single quotes \"'milind.gupta,A' or 'aryajur,A' and not('milind_gupta,A' or 'milind0x,I')\" - if status not present then taken to be A (Active) \r\
-3. Date_Started - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by ,\r\
-4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Karm.Globals.NoDateStr means no date also passes\r\
-5. AccessIDs - Boolean expression of IDs and their access permission - \"'milind.gupta,R' or 'aryajur,W' and not('milind_gupta,W' or 'milind0x,W')\", Karm.Globals.NoAccessIDStr means tasks without an Access ID list also pass\r\
-6. Status - Member of given list of status types - List of status types separated by commas\r\
-7. Priority - Member of given list of priority types - List of priority numbers separated by commas -\"1,2,3\", Karm.Globals.NoPriStr means no priority also passes\r\
-8. Date_Due - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Karm.Globals.NoDateStr means no date also passes\r\
-9. Category - Member of given list of Categories - List of categories separated by commas, Karm.Globals.NoCatStr means tasks without any category also pass\r\
-10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas, Karm.Globals.NoSubCatStr means tasks without any sub-category also pass\r\
-11. Tags - Boolean expression of Tags - \"'Technical' or 'Electronics'\" - Tags allow alphanumeric characters spaces and underscores - For no TAG the tag would be Karm.Globals.NoDateStr\r\
-12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges\r\
-		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)\r\
-		Boolean expression different schedule criterias together \r\
-		\"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Karm.Globals.NoDateStr\"\r\
-		Karm.Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case\r\
-13. Script - The custom user script. task is passed in task variable. Executes in the Karm.Globals.safeenv environment. Final result (true or false) is present in the result variable\r\
-]]\r\
-\r\
--- Function to validate a given task\r\
-function Karm.FilterObject.validateTask(filter, task)\r\
-	if not filter then\r\
-		return true\r\
-	end\r\
-	-- Check if task ID passes\r\
-	if filter.Tasks then\r\
-		local matched = false\r\
-		for i = 1,#filter.Tasks do\r\
-			if string.sub(filter.Tasks[i].TaskID,1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then\r\
-				-- A whole spore is marked check if this task belongs to that spore\r\
-				-- Check if this is the spore of the task\r\
-				if string.sub(filter.Tasks[i].TaskID,#Karm.Globals.ROOTKEY+1,-1) == task.SporeFile then\r\
-					if not filter.Tasks[i].Children then\r\
-						return false\r\
-					end\r\
-					matched = true\r\
-					break\r\
-				end\r\
-			else  \r\
-				-- Check if the task ID matches\r\
-				if filter.Tasks[i].Children then\r\
-					-- Children are allowed\r\
-					if filter.Tasks[i].TaskID == task.TaskID or \r\
-					  filter.Tasks[i].TaskID == string.sub(task.TaskID,1,#filter.Tasks[i].TaskID) then\r\
-						matched = true\r\
-						break\r\
-					end\r\
-				else\r\
-					if filter.Tasks[i].TaskID == task.TaskID then\r\
-						matched = true\r\
-						break\r\
-					end\r\
-				end\r\
-			end		-- if filter.Tasks.TaskID == Karm.Globals.ROOTKEY..\"S\" then ends\r\
-		end	-- for 1,#filter.Tasks ends here\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-	-- Check if Who passes\r\
-	if filter.Who then\r\
-		local pattern = \"%'([%w%.%_%,]+)%'\"\r\
-		local whoStr = filter.Who\r\
-		for id in string.gmatch(filter.Who,pattern) do\r\
-			-- Check if the Status is given\r\
-			local idc = id\r\
-			local st = string.find(idc,\",\")\r\
-			local stat\r\
-			if st then\r\
-				-- Status exists, extract it here\r\
-				stat = string.sub(idc,st+1,-1)\r\
-				idc = string.sub(idc,1,st-1)\r\
-			else\r\
-				stat = \"A\"\r\
-			end\r\
-			-- Check if the id exists in the task\r\
-			local result = false\r\
-			for i = 1,#task.Who do\r\
-				if task.Who[i].ID == idc then\r\
-					if stat == \"A\" and string.upper(task.Who[i].Status) == \"ACTIVE\" then\r\
-						result = true\r\
-						break\r\
-					end\r\
-					if stat ==\"I\" and string.upper(task.Who[i].Status) ==\"INACTIVE\" then\r\
-						result = true\r\
-						break\r\
-					end\r\
-					result = false\r\
-					break\r\
-				end		-- if task.Who[i].ID == idc then ends\r\
-			end		-- for i = 1,#task.Who ends\r\
-			whoStr = string.gsub(whoStr,\"'\"..id..\"'\",tostring(result))\r\
-		end		-- for id in string.gmatch(filter.Who,pattern) do ends\r\
-		-- Check if the boolean passes\r\
-		if not loadstring(\"return \"..whoStr)() then\r\
-			return false\r\
-		end\r\
-	end		-- if filter.Who then ends\r\
-	\r\
-	-- Check if Date Started Passes\r\
-	if filter.Start then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local strtStr = string.match(filter.Start,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(strtStr,-1,-1)~=\",\" then\r\
-			strtStr = strtStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for range in string.gmatch(strtStr,\"(.-),\") do\r\
-			-- See if this is a range or a single date\r\
-			local strt,stp = string.match(range,\"(.-)%-(.*)\")\r\
-			if not strt then\r\
-				-- its not a range\r\
-				strt = range\r\
-				stp = range\r\
-			end\r\
-			strt = Karm.Utility.toXMLDate(strt)\r\
-			stp = Karm.Utility.toXMLDate(stp)\r\
-			local taskDate = task.Start\r\
-			if strt <= taskDate and taskDate <=stp then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Date Finished Passes\r\
-	if filter.Fin then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local finStr = string.match(filter.Fin,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(finStr,-1,-1)~=\",\" then\r\
-			finStr = finStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for range in string.gmatch(finStr,\"(.-),\") do\r\
-			-- Check if this is Karm.Globals.NoDateStr\r\
-			if range == Karm.Globals.NoDateStr and not task.Fin then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-			-- See if this is a range or a single date\r\
-			local strt,stp = string.match(range,\"(.-)%-(.*)\")\r\
-			if not strt then\r\
-				-- its not a range\r\
-				strt = range\r\
-				stp = range\r\
-			end\r\
-			strt = Karm.Utility.toXMLDate(strt)\r\
-			stp = Karm.Utility.toXMLDate(stp)\r\
-			if task.Fin then\r\
-				if strt <= task.Fin and task.Fin <=stp then\r\
-					matched = true\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Access IDs pass\r\
-	if filter.Access then\r\
-		local pattern = Karm.Globals.UserIDPattern\r\
-		local accStr = filter.Access\r\
-		for id in string.gmatch(filter.Access,pattern) do\r\
-			local result = false\r\
-			if id == Karm.Globals.NoAccessIDStr and not task.Access then\r\
-				result = true\r\
-			else\r\
-				-- Extract the permission character\r\
-				local idc = id\r\
-				local st = string.find(idc,\",\")\r\
-				local perm\r\
-	\r\
-				perm = string.sub(idc,st+1,-1)\r\
-				idc = string.sub(idc,1,st-1)\r\
-				\r\
-				-- Check if the id exists in the task\r\
-				if task.Access then\r\
-					for i = 1,#task.Access do\r\
-						if task.Access[i].ID == idc then\r\
-							if string.upper(perm) == \"R\" and string.upper(task.Access[i].Status) == \"READ ONLY\" then\r\
-								result = true\r\
-								break\r\
-							end\r\
-							if string.upper(perm) ==\"W\" and string.upper(task.Access[i].Status) ==\"READ/WRITE\" then\r\
-								result = true\r\
-								break\r\
-							end\r\
-							result = false\r\
-							break\r\
-						end		-- if task.Access[i].ID == idc then ends\r\
-					end		-- for i = 1,#task.Access do ends\r\
-				end\r\
-				if not result then\r\
-					-- Check for Read/Write access does the ID exist in the Who table\r\
-					if string.upper(perm) == \"W\" then\r\
-						for i = 1,#task.Who do\r\
-							if task.Who[i].ID == idc then\r\
-								if string.upper(task.Who[i].Status) == \"ACTIVE\" then\r\
-									result = true\r\
-								end\r\
-								break\r\
-							end\r\
-						end		-- for i = 1,#task.Who do ends\r\
-					end		-- if string.upper(perm) == \"W\" then ends\r\
-				end		-- if not result then ends\r\
-			end		-- if id == Karm.Globals.NoAccessIDStr and not task.Access then ends\r\
-			accStr = string.gsub(accStr,\"'\"..id..\"'\",tostring(result))\r\
-		end		-- for id in string.gmatch(filter.Who,pattern) do ends\r\
-		-- Check if the boolean passes\r\
-		if not loadstring(\"return \"..accStr)() then\r\
-			return false\r\
-		end\r\
-	end		-- if filter.Access then ends\r\
-\r\
-	-- Check if Status Passes\r\
-	if filter.Status then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local statStr = string.match(filter.Status,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(statStr,-1,-1)~=\",\" then\r\
-			statStr = statStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for stat in string.gmatch(statStr,\"(.-),\") do\r\
-			-- Check if this status matches with what we have in the task\r\
-			if task.Status == stat then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Priority Passes\r\
-	if filter.Priority then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local priStr = string.match(filter.Priority,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(priStr,-1,-1)~=\",\" then\r\
-			priStr = priStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for pri in string.gmatch(priStr,\"(.-),\") do\r\
-			if pri == Karm.Globals.NoPriStr and not task.Priority then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-			-- Check if this priority matches with what we have in the task\r\
-			if task.Priority == pri then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Date Due Passes\r\
-	if filter.Due then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local dueStr = string.match(filter.Due,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(dueStr,-1,-1)~=\",\" then\r\
-			dueStr = dueStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for range in string.gmatch(dueStr,\"(.-),\") do\r\
-			-- Check if this is Karm.Globals.NoDateStr\r\
-			if range == Karm.Globals.NoDateStr and not task.Fin then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-			-- See if this is a range or a single date\r\
-			local strt,stp = string.match(range,\"(.-)%-(.*)\")\r\
-			if not strt then\r\
-				-- its not a range\r\
-				strt = range\r\
-				stp = range\r\
-			end\r\
-			strt = Karm.Utility.toXMLDate(strt)\r\
-			stp = Karm.Utility.toXMLDate(stp)\r\
-			if task.Due then\r\
-				if strt <= task.Due and task.Due <=stp then\r\
-					matched = true\r\
-					break\r\
-				end\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Category Passes\r\
-	if filter.Cat then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local catStr = string.match(filter.Cat,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(catStr,-1,-1)~=\",\" then\r\
-			catStr = catStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for cat in string.gmatch(catStr,\"(.-),\") do\r\
-			-- Check if it matches Karm.Globals.NoCatStr\r\
-			if cat == Karm.Globals.NoCatStr and not task.Cat then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-			-- Check if this status matches with what we have in the task\r\
-			if task.Cat == cat then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Sub-Category Passes\r\
-	if filter.SubCat then\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local subCatStr = string.match(filter.SubCat,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(subCatStr,-1,-1)~=\",\" then\r\
-			subCatStr = subCatStr .. \",\"\r\
-		end\r\
-		local matched = false\r\
-		for subCat in string.gmatch(subCatStr,\"(.-),\") do\r\
-			-- Check if it matches Karm.Globals.NoSubCatStr\r\
-			if subCat == Karm.Globals.NoSubCatStr and not task.SubCat then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-			-- Check if this status matches with what we have in the task\r\
-			if task.SubCat == subCat then\r\
-				matched = true\r\
-				break\r\
-			end\r\
-		end\r\
-		if not matched then\r\
-			return false\r\
-		end\r\
-	end\r\
-\r\
-	-- Check if Tags pass\r\
-	if filter.Tags then\r\
-		local pattern = \"%'([%w%s%_]+)%'\"	-- Tags are allowed alphanumeric characters spaces and underscores\r\
-		local tagStr = filter.Tags\r\
-		for tag in string.gmatch(filter.Tags,pattern) do\r\
-			-- Check if the tag exists in the task\r\
-			local result = false\r\
-			if tag == Karm.Globals.NoTagStr and not task.Tags then\r\
-				result = true\r\
-			elseif task.Tags then			\r\
-				for i = 1,#task.Tags do\r\
-					if task.Tags[i] == tag then\r\
-						-- Found the tag in the task\r\
-						result = true\r\
-						break\r\
-					end		-- if task.Tags[i] == tag then ends\r\
-				end		-- for i = 1,#task.Tags ends\r\
-			end\r\
-			tagStr = string.gsub(tagStr,\"'\"..tag..\"'\",tostring(result))\r\
-		end		-- for id in string.gmatch(filter.Tags,pattern) do ends\r\
-		-- Check if the boolean passes\r\
-		if not loadstring(\"return \"..tagStr)() then\r\
-			return false\r\
-		end\r\
-	end		-- if filter.Access then ends\r\
-	\r\
-	-- Check if the Schedules pass\r\
-	if filter.Schedules then\r\
-		local schStr = filter.Schedules\r\
-		for sch in string.gmatch(filter.Schedules,\"%'(.-)%'\") do\r\
-			-- Check if this schedule chunk passes in the task\r\
-			-- \"'Full,Estimate,12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012'\"\r\
-			local typeMatch, typeSchedule, ranges, rangeStr, index, result\r\
-			local firstComma = string.find(sch,\",\")\r\
-			local secondComma = string.find(sch,\",\",firstComma + 1)\r\
-			typeMatch = string.sub(sch,1,firstComma-1)\r\
-			typeSchedule = string.sub(sch,firstComma + 1,secondComma - 1)\r\
-			ranges = {[0]=string.sub(sch,secondComma + 1, -1),count=0}\r\
-			rangeStr = ranges[0]\r\
-			-- Make sure the string has \",\" at the end\r\
-			if string.sub(rangeStr,-1,-1)~=\",\" then\r\
-				rangeStr = rangeStr .. \",\"\r\
-			end\r\
-			-- Now separate individual date ranges\r\
-			for range in string.gmatch(rangeStr,\"(.-),\") do\r\
-				ranges.count = ranges.count + 1\r\
-				ranges[ranges.count] = range\r\
-			end\r\
-			-- CHeck if the task has a Schedule item\r\
-			if not task.Schedules then\r\
-				if ranges[0] == Karm.Globals.NoDateStr then\r\
-					result = true\r\
-				end			\r\
-				schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-			else\r\
-				-- Type of Schedule - Estimate, Committed, Revision(X) (L=Latest or the number of revision), Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)\r\
-				index = nil\r\
-				if string.upper(string.sub(typeSchedule,1,#\"ESTIMATE\")) == \"ESTIMATE\" then\r\
-					if string.match(typeSchedule,\"%(%d-%)\") then\r\
-						-- Get the index number\r\
-						index = string.match(typeSchedule,\"%((%d-)%)\")\r\
-					else  \r\
-						-- Get the latest schedule index\r\
-						if ranges[0] == Karm.Globals.NoDateStr then\r\
-							result = true\r\
-							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-						elseif task.Schedules.Estimate then\r\
-							index = #task.Schedules.Estimate\r\
-						else\r\
-							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-						end			\r\
-					end\r\
-					typeSchedule = \"Estimate\"\r\
-				elseif string.upper(typeSchedule) == \"COMMITTED\" then\r\
-					typeSchedule = \"Commit\"\r\
-					index = 1\r\
-				elseif string.upper(string.sub(typeSchedule,1,#\"REVISION\")) == \"REVISION\" then\r\
-					if string.match(typeSchedule,\"%(%d-%)\") then\r\
-						-- Get the index number\r\
-						index = string.match(typeSchedule,\"%((%d-)%)\")\r\
-					else  \r\
-						-- Get the latest schedule index\r\
-						if ranges[0] == Karm.Globals.NoDateStr then\r\
-							result = true\r\
-							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-						elseif task.Schedules.Revs then\r\
-							index = #task.Schedules.Revs\r\
-						else\r\
-							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-						end			\r\
-					end\r\
-					typeSchedule = \"Revs\"\r\
-				elseif string.upper(typeSchedule) == \"ACTUAL\" then\r\
-					typeSchedule = \"Actual\"\r\
-					index = 1\r\
-				elseif string.upper(typeSchedule) == \"LATEST\" then\r\
-					-- Find the latest schedule in the task here\r\
-					if string.upper(task.Status) == \"DONE\" and task.Schedules.Actual then\r\
-						typeSchedule = \"Actual\"\r\
-						index = 1\r\
-					elseif task.Schedules.Revs then\r\
-						-- Actual is not the latest one but Revision is \r\
-						typeSchedule = \"Revs\"\r\
-						index = task.Schedules.Revs.count\r\
-					elseif task.Schedules.Commit then\r\
-						-- Actual and Revisions don't exist but Commit does\r\
-						typeSchedule = \"Commit\"\r\
-						index = 1\r\
-					elseif task.Schedules.Estimate then\r\
-						-- The latest is Estimate\r\
-						typeSchedule = \"Estimate\"\r\
-						index = task.Schedules.Estimate.count\r\
-					else\r\
-						-- typeSchedule is latest but non of the schedule types exist\r\
-						-- Check if the range is Karm.Globals.NoDateStr, if not this sch is false\r\
-						local result = false\r\
-						if ranges[0] == Karm.Globals.NoDateStr then\r\
-							result = true\r\
-						end\r\
-						schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-					end\r\
-				else\r\
-					wx.wxMessageBox(\"Invalid Type Schedule (\"..typeSchdule..\") specified in filter: \"..sch,\"Filter Error\",\r\
-	                            wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)\r\
-					return false\r\
-				end		-- if string.upper(string.sub(typeSchedule,1,#\"ESTIMATE\") == \"ESTIMATE\" then ends  (SETTING of typeSchdule and index)\r\
-			end		-- if not task.Schedules then\r\
-			if index then\r\
-				-- We have a typeSchedule and index\r\
-				-- Now loop through the schedule of typeSchedule and index\r\
-				local result\r\
-				if string.upper(typeMatch) == \"OVERLAP\" then\r\
-					result = false\r\
-				else\r\
-					result = true\r\
-				end\r\
-				-- First check if range is Karm.Globals.NoDateStr then this schedule should not exist for filter to pass\r\
-				if ranges[0] == Karm.Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then\r\
-					result = true\r\
-				elseif task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then\r\
-					for i = 1,#task.Schedules[typeSchedule][index].Period do\r\
-						-- Is the date in range?\r\
-						local inrange = false\r\
-						for j = 1,#ranges do\r\
-							local strt,stp = string.match(ranges[j],\"(.-)%-(.*)\")\r\
-							if not strt then\r\
-								-- its not a range\r\
-								strt = ranges[j]\r\
-								stp = ranges[j]\r\
-							end\r\
-							strt = Karm.Utility.toXMLDate(strt)\r\
-							stp = Karm.Utility.toXMLDate(stp)\r\
-							if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then\r\
-								inrange = true\r\
-							end\r\
-						end		-- for j = 1,#ranges do ends\r\
-						if inrange and string.upper(typeMatch) == \"OVERLAP\" then\r\
-							-- This date overlaps\r\
-							result = true\r\
-							break\r\
-						elseif not inrange and string.upper(typeMatch) == \"FULL\" then\r\
-							-- This portion is not contained in filter\r\
-							result = false\r\
-							break\r\
-						end\r\
-					end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\r\
-				end	-- if task.Schedules[typeSchedule][index] then ends\r\
-				schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\r\
-			end		-- if index then ends\r\
-		end		-- for sch in string.gmatch(filter.Schedules,\"%'(.-)%'\") do ends\r\
-		-- Check if the boolean passes\r\
-		if not loadstring(\"return \"..schStr)() then\r\
-			return false\r\
-		end\r\
-	end		-- if filter.Schedules then ends\r\
-\r\
-	if filter.Script then\r\
-		local safeenv = {}\r\
-		setmetatable(safeenv,{__index = Karm.Globals.safeenv})\r\
-		local func,message = loadstring(filter.Script)\r\
-		if not func then\r\
-			return false\r\
-		end\r\
-		safeenv.task = task\r\
-		setfenv(func,safeenv)\r\
-		func()\r\
-		if not safeenv.result then\r\
-			return false\r\
-		end\r\
-	end\r\
-	-- All pass\r\
-	return true\r\
-end		-- function Karm.FilterObject.validateTask(filter, task) ends\r\
+__MANY2ONEFILES['Filter']="-- Data structure to store the Global Filter Criteria\
+Karm.Filter = {}\
+Karm.FilterObject = {}\
+\
+-- Function to create a text summary of the Filter\
+function Karm.FilterObject.getSummary(filter)\
+	local filterSummary = \"\"\
+	-- Tasks\
+	if filter.Tasks then\
+		-- Get the task name\
+		for i=1,#filter.Tasks do\
+			if i>1 then\
+				filterSummary = filterSummary..\"\\n\"\
+			else\
+				filterSummary = \"TASKS: \"\
+			end\
+			filterSummary = filterSummary..filter.Tasks[i].Title\
+			if filter.Tasks[i].Children then\
+				filterSummary = filterSummary..\" and Children\"\
+			end\
+		end\
+		filterSummary = filterSummary..\"\\n\"\
+	end\
+	-- Who\
+	if filter.Who then\
+		filterSummary = filterSummary..\"PEOPLE: \"..filter.Who..\"\\n\"\
+	end\
+	-- Start Date\
+	if filter.Start then\
+		filterSummary = filterSummary..\"START DATE: \"..filter.Start..\"\\n\"\
+	end\
+	-- Finish Date\
+	if filter.Fin then\
+		filterSummary = filterSummary..\"FINISH DATE: \"..filter.Fin..\"\\n\"\
+	end\
+	-- Access IDs\
+	if filter.Access then\
+		filterSummary = filterSummary..\"ACCESS: \"..filter.Access..\"\\n\"\
+	end\
+	-- Status\
+	if filter.Status then\
+		filterSummary = filterSummary..\"STATUS: \"..filter.Status..\"\\n\"\
+	end\
+	-- Priority\
+	if filter.Priority then\
+		filterSummary = filterSummary..\"PRIORITY: \"..filter.Priority..\"\\n\"\
+	end\
+	-- Due Date\
+	if filter.Due then\
+		filterSummary = filterSummary..\"DUE DATE: \"..filter.Due..\"\\n\"\
+	end\
+	-- Category\
+	if filter.Cat then\
+		filterSummary = filterSummary..\"CATEGORY: \"..filter.Cat..\"\\n\"\
+	end\
+	-- Sub-Category\
+	if filter.SubCat then\
+		filterSummary = filterSummary..\"SUB-CATEGORY: \"..filter.SubCat..\"\\n\"\
+	end\
+	-- Tags\
+	if filter.Tags then\
+		filterSummary = filterSummary..\"TAGS: \"..filter.Tags..\"\\n\"\
+	end\
+	-- Schedules\
+	if filter.Schedules then\
+		filterSummary = filterSummary..\"SCHEDULES: \"..filter.Schedules..\"\\n\"\
+	end\
+	if filter.Script then\
+		filterSummary = filterSummary..\"CUSTOM SCRIPT APPLIED\"..\"\\n\"\
+	end\
+	if filterSummary == \"\" then\
+		filterSummary = \"No Filtering\"\
+	end\
+	return filterSummary\
+end\
+\
+-- Function to filter out tasks from the task hierarchy\
+function Karm.FilterObject.applyFilterHier(filter, taskHier)\
+	local hier = taskHier\
+	local returnList = {count = 0}\
+	local data = {returnList = returnList, filter = filter}\
+	for i = 1,#hier do\
+		data = Karm.TaskObject.applyFuncHier(hier[i],function(task,data)\
+							  	local passed = Karm.FilterObject.validateTask(data.filter,task)\
+							  	if passed then\
+							  		data.returnList.count = data.returnList.count + 1\
+							  		data.returnList[data.returnList.count] = task\
+							  	end\
+							  	return data\
+							  end, data\
+		)\
+	end\
+	return data.returnList\
+end\
+\
+-- Old Version\
+--function Karm.FilterObject.applyFilterHier(filter, taskHier)\
+--	local hier = taskHier\
+--	local hierCount = {}\
+--	local returnList = {count = 0}\
+----[[	-- Reset the hierarchy if not already done so\
+--	while hier.parent do\
+--		hier = hier.parent\
+--	end]]\
+--	-- Traverse the task hierarchy here\
+--	hierCount[hier] = 0\
+--	while hierCount[hier] < #hier or hier.parent do\
+--		if not(hierCount[hier] < #hier) then\
+--			if hier == taskHier then\
+--				-- Do not go above the passed task\
+--				break\
+--			end \
+--			hier = hier.parent\
+--		else\
+--			-- Increment the counter\
+--			hierCount[hier] = hierCount[hier] + 1\
+--			local passed = Karm.FilterObject.validateTask(filter,hier[hierCount[hier]])\
+--			if passed then\
+--				returnList.count = returnList.count + 1\
+--				returnList[returnList.count] = hier[hierCount[hier]]\
+--			end\
+--			if hier[hierCount[hier]].SubTasks then\
+--				-- This task has children so go deeper in the hierarchy\
+--				hier = hier[hierCount[hier]].SubTasks\
+--				hierCount[hier] = 0\
+--			end\
+--		end\
+--	end		-- while hierCount[hier] < #hier or hier.parent do ends here\
+--	return returnList\
+--end\
+\
+-- Function to filter out tasks from a list of tasks\
+function Karm.FilterObject.applyFilterList(filter, taskList)\
+	local returnList = {count = 0}\
+	for i=1,#taskList do\
+		local passed = Karm.FilterObject.validateTask(filter,taskList[i])\
+		if passed then\
+			returnList.count = returnList.count + 1\
+			returnList[returnList.count] = taskList[i]\
+		end\
+	end\
+	return returnList\
+end\
+\
+--[[ The Task Filter should filter the following:\
+\
+1. Tasks - Particular tasks with or without its children - This is a table with each element (starting from 1) has a Specified Task ID, Task Title, with 'children' flag. If TaskID = Karm.Globals.ROOTKEY..(Spore File name) then the whole spore will pass the filter\
+2. Who - People responsible for the task (Boolean) - Boolean string with people IDs with their status in single quotes \"'milind.gupta,A' or 'aryajur,A' and not('milind_gupta,A' or 'milind0x,I')\" - if status not present then taken to be A (Active) \
+3. Date_Started - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by ,\
+4. Date_Finished - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Karm.Globals.NoDateStr means no date also passes\
+5. AccessIDs - Boolean expression of IDs and their access permission - \"'milind.gupta,R' or 'aryajur,W' and not('milind_gupta,W' or 'milind0x,W')\", Karm.Globals.NoAccessIDStr means tasks without an Access ID list also pass\
+6. Status - Member of given list of status types - List of status types separated by commas\
+7. Priority - Member of given list of priority types - List of priority numbers separated by commas -\"1,2,3\", Karm.Globals.NoPriStr means no priority also passes\
+8. Date_Due - Member of given end inclusive ranges - List of Date ranges separated by hyphen and ranges separated by , Karm.Globals.NoDateStr means no date also passes\
+9. Category - Member of given list of Categories - List of categories separated by commas, Karm.Globals.NoCatStr means tasks without any category also pass\
+10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas, Karm.Globals.NoSubCatStr means tasks without any sub-category also pass\
+11. Tags - Boolean expression of Tags - \"'Technical' or 'Electronics'\" - Tags allow alphanumeric characters spaces and underscores - For no TAG the tag would be Karm.Globals.NoDateStr\
+12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges\
+		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)\
+		Boolean expression different schedule criterias together \
+		\"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Karm.Globals.NoDateStr\"\
+		Karm.Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case\
+13. Script - The custom user script. task is passed in task variable. Executes in the Karm.Globals.safeenv environment. Final result (true or false) is present in the result variable\
+]]\
+\
+-- Function to validate a given task\
+function Karm.FilterObject.validateTask(filter, task)\
+	if not filter then\
+		return true\
+	end\
+	-- Check if task ID passes\
+	if filter.Tasks then\
+		local matched = false\
+		for i = 1,#filter.Tasks do\
+			if string.sub(filter.Tasks[i].TaskID,1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then\
+				-- A whole spore is marked check if this task belongs to that spore\
+				-- Check if this is the spore of the task\
+				if string.sub(filter.Tasks[i].TaskID,#Karm.Globals.ROOTKEY+1,-1) == task.SporeFile then\
+					if not filter.Tasks[i].Children then\
+						return false\
+					end\
+					matched = true\
+					break\
+				end\
+			else  \
+				-- Check if the task ID matches\
+				if filter.Tasks[i].Children then\
+					-- Children are allowed\
+					if filter.Tasks[i].TaskID == task.TaskID or \
+					  filter.Tasks[i].TaskID == string.sub(task.TaskID,1,#filter.Tasks[i].TaskID) then\
+						matched = true\
+						break\
+					end\
+				else\
+					if filter.Tasks[i].TaskID == task.TaskID then\
+						matched = true\
+						break\
+					end\
+				end\
+			end		-- if filter.Tasks.TaskID == Karm.Globals.ROOTKEY..\"S\" then ends\
+		end	-- for 1,#filter.Tasks ends here\
+		if not matched then\
+			return false\
+		end\
+	end\
+	-- Check if Who passes\
+	if filter.Who then\
+		local pattern = \"%'([%w%.%_%,]+)%'\"\
+		local whoStr = filter.Who\
+		for id in string.gmatch(filter.Who,pattern) do\
+			-- Check if the Status is given\
+			local idc = id\
+			local st = string.find(idc,\",\")\
+			local stat\
+			if st then\
+				-- Status exists, extract it here\
+				stat = string.sub(idc,st+1,-1)\
+				idc = string.sub(idc,1,st-1)\
+			else\
+				stat = \"A\"\
+			end\
+			-- Check if the id exists in the task\
+			local result = false\
+			for i = 1,#task.Who do\
+				if task.Who[i].ID == idc then\
+					if stat == \"A\" and string.upper(task.Who[i].Status) == \"ACTIVE\" then\
+						result = true\
+						break\
+					end\
+					if stat ==\"I\" and string.upper(task.Who[i].Status) ==\"INACTIVE\" then\
+						result = true\
+						break\
+					end\
+					result = false\
+					break\
+				end		-- if task.Who[i].ID == idc then ends\
+			end		-- for i = 1,#task.Who ends\
+			whoStr = string.gsub(whoStr,\"'\"..id..\"'\",tostring(result))\
+		end		-- for id in string.gmatch(filter.Who,pattern) do ends\
+		-- Check if the boolean passes\
+		if not loadstring(\"return \"..whoStr)() then\
+			return false\
+		end\
+	end		-- if filter.Who then ends\
+	\
+	-- Check if Date Started Passes\
+	if filter.Start then\
+		-- Trim the string from leading and trailing spaces\
+		local strtStr = string.match(filter.Start,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(strtStr,-1,-1)~=\",\" then\
+			strtStr = strtStr .. \",\"\
+		end\
+		local matched = false\
+		for range in string.gmatch(strtStr,\"(.-),\") do\
+			-- See if this is a range or a single date\
+			local strt,stp = string.match(range,\"(.-)%-(.*)\")\
+			if not strt then\
+				-- its not a range\
+				strt = range\
+				stp = range\
+			end\
+			strt = Karm.Utility.toXMLDate(strt)\
+			stp = Karm.Utility.toXMLDate(stp)\
+			local taskDate = task.Start\
+			if strt <= taskDate and taskDate <=stp then\
+				matched = true\
+				break\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Date Finished Passes\
+	if filter.Fin then\
+		-- Trim the string from leading and trailing spaces\
+		local finStr = string.match(filter.Fin,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(finStr,-1,-1)~=\",\" then\
+			finStr = finStr .. \",\"\
+		end\
+		local matched = false\
+		for range in string.gmatch(finStr,\"(.-),\") do\
+			-- Check if this is Karm.Globals.NoDateStr\
+			if range == Karm.Globals.NoDateStr and not task.Fin then\
+				matched = true\
+				break\
+			end\
+			-- See if this is a range or a single date\
+			local strt,stp = string.match(range,\"(.-)%-(.*)\")\
+			if not strt then\
+				-- its not a range\
+				strt = range\
+				stp = range\
+			end\
+			strt = Karm.Utility.toXMLDate(strt)\
+			stp = Karm.Utility.toXMLDate(stp)\
+			if task.Fin then\
+				if strt <= task.Fin and task.Fin <=stp then\
+					matched = true\
+					break\
+				end\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Access IDs pass\
+	if filter.Access then\
+		local pattern = Karm.Globals.UserIDPattern\
+		local accStr = filter.Access\
+		for id in string.gmatch(filter.Access,pattern) do\
+			local result = false\
+			if id == Karm.Globals.NoAccessIDStr and not task.Access then\
+				result = true\
+			else\
+				-- Extract the permission character\
+				local idc = id\
+				local st = string.find(idc,\",\")\
+				local perm\
+	\
+				perm = string.sub(idc,st+1,-1)\
+				idc = string.sub(idc,1,st-1)\
+				\
+				-- Check if the id exists in the task\
+				if task.Access then\
+					for i = 1,#task.Access do\
+						if task.Access[i].ID == idc then\
+							if string.upper(perm) == \"R\" and string.upper(task.Access[i].Status) == \"READ ONLY\" then\
+								result = true\
+								break\
+							end\
+							if string.upper(perm) ==\"W\" and string.upper(task.Access[i].Status) ==\"READ/WRITE\" then\
+								result = true\
+								break\
+							end\
+							result = false\
+							break\
+						end		-- if task.Access[i].ID == idc then ends\
+					end		-- for i = 1,#task.Access do ends\
+				end\
+				if not result then\
+					-- Check for Read/Write access does the ID exist in the Who table\
+					if string.upper(perm) == \"W\" then\
+						for i = 1,#task.Who do\
+							if task.Who[i].ID == idc then\
+								if string.upper(task.Who[i].Status) == \"ACTIVE\" then\
+									result = true\
+								end\
+								break\
+							end\
+						end		-- for i = 1,#task.Who do ends\
+					end		-- if string.upper(perm) == \"W\" then ends\
+				end		-- if not result then ends\
+			end		-- if id == Karm.Globals.NoAccessIDStr and not task.Access then ends\
+			accStr = string.gsub(accStr,\"'\"..id..\"'\",tostring(result))\
+		end		-- for id in string.gmatch(filter.Who,pattern) do ends\
+		-- Check if the boolean passes\
+		if not loadstring(\"return \"..accStr)() then\
+			return false\
+		end\
+	end		-- if filter.Access then ends\
+\
+	-- Check if Status Passes\
+	if filter.Status then\
+		-- Trim the string from leading and trailing spaces\
+		local statStr = string.match(filter.Status,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(statStr,-1,-1)~=\",\" then\
+			statStr = statStr .. \",\"\
+		end\
+		local matched = false\
+		for stat in string.gmatch(statStr,\"(.-),\") do\
+			-- Check if this status matches with what we have in the task\
+			if task.Status == stat then\
+				matched = true\
+				break\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Priority Passes\
+	if filter.Priority then\
+		-- Trim the string from leading and trailing spaces\
+		local priStr = string.match(filter.Priority,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(priStr,-1,-1)~=\",\" then\
+			priStr = priStr .. \",\"\
+		end\
+		local matched = false\
+		for pri in string.gmatch(priStr,\"(.-),\") do\
+			if pri == Karm.Globals.NoPriStr and not task.Priority then\
+				matched = true\
+				break\
+			end\
+			-- Check if this priority matches with what we have in the task\
+			if task.Priority == pri then\
+				matched = true\
+				break\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Date Due Passes\
+	if filter.Due then\
+		-- Trim the string from leading and trailing spaces\
+		local dueStr = string.match(filter.Due,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(dueStr,-1,-1)~=\",\" then\
+			dueStr = dueStr .. \",\"\
+		end\
+		local matched = false\
+		for range in string.gmatch(dueStr,\"(.-),\") do\
+			-- Check if this is Karm.Globals.NoDateStr\
+			if range == Karm.Globals.NoDateStr and not task.Fin then\
+				matched = true\
+				break\
+			end\
+			-- See if this is a range or a single date\
+			local strt,stp = string.match(range,\"(.-)%-(.*)\")\
+			if not strt then\
+				-- its not a range\
+				strt = range\
+				stp = range\
+			end\
+			strt = Karm.Utility.toXMLDate(strt)\
+			stp = Karm.Utility.toXMLDate(stp)\
+			if task.Due then\
+				if strt <= task.Due and task.Due <=stp then\
+					matched = true\
+					break\
+				end\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Category Passes\
+	if filter.Cat then\
+		-- Trim the string from leading and trailing spaces\
+		local catStr = string.match(filter.Cat,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(catStr,-1,-1)~=\",\" then\
+			catStr = catStr .. \",\"\
+		end\
+		local matched = false\
+		for cat in string.gmatch(catStr,\"(.-),\") do\
+			-- Check if it matches Karm.Globals.NoCatStr\
+			if cat == Karm.Globals.NoCatStr and not task.Cat then\
+				matched = true\
+				break\
+			end\
+			-- Check if this status matches with what we have in the task\
+			if task.Cat == cat then\
+				matched = true\
+				break\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Sub-Category Passes\
+	if filter.SubCat then\
+		-- Trim the string from leading and trailing spaces\
+		local subCatStr = string.match(filter.SubCat,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(subCatStr,-1,-1)~=\",\" then\
+			subCatStr = subCatStr .. \",\"\
+		end\
+		local matched = false\
+		for subCat in string.gmatch(subCatStr,\"(.-),\") do\
+			-- Check if it matches Karm.Globals.NoSubCatStr\
+			if subCat == Karm.Globals.NoSubCatStr and not task.SubCat then\
+				matched = true\
+				break\
+			end\
+			-- Check if this status matches with what we have in the task\
+			if task.SubCat == subCat then\
+				matched = true\
+				break\
+			end\
+		end\
+		if not matched then\
+			return false\
+		end\
+	end\
+\
+	-- Check if Tags pass\
+	if filter.Tags then\
+		local pattern = \"%'([%w%s%_]+)%'\"	-- Tags are allowed alphanumeric characters spaces and underscores\
+		local tagStr = filter.Tags\
+		for tag in string.gmatch(filter.Tags,pattern) do\
+			-- Check if the tag exists in the task\
+			local result = false\
+			if tag == Karm.Globals.NoTagStr and not task.Tags then\
+				result = true\
+			elseif task.Tags then			\
+				for i = 1,#task.Tags do\
+					if task.Tags[i] == tag then\
+						-- Found the tag in the task\
+						result = true\
+						break\
+					end		-- if task.Tags[i] == tag then ends\
+				end		-- for i = 1,#task.Tags ends\
+			end\
+			tagStr = string.gsub(tagStr,\"'\"..tag..\"'\",tostring(result))\
+		end		-- for id in string.gmatch(filter.Tags,pattern) do ends\
+		-- Check if the boolean passes\
+		if not loadstring(\"return \"..tagStr)() then\
+			return false\
+		end\
+	end		-- if filter.Access then ends\
+	\
+	-- Check if the Schedules pass\
+	if filter.Schedules then\
+		local schStr = filter.Schedules\
+		for sch in string.gmatch(filter.Schedules,\"%'(.-)%'\") do\
+			-- Check if this schedule chunk passes in the task\
+			-- \"'Full,Estimate,12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012'\"\
+			local typeMatch, typeSchedule, ranges, rangeStr, index, result\
+			local firstComma = string.find(sch,\",\")\
+			local secondComma = string.find(sch,\",\",firstComma + 1)\
+			typeMatch = string.sub(sch,1,firstComma-1)\
+			typeSchedule = string.sub(sch,firstComma + 1,secondComma - 1)\
+			ranges = {[0]=string.sub(sch,secondComma + 1, -1),count=0}\
+			rangeStr = ranges[0]\
+			-- Make sure the string has \",\" at the end\
+			if string.sub(rangeStr,-1,-1)~=\",\" then\
+				rangeStr = rangeStr .. \",\"\
+			end\
+			-- Now separate individual date ranges\
+			for range in string.gmatch(rangeStr,\"(.-),\") do\
+				ranges.count = ranges.count + 1\
+				ranges[ranges.count] = range\
+			end\
+			-- CHeck if the task has a Schedule item\
+			if not task.Schedules then\
+				if ranges[0] == Karm.Globals.NoDateStr then\
+					result = true\
+				end			\
+				schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+			else\
+				-- Type of Schedule - Estimate, Committed, Revision(X) (L=Latest or the number of revision), Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)\
+				index = nil\
+				if string.upper(string.sub(typeSchedule,1,#\"ESTIMATE\")) == \"ESTIMATE\" then\
+					if string.match(typeSchedule,\"%(%d-%)\") then\
+						-- Get the index number\
+						index = string.match(typeSchedule,\"%((%d-)%)\")\
+					else  \
+						-- Get the latest schedule index\
+						if ranges[0] == Karm.Globals.NoDateStr then\
+							result = true\
+							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+						elseif task.Schedules.Estimate then\
+							index = #task.Schedules.Estimate\
+						else\
+							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+						end			\
+					end\
+					typeSchedule = \"Estimate\"\
+				elseif string.upper(typeSchedule) == \"COMMITTED\" then\
+					typeSchedule = \"Commit\"\
+					index = 1\
+				elseif string.upper(string.sub(typeSchedule,1,#\"REVISION\")) == \"REVISION\" then\
+					if string.match(typeSchedule,\"%(%d-%)\") then\
+						-- Get the index number\
+						index = string.match(typeSchedule,\"%((%d-)%)\")\
+					else  \
+						-- Get the latest schedule index\
+						if ranges[0] == Karm.Globals.NoDateStr then\
+							result = true\
+							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+						elseif task.Schedules.Revs then\
+							index = #task.Schedules.Revs\
+						else\
+							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+						end			\
+					end\
+					typeSchedule = \"Revs\"\
+				elseif string.upper(typeSchedule) == \"ACTUAL\" then\
+					typeSchedule = \"Actual\"\
+					index = 1\
+				elseif string.upper(typeSchedule) == \"LATEST\" then\
+					-- Find the latest schedule in the task here\
+					if string.upper(task.Status) == \"DONE\" and task.Schedules.Actual then\
+						typeSchedule = \"Actual\"\
+						index = 1\
+					elseif task.Schedules.Revs then\
+						-- Actual is not the latest one but Revision is \
+						typeSchedule = \"Revs\"\
+						index = task.Schedules.Revs.count\
+					elseif task.Schedules.Commit then\
+						-- Actual and Revisions don't exist but Commit does\
+						typeSchedule = \"Commit\"\
+						index = 1\
+					elseif task.Schedules.Estimate then\
+						-- The latest is Estimate\
+						typeSchedule = \"Estimate\"\
+						index = task.Schedules.Estimate.count\
+					else\
+						-- typeSchedule is latest but non of the schedule types exist\
+						-- Check if the range is Karm.Globals.NoDateStr, if not this sch is false\
+						local result = false\
+						if ranges[0] == Karm.Globals.NoDateStr then\
+							result = true\
+						end\
+						schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+					end\
+				else\
+					wx.wxMessageBox(\"Invalid Type Schedule (\"..typeSchdule..\") specified in filter: \"..sch,\"Filter Error\",\
+	                            wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)\
+					return false\
+				end		-- if string.upper(string.sub(typeSchedule,1,#\"ESTIMATE\") == \"ESTIMATE\" then ends  (SETTING of typeSchdule and index)\
+			end		-- if not task.Schedules then\
+			if index then\
+				-- We have a typeSchedule and index\
+				-- Now loop through the schedule of typeSchedule and index\
+				local result\
+				if string.upper(typeMatch) == \"OVERLAP\" then\
+					result = false\
+				else\
+					result = true\
+				end\
+				-- First check if range is Karm.Globals.NoDateStr then this schedule should not exist for filter to pass\
+				if ranges[0] == Karm.Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then\
+					result = true\
+				elseif task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then\
+					for i = 1,#task.Schedules[typeSchedule][index].Period do\
+						-- Is the date in range?\
+						local inrange = false\
+						for j = 1,#ranges do\
+							local strt,stp = string.match(ranges[j],\"(.-)%-(.*)\")\
+							if not strt then\
+								-- its not a range\
+								strt = ranges[j]\
+								stp = ranges[j]\
+							end\
+							strt = Karm.Utility.toXMLDate(strt)\
+							stp = Karm.Utility.toXMLDate(stp)\
+							if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then\
+								inrange = true\
+							end\
+						end		-- for j = 1,#ranges do ends\
+						if inrange and string.upper(typeMatch) == \"OVERLAP\" then\
+							-- This date overlaps\
+							result = true\
+							break\
+						elseif not inrange and string.upper(typeMatch) == \"FULL\" then\
+							-- This portion is not contained in filter\
+							result = false\
+							break\
+						end\
+					end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\
+				end	-- if task.Schedules[typeSchedule][index] then ends\
+				schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
+			end		-- if index then ends\
+		end		-- for sch in string.gmatch(filter.Schedules,\"%'(.-)%'\") do ends\
+		-- Check if the boolean passes\
+		if not loadstring(\"return \"..schStr)() then\
+			return false\
+		end\
+	end		-- if filter.Schedules then ends\
+\
+	if filter.Script then\
+		local safeenv = {}\
+		setmetatable(safeenv,{__index = Karm.Globals.safeenv})\
+		local func,message = loadstring(filter.Script)\
+		if not func then\
+			return false\
+		end\
+		safeenv.task = task\
+		setfenv(func,safeenv)\
+		func()\
+		if not safeenv.result then\
+			return false\
+		end\
+	end\
+	-- All pass\
+	return true\
+end		-- function Karm.FilterObject.validateTask(filter, task) ends\
 "
 __MANY2ONEFILES['FilterForm']="local requireLuaString = requireLuaString\
------------------------------------------------------------------------------\r\
--- Application: Karm\r\
--- Purpose:     Karm application Criteria Entry form UI creation and handling file\r\
--- Author:      Milind Gupta\r\
--- Created:     2/09/2012\r\
------------------------------------------------------------------------------\r\
-local prin\r\
-if Karm.Globals.__DEBUG then\r\
-	prin = print\r\
-end\r\
-local print = prin \r\
-local wx = wx\r\
-local io = io\r\
-local wxaui = wxaui\r\
-local bit = bit\r\
-local GUI = Karm.GUI\r\
-local tostring = tostring\r\
-local loadfile = loadfile\r\
-local loadstring = loadstring\r\
-local setfenv = setfenv\r\
-local string = string\r\
-local Globals = Karm.Globals\r\
-local setmetatable = setmetatable\r\
-local NewID = Karm.NewID\r\
-local type = type\r\
-local math = math\r\
-local error = error\r\
-local modname = ...\r\
-local tableToString = Karm.Utility.tableToString\r\
-local pairs = pairs\r\
-local applyFilterHier = Karm.FilterObject.applyFilterHier\r\
-local collectFilterDataHier = Karm.accumulateTaskDataHier\r\
-local CW = requireLuaString('CustomWidgets')\r\
-\r\
-\r\
-local GlobalFilter = function() \r\
-		return Karm.Filter \r\
-	end\r\
-	\r\
-local SData = function()\r\
-		return Karm.SporeData\r\
-	end\r\
-\r\
-local MainFilter\r\
-local SporeData\r\
-\r\
-module(modname)\r\
-\r\
---local modname = ...\r\
-\r\
---M = {}\r\
---package.loaded[modname] = M\r\
---setmetatable(M,{[\"__index\"]=_G})\r\
---setfenv(1,M)\r\
-\r\
--- Local filter table to store the filter criteria\r\
-local filter = {}\r\
-local filterData = {}\r\
-\r\
-local noStr = {\r\
-	Cat = Globals.NoCatStr,\r\
-	SubCat = Globals.NoSubCatStr,\r\
-	Priority = Globals.NoPriStr,\r\
-	Due = Globals.NoDateStr,\r\
-	Fin = Globals.NoDateStr,\r\
-	ScheduleRange = Globals.NoDateStr,\r\
-	Tags = Globals.NoTagStr,\r\
-	Access = Globals.NoAccessIDStr\r\
-}\r\
-\r\
-local function SelTaskPress(event)\r\
-	setfenv(1,package.loaded[modname])\r\
-	local frame = wx.wxFrame(frame, wx.wxID_ANY, \"Select Task\", wx.wxDefaultPosition,\r\
-		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)\r\
-	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-	local taskTree = wx.wxTreeCtrl(frame, wx.wxID_ANY, wx.wxDefaultPosition,wx.wxSize(0.9*GUI.initFrameW, 0.9*GUI.initFrameH),bit.bor(wx.wxTR_SINGLE,wx.wxTR_HAS_BUTTONS))\r\
-	MainSizer:Add(taskTree, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	local buttonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-	local OKButton = wx.wxButton(frame, wx.wxID_ANY, \"OK\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	local CancelButton = wx.wxButton(frame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	local CheckBox = wx.wxCheckBox(frame, wx.wxID_ANY, \"Subtasks\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	\r\
-	if filter.TasksSet and filter.TasksSet[1].Children then\r\
-		CheckBox:SetValue(true)\r\
-	end\r\
-	buttonSizer:Add(OKButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	buttonSizer:Add(CancelButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	buttonSizer:Add(CheckBox,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	MainSizer:Add(buttonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	\r\
-	-- Now populate the tree with all the tasks\r\
-	\r\
-	-- Add the root\r\
-	local root = taskTree:AddRoot(\"Task Spores\")\r\
-	local treeData = {}\r\
-	treeData[root:GetValue()] = {Key = Globals.ROOTKEY, Parent = nil, Title = \"Task Spores\"}\r\
-    if SporeData[0] > 0 then\r\
--- Populate the tree control view\r\
-		local count = 0\r\
-		-- Loop through all the spores\r\
-        for k,v in pairs(SporeData) do\r\
-        	if k~=0 then\r\
-            -- Get the tasks in the spore\r\
--- Add the spore to the TaskTree\r\
-				-- Find the name of the file\r\
-				local strVar\r\
-        		local intVar1 = -1\r\
-				count = count + 1\r\
-            	for intVar = #k,1,-1 do\r\
-                	if string.sub(k, intVar, intVar) == \".\" then\r\
-                    	intVar1 = intVar\r\
-                	end\r\
-                	if string.sub(k, intVar, intVar) == \"\\\\\" or string.sub(k, intVar, intVar) == \"/\" then\r\
-                    	strVar = string.sub(k, intVar + 1, intVar1-1)\r\
-                    	break\r\
-                	end\r\
-            	end\r\
-            	-- Add the spore node\r\
-	            local currNode = taskTree:AppendItem(root,strVar)\r\
-				treeData[currNode:GetValue()] = {Key = Globals.ROOTKEY..k, Parent = root, Title = strVar}\r\
-				if filter.TasksSet and #filter.TasksSet[1].TaskID > #Globals.ROOTKEY and \r\
-				  string.sub(filter.TasksSet[1].TaskID,#Globals.ROOTKEY + 1, -1) == k then\r\
-					taskTree:EnsureVisible(currNode)\r\
-					taskTree:SelectItem(currNode)\r\
-				end\r\
-				local taskList = applyFilterHier(filter, v)\r\
--- Now add the tasks under the spore in the TaskTree\r\
-            	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore\r\
-	                -- Add the 1st element under the spore\r\
-	                local parent = currNode\r\
-		            currNode = taskTree:AppendItem(parent,taskList[1].Title)\r\
-					treeData[currNode:GetValue()] = {Key = taskList[1].TaskID, Parent = parent, Title = taskList[1].Title}\r\
-	                for intVar = 2,taskList.count do\r\
-	                	local cond1 = treeData[currNode:GetValue()].Key ~= Globals.ROOTKEY..k\r\
-	                	local cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key\r\
-	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key..\"_\"\r\
-                    	while cond1 and not (cond2 and cond3) do\r\
-                        	-- Go up the hierarchy\r\
-                        	currNode = treeData[currNode:GetValue()].Parent\r\
-		                	cond1 = treeData[currNode:GetValue()].Key ~= Globals.ROOTKEY..k\r\
-		                	cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key\r\
-		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key..\"_\"\r\
-                        end\r\
-                    	-- Now currNode has the node which is the right parent\r\
-		                parent = currNode\r\
-			            currNode = taskTree:AppendItem(parent,taskList[intVar].Title)\r\
-						treeData[currNode:GetValue()] = {Key = taskList[intVar].TaskID, Parent = parent, Title = taskList[intVar].Title}\r\
-                    end\r\
-	            end  -- if taskList.count > 0 then ends\r\
-			end		-- if k~=0 then ends\r\
--- Repeat for all spores\r\
-        end		-- for k,v in pairs(SporeData) do ends\r\
-    end  -- if SporeData[0] > 0 then ends\r\
-    \r\
-	-- Expand the root element\r\
-	taskTree:Expand(root)\r\
-	\r\
-	-- Connect the button events\r\
-	OKButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-	function (event)\r\
-		setfenv(1,package.loaded[modname])\r\
-		local sel = taskTree:GetSelection()\r\
-		-- Setup the filter\r\
-		filter.TasksSet = {}\r\
-		if treeData[sel:GetValue()].Key == Globals.ROOTKEY then\r\
-			filter.TasksSet = nil\r\
-		else\r\
-			filter.TasksSet[1] = {}\r\
-			-- This is a spore node\r\
-			if CheckBox:GetValue() then\r\
-				filter.TasksSet[1].Children = true\r\
-			end\r\
-			filter.TasksSet[1].TaskID = treeData[sel:GetValue()].Key\r\
-			filter.TasksSet[1].Title =  treeData[sel:GetValue()].Title\r\
-		end\r\
-		-- Setup the label properly\r\
-		if filter.TasksSet then\r\
-			if filter.TasksSet[1].Children then\r\
-				FilterTask:SetLabel(taskTree:GetItemText(sel)..\" and Children\")\r\
-			else\r\
-				FilterTask:SetLabel(taskTree:GetItemText(sel))\r\
-			end\r\
-		else\r\
-			FilterTask:SetLabel(\"No Task Selected\")\r\
-		end	\r\
-		frame:Close()\r\
-	end\r\
-	)\r\
-	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-	function (event)\r\
-		setfenv(1,package.loaded[modname])		\r\
-		frame:Close()\r\
-	end\r\
-	)\r\
-	\r\
-	\r\
-	frame:SetSizer(MainSizer)\r\
-	MainSizer:SetSizeHints(frame)\r\
-	frame:Layout()\r\
-	frame:Show(true)\r\
-end		-- local function SelTaskPress(event) ends\r\
-\r\
-local function initializeFilterForm(filterData)\r\
-	-- Clear Task Selection\r\
-	FilterTask:SetLabel(\"No Task Selected\")\r\
-	-- Clear Category\r\
-	CatCtrl:ResetCtrl()\r\
-	-- Clear Sub-Category\r\
-	SubCatCtrl:ResetCtrl()\r\
-	-- Clear Priority\r\
-	PriCtrl:ResetCtrl()\r\
-	-- Clear Status\r\
-	StatCtrl:ResetCtrl()\r\
-	-- Clear Tags List\r\
-	TagList:DeleteAllItems()\r\
-	TagBoolCtrl:ResetCtrl()\r\
-	-- Clear Dates\r\
-	dateStarted:ResetCtrl()\r\
-	dateFinished:ResetCtrl()\r\
-	dateDue:ResetCtrl()\r\
-	-- Who and Access\r\
-	whoCtrl:ResetCtrl()\r\
-	WhoBoolCtrl:ResetCtrl()\r\
-	accCtrl:ResetCtrl()\r\
-	accBoolCtrl:ResetCtrl()\r\
-	-- Schedules\r\
-	schDateRanges:ResetCtrl()\r\
-	SchBoolCtrl:ResetCtrl()\r\
-	filter = {}		-- Clear the filter\r\
-	-- Fill the data in the controls\r\
-	CatCtrl:AddListData(filterData.Cat)\r\
-	SubCatCtrl:AddListData(filterData.SubCat)\r\
-	PriCtrl:AddListData(filterData.Priority)\r\
-	StatCtrl:AddListData(Globals.StatusList)\r\
-	ScriptBox:Clear()\r\
-	if filterData.Tags then\r\
-		for i=1,#filterData.Tags do\r\
-			CW.InsertItem(TagList,filterData.Tags[i])\r\
-		end\r\
-	end\r\
-	if filterData.Who then\r\
-		for i=1,#filterData.Who do\r\
-			whoCtrl:InsertItem(filterData.Who[i], false)\r\
-		end\r\
-	end\r\
-	\r\
-	if filterData.Access then\r\
-		for i=1,#filterData.Access do\r\
-			accCtrl:InsertItem(filterData.Access[i], false)\r\
-		end\r\
-	end\r\
-end\r\
-\r\
-local function setfilter(f)\r\
-	-- Initialize the form\r\
-	initializeFilterForm(filterData)\r\
-	-- Set the task details\r\
-	local str = \"\"\r\
-	if f.Tasks then\r\
-		filter.TasksSet = {[1]={}}\r\
-		if f.Tasks[1].Title then\r\
-			str = f.Tasks[1].Title\r\
-			filter.TasksSet[1].Title = str\r\
-		else\r\
-			for k,v in pairs(SporeData) do\r\
-				if k~=0 then\r\
-					local taskList = applyFilterHier({Tasks={[1]={TaskID = f.Tasks.TaskID}}},v)\r\
-					if #taskList then\r\
-						str = taskList[1].Title\r\
-						break\r\
-					end\r\
-				end		-- if k~=0 then ends\r\
-			end		-- for k,v in pairs(SporeData) do ends\r\
-			if not str then\r\
-				str = \"TASK ID: \"..f.Tasks[1].TaskID\r\
-				filter.TasksSet[1].Title = str\r\
-			end\r\
-		end	\r\
-		filter.TasksSet[1].TaskID = f.Tasks[1].TaskID\r\
-		filter.TasksSet[1].Children = f.Tasks[1].Children\r\
-		if f.Tasks[1].Children then\r\
-			str = str..\" and Children\"\r\
-		end\r\
-		FilterTask:SetLabel(str)\r\
-	end\r\
-	-- Set Category data\r\
-	if f.Cat then\r\
-		-- Separate out the items in the comma\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local catStr = string.match(f.Cat,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(catStr,-1,-1)~=\",\" then\r\
-			catStr = catStr .. \",\"\r\
-		end\r\
-		local items = {}\r\
-		for cat in string.gmatch(catStr,\"(.-),\") do\r\
-			-- Trim leading and trailing spaces\r\
-			cat = string.match(cat,\"^%s*(.-)%s*$\")			\r\
-			-- Check if it matches Globals.NoCatStr\r\
-			if cat == Globals.NoCatStr then\r\
-				CatCtrl.CheckBox:SetValue(true)\r\
-			else\r\
-				items[#items + 1] = cat\r\
-			end\r\
-		end\r\
-		CatCtrl:AddSelListData(items)\r\
-	end		-- if f.Cat then ends\r\
-	-- Set Sub-Category data\r\
-	if f.SubCat then\r\
-		-- Separate out the items in the comma\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local subCatStr = string.match(f.SubCat,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(subCatStr,-1,-1)~=\",\" then\r\
-			subCatStr = subCatStr .. \",\"\r\
-		end\r\
-		local items = {}\r\
-		for subCat in string.gmatch(subCatStr,\"(.-),\") do\r\
-			-- Trim leading and trailing spaces\r\
-			subCat = string.match(subCat,\"^%s*(.-)%s*$\")			\r\
-			-- Check if it matches Globals.NoSubCatStr\r\
-			if subCat == Globals.NoSubCatStr then\r\
-				SubCatCtrl.CheckBox:SetValue(true)\r\
-			else\r\
-				items[#items + 1] = subCat\r\
-			end\r\
-		end\r\
-		SubCatCtrl:AddSelListData(items)\r\
-	end		-- if f.Cat then ends\r\
-	if f.Tags then\r\
-		TagBoolCtrl:setExpression(f.Tags)\r\
-	end		-- if f.Tags then ends\r\
-	-- Set Priority data\r\
-	if f.Priority then\r\
-		-- Separate out the items in the comma\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local priStr = string.match(f.Priority,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(priStr,-1,-1)~=\",\" then\r\
-			priStr = priStr .. \",\"\r\
-		end\r\
-		local items = {}\r\
-		for pri in string.gmatch(priStr,\"(.-),\") do\r\
-			-- Trim leading and trailing spaces\r\
-			pri = string.match(pri,\"^%s*(.-)%s*$\")			\r\
-			-- Check if it matches Globals.NoPriStr\r\
-			if pri == Globals.NoPriStr then\r\
-				PriCtrl.CheckBox:SetValue(true)\r\
-			else\r\
-				items[#items + 1] = pri\r\
-			end\r\
-		end\r\
-		PriCtrl:AddSelListData(items)\r\
-	end		-- if f.Priority then ends\r\
-	-- Set Status data\r\
-	if f.Status then\r\
-		-- Separate out the items in the comma\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local statStr = string.match(f.Status,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(statStr,-1,-1)~=\",\" then\r\
-			statStr = statStr .. \",\"\r\
-		end\r\
-		local items = {}\r\
-		for stat in string.gmatch(statStr,\"(.-),\") do\r\
-			-- Trim leading and trailing spaces\r\
-			stat = string.match(stat,\"^%s*(.-)%s*$\")			\r\
-			items[#items + 1] = stat\r\
-		end\r\
-		StatCtrl:AddSelListData(items)\r\
-	end		-- if f.Status then ends\r\
-	-- Who items\r\
-	if f.Who then\r\
-		WhoBoolCtrl:setExpression(f.Who)\r\
-	end\r\
-	-- Access items\r\
-	if f.Access then\r\
-		accBoolCtrl:setExpression(f.Access)\r\
-	end		-- if f.Tags then ends\r\
-	-- Set Start Date data\r\
-	if f.Start then\r\
-		do\r\
-			-- Separate out the items in the comma\r\
-			-- Trim the string from leading and trailing spaces\r\
-			local strtStr = string.match(f.Start,\"^%s*(.-)%s*$\")\r\
-			-- Make sure the string has \",\" at the end\r\
-			if string.sub(strtStr,-1,-1)~=\",\" then\r\
-				strtStr = strtStr .. \",\"\r\
-			end\r\
-			local items = {}\r\
-			for strt in string.gmatch(strtStr,\"(.-),\") do\r\
-				-- Trim leading and trailing spaces\r\
-				strt = string.match(strt,\"^%s*(.-)%s*$\")\r\
-				if strt ~= \"\" then			\r\
-					items[#items + 1] = strt\r\
-				end\r\
-			end\r\
-			dateStarted:setRanges(items)\r\
-		end		-- do for f.Start\r\
-	end	\r\
-	-- Set Due Date data\r\
-	if f.Due then\r\
-		-- Separate out the items in the comma\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local dueStr = string.match(f.Due,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(dueStr,-1,-1)~=\",\" then\r\
-			dueStr = dueStr .. \",\"\r\
-		end\r\
-		local items = {}\r\
-		dateDue:setCheckBoxState(nil)\r\
-		for due in string.gmatch(dueStr,\"(.-),\") do\r\
-			-- Trim leading and trailing spaces\r\
-			due = string.match(due,\"^%s*(.-)%s*$\")\r\
-			if due == noStr.Due then\r\
-				dateDue:setCheckBoxState(true)\r\
-			elseif due ~= \"\" then			\r\
-				items[#items + 1] = due\r\
-			end\r\
-		end\r\
-		dateDue:setRanges(items)\r\
-	end		-- if f.Due ends here	\r\
-	-- Set Finish Date data\r\
-	if f.Fin then\r\
-		-- Separate out the items in the comma\r\
-		-- Trim the string from leading and trailing spaces\r\
-		local finStr = string.match(f.Fin,\"^%s*(.-)%s*$\")\r\
-		-- Make sure the string has \",\" at the end\r\
-		if string.sub(finStr,-1,-1)~=\",\" then\r\
-			finStr = finStr .. \",\"\r\
-		end\r\
-		local items = {}\r\
-		dateFinished:setCheckBoxState(nil)\r\
-		for fin in string.gmatch(finStr,\"(.-),\") do\r\
-			-- Trim leading and trailing spaces\r\
-			fin = string.match(fin,\"^%s*(.-)%s*$\")\r\
-			if fin == noStr.Fin then\r\
-				dateFinished:setCheckBoxState(true)\r\
-			elseif fin ~= \"\" then			\r\
-				items[#items + 1] = fin\r\
-			end\r\
-		end\r\
-		dateFinished:setRanges(items)\r\
-	end		-- if f.Due ends here	\r\
-	-- Set the Schedules Data\r\
-	if f.Schedules then\r\
-		SchBoolCtrl:setExpression(f.Schedules)\r\
-	end		-- if f.Schedules ends here\r\
-	-- Custom Script\r\
-	if f.Script then\r\
-		ScriptBox:SetValue(f.Script)\r\
-	end\r\
-end\r\
-\r\
-local function synthesizeFilter()\r\
-	local f = {}\r\
-	-- Get the tasks information\r\
-	if filter.TasksSet then\r\
-		f.Tasks = filter.TasksSet\r\
-	end\r\
-	-- Get Who information here\r\
-	f.Who = WhoBoolCtrl:BooleanExpression()\r\
-	-- Date Started\r\
-	local str = \"\"\r\
-	local items = dateStarted:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end\r\
-	if str ~= \"\" then \r\
-		f.Start = str:sub(1,-2)\r\
-	end\r\
-	-- Date Finished\r\
-	str = \"\"\r\
-	items = dateFinished:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end \r\
-	if items[0] then\r\
-		str = str..Globals.NoDateStr..\",\"\r\
-	end\r\
-	if str ~= \"\" then\r\
-		f.Fin = str:sub(1,-2)\r\
-	end\r\
-	-- Access information\r\
-	f.Access = accBoolCtrl:BooleanExpression()\r\
-	-- Status Information\r\
-	str = \"\"\r\
-	items = StatCtrl:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end\r\
-	if str ~= \"\" then \r\
-		f.Status = str:sub(1,-2)\r\
-	end\r\
-	-- Priority\r\
-	str = \"\"\r\
-	items = PriCtrl:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end \r\
-	if items[0] then\r\
-		str = str..Globals.NoPriStr..\",\"\r\
-	end\r\
-	if str ~= \"\" then\r\
-		f.Priority = str:sub(1,-2)\r\
-	end\r\
-	-- Due Date\r\
-	str = \"\"\r\
-	items = dateDue:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end \r\
-	if items[0] then\r\
-		str = str..Globals.NoDateStr..\",\"\r\
-	end\r\
-	if str ~= \"\" then\r\
-		f.Due = str:sub(1,-2)\r\
-	end\r\
-	-- Category\r\
-	str = \"\"\r\
-	items = CatCtrl:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end \r\
-	if items[0] then\r\
-		str = str..Globals.NoCatStr..\",\"\r\
-	end\r\
-	if str ~= \"\" then\r\
-		f.Cat = str:sub(1,-2)\r\
-	end\r\
-	-- Sub-Category\r\
-	str = \"\"\r\
-	items = SubCatCtrl:getSelectedItems()\r\
-	for i = 1,#items do\r\
-		str = str..items[i]..\",\"\r\
-	end \r\
-	if items[0] then\r\
-		str = str..Globals.NoSubCatStr..\",\"\r\
-	end\r\
-	if str ~= \"\" then\r\
-		f.SubCat = str:sub(1,-2)\r\
-	end\r\
-	-- Tags\r\
-	f.Tags = TagBoolCtrl:BooleanExpression()\r\
-	if TagCheckBox:GetValue() then\r\
-		f.Tags = \"(\"..f.Tags..\") or \"..Globals.NoTagStr\r\
-	end\r\
-	-- Schedule\r\
-	f.Schedules = SchBoolCtrl:BooleanExpression()\r\
-	-- Custom Script\r\
-	if ScriptBox:GetValue() ~= \"\" then\r\
-		local script = ScriptBox:GetValue()\r\
-		local result, msg = loadstring(script)\r\
-		if not result then\r\
-			wx.wxMessageBox(\"Unable to compile the script. Error: \"..msg..\".\\n Please correct and try again.\",\r\
-                            \"Script Compile Error\",wx.wxOK + wx.wxCENTRE, frame)\r\
-            return nil\r\
-		end\r\
-		f.Script = script\r\
-	end\r\
-	return f\r\
-end\r\
-\r\
-local function loadFilter(event)\r\
-	setfenv(1,package.loaded[modname])\r\
-	local ValidFilter = function(file)\r\
-		local safeenv = {}\r\
-		setmetatable(safeenv, {__index = Globals.safeenv})\r\
-		local f,message = loadfile(file)\r\
-		if not f then\r\
-			return nil,message\r\
-		end\r\
-		setfenv(f,safeenv)\r\
-		f()\r\
-		if safeenv.filter and type(safeenv.filter) == \"table\" then\r\
-			if safeenv.filter.Script then\r\
-				f, message = loadstring(safeenv.filter.Script)\r\
-				if not f then\r\
-					return nil,\"Cannot compile custom script in filter. Error: \"..message\r\
-				end\r\
-			end\r\
-			return safeenv.filter\r\
-		else\r\
-			return nil,\"Cannot find a valid filter in the file.\"\r\
-		end\r\
-	end\r\
-    local fileDialog = wx.wxFileDialog(frame, \"Open file\",\r\
-                                       \"\",\r\
-                                       \"\",\r\
-                                       \"Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*\",\r\
-                                       wx.wxOPEN + wx.wxFILE_MUST_EXIST)\r\
-    if fileDialog:ShowModal() == wx.wxID_OK then\r\
-    	local result,message = ValidFilter(fileDialog:GetPath())\r\
-        if not result then\r\
-            wx.wxMessageBox(\"Unable to load file '\"..fileDialog:GetPath()..\"'.\\n \"..message,\r\
-                            \"File Load Error\",\r\
-                            wx.wxOK + wx.wxCENTRE, frame)\r\
-        else\r\
-        	setfilter(result)\r\
-        end\r\
-    end\r\
-    fileDialog:Destroy()\r\
-end\r\
-\r\
-local function saveFilter(event)\r\
-	setfenv(1,package.loaded[modname])\r\
-    local fileDialog = wx.wxFileDialog(frame, \"Save File\",\r\
-                                       \"\",\r\
-                                       \"\",\r\
-                                       \"Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*\",\r\
-                                       wx.wxFD_SAVE)\r\
-    if fileDialog:ShowModal() == wx.wxID_OK then\r\
-    	local file,err = io.open(fileDialog:GetPath(),\"w+\")\r\
-    	if not file then\r\
-            wx.wxMessageBox(\"Unable to save as file '\"..fileDialog:GetPath()..\"'.\\n \"..err,\r\
-                            \"File Save Error\",\r\
-                            wx.wxOK + wx.wxCENTRE, frame)\r\
-        else\r\
-        	local fil = synthesizeFilter()\r\
-        	if fil then\r\
-        		file:write(\"filter=\"..tableToString(fil))\r\
-        	end\r\
-        	file:close()\r\
-        end\r\
-    end\r\
-    fileDialog:Destroy()\r\
-\r\
-end\r\
-\r\
--- Customized multiselect control\r\
-do\r\
-\r\
-	local UpdateFilter = function(o)\r\
-		local SelList = o:getSelectedItems()\r\
-		local filterIndex = o.filterIndex\r\
-		local str = \"\"\r\
-		for i = 1,#SelList do\r\
-			str = str..SelList[i]..\",\"\r\
-		end\r\
-		-- Finally Check if none also selected\r\
-		if SelList[0] then\r\
-			str = str..noStr[filterIndex]..\",\"\r\
-		end\r\
-		if str ~= \"\" then\r\
-			filter[filterIndex]=string.sub(str,1,-2) -- remove the comma and add it\r\
-		else\r\
-			filter[filterIndex]=nil\r\
-		end\r\
-	end\r\
-\r\
-	MultiSelectCtrl = function(parent, filterIndex, noneSelection, LItems, RItems)\r\
-		if not filterIndex then\r\
-			error(\"Need a filterIndex for the MultiSelect Control\",2)\r\
-		end\r\
-		local o = CW.MultiSelectCtrl(parent,LItems,RItems,noneSelection)\r\
-		o.filterIndex = filterIndex\r\
-		o.UpdateFilter = UpdateFilter\r\
-		return o\r\
-	end\r\
-\r\
-end\r\
-\r\
--- Customized Date Range control\r\
-do\r\
-\r\
-	local UpdateFilter = function(o)\r\
-		local SelList = o:getSelectedItems()\r\
-		local filterIndex = o.filterIndex\r\
-		local str = \"\"\r\
-		for i = 1,#SelList do\r\
-			str = str..SelList[i]..\",\"\r\
-		end\r\
-		-- Finally Check if none also selected\r\
-		if SelList[0] then\r\
-			str = str..noStr[filterIndex]..\",\"\r\
-		end\r\
-		if str ~= \"\" then\r\
-			filter[filterIndex]=string.sub(str,1,-2) -- remove the comma and add it\r\
-		else\r\
-			filter[filterIndex]=nil\r\
-		end\r\
-	end\r\
-\r\
-	DateRangeCtrl = function(parent, filterIndex, noneSelection, heading)\r\
-		if not filterIndex then\r\
-			error(\"Need a filterIndex for the Date Range Control\",2)\r\
-		end\r\
-		local o = CW.DateRangeCtrl(parent, noneSelection, heading)\r\
-		o.filterIndex = filterIndex\r\
-		o.UpdateFilter = UpdateFilter\r\
-		return o\r\
-	end\r\
-\r\
-end\r\
-\r\
--- Customized Boolean Tree Control\r\
-do\r\
-\r\
-	local UpdateFilter = function(o)\r\
-		local filterText = o:BooleanExpression()\r\
-		if filterText == \"\" then\r\
-			filter[o.filterIndex]=nil\r\
-		else\r\
-			filter[o.filterIndex]=filterText\r\
-		end\r\
-	end\r\
-	\r\
-	BooleanTreeCtrl = function(parent,sizer,getInfoFunc,filterIndex)\r\
-		if not filterIndex then\r\
-			error(\"Need a filterIndex for the Boolean Tree Control\",2)\r\
-		end\r\
-		local o = CW.BooleanTreeCtrl(parent,sizer,getInfoFunc)\r\
-		o.filterIndex = filterIndex\r\
-		o.UpdateFilter = UpdateFilter\r\
-		return o	\r\
-	end\r\
-\r\
-end\r\
-\r\
--- Customized Check List Control\r\
-do\r\
-	local getSelectionFunc = function(obj)\r\
-		-- Return the selected item in List\r\
-		local o = obj		-- Declare an upvalue\r\
-		return function()\r\
-			local items = o:getSelectedItems()\r\
-			if not items[1] then\r\
-				return nil\r\
-			else\r\
-				return items[1].itemText..\",\"..items[1].checked\r\
-			end\r\
-		end\r\
-	end\r\
-	\r\
-	CheckListCtrl = function(parent,noneSelection,checkedText,uncheckedText)\r\
-		local o = CW.CheckListCtrl(parent,noneSelection,checkedText,uncheckedText,true)\r\
-		o.getSelectionFunc = getSelectionFunc\r\
-		return o\r\
-	end\r\
-\r\
-end\r\
-\r\
-function filterFormActivate(parent, callBack)\r\
-	MainFilter = GlobalFilter()\r\
-	SporeData = SData()\r\
-	-- Accumulate Filter Data across all spores\r\
-	-- Loop through all the spores\r\
-	for k,v in pairs(SporeData) do\r\
-		if k~=0 then\r\
-			collectFilterDataHier(filterData,v)\r\
-		end		-- if k~=0 then ends\r\
-	end		-- for k,v in pairs(SporeData) do ends\r\
-	\r\
-	frame = wx.wxFrame(parent, wx.wxID_ANY, \"Filter Form\", wx.wxDefaultPosition,\r\
-		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)\r\
-	-- Create tool bar\r\
-	ID_LOAD = NewID()\r\
-	ID_SAVE = NewID()\r\
-	local toolBar = frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)\r\
-	local toolBmpSize = toolBar:GetToolBitmapSize()\r\
-\r\
-	toolBar:AddTool(ID_LOAD, \"Load\", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), \"Load Filter Criteria\")\r\
-	toolBar:AddTool(ID_SAVE, \"Save\", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), \"Save Filter Criteria\")\r\
-	toolBar:Realize()\r\
-	\r\
-	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-		MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)\r\
-\r\
-		-- Task, Categories and Sub-Categories Page\r\
-		TandC = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local TandCSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-				local TaskSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-				SelTaskButton = wx.wxButton(TandC, wx.wxID_ANY, \"Select Task\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				TaskSizer:Add(SelTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				FilterTask = wx.wxStaticText(TandC, wx.wxID_ANY, \"No Task Selected\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				TaskSizer:Add(FilterTask, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				ClearTaskButton = wx.wxButton(TandC, wx.wxID_ANY, \"Clear Task\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-				TaskSizer:Add(ClearTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				TandCSizer:Add(TaskSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-				CategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, \"Select Categories\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				TandCSizer:Add(CategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				\r\
-				-- Category List boxes and buttons\r\
-				CatCtrl = MultiSelectCtrl(TandC,\"Cat\",true,filterData.Cat)\r\
-				TandCSizer:Add(CatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				\r\
-				SubCategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, \"Select Sub-Categories\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				TandCSizer:Add(SubCategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				-- Sub Category Listboxes and Buttons\r\
-				SubCatCtrl = MultiSelectCtrl(TandC,\"SubCat\",true,filterData.SubCat)\r\
-				TandCSizer:Add(SubCatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			\r\
-			TandC:SetSizer(TandCSizer)\r\
-			TandCSizer:SetSizeHints(TandC)\r\
-		MainBook:AddPage(TandC, \"Task and Category\")\r\
-		\r\
-		-- Priorities Status and Tags page\r\
-		PSandTag = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local PSandTagSizer = wx.wxBoxSizer(wx.wxVERTICAL) \r\
-				PriorityLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, \"Select Priorities\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				PSandTagSizer:Add(PriorityLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				\r\
-				-- Priority List boxes and buttons\r\
-				PriCtrl = MultiSelectCtrl(PSandTag,\"Priority\",true,filterData.Priority)\r\
-				PSandTagSizer:Add(PriCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-				StatusLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, \"Select Status\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				PSandTagSizer:Add(StatusLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				\r\
-				-- Status List boxes and buttons\r\
-				StatCtrl = MultiSelectCtrl(PSandTag,\"Status\",false,Globals.StatusList)\r\
-				PSandTagSizer:Add(StatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-				TagsLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, \"Select Tags\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-				PSandTagSizer:Add(TagsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-				\r\
-				-- Tag List box, buttons and tree\r\
-				local TagSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-					local TagListSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-						TagList = wx.wxListCtrl(PSandTag, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxSize(0.1*GUI.initFrameW, 0.1*GUI.initFrameH),\r\
-							bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER,wx.wxLC_SINGLE_SEL))\r\
-						-- Populate the tag list here\r\
-						--local col = wx.wxListItem()\r\
-						--col:SetId(0)\r\
-						TagList:InsertColumn(0,\"Tags\")\r\
-						if filterData.Tags then\r\
-							for i=1,#filterData.Tags do\r\
-								CW.InsertItem(TagList,filterData.Tags[i])\r\
-							end\r\
-						end\r\
-						TagListSizer:Add(TagList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-						TagCheckBox = wx.wxCheckBox(PSandTag, wx.wxID_ANY, \"None Also passes\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-						TagListSizer:Add(TagCheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-						\r\
-					TagSizer:Add(TagListSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-					TagBoolCtrl = BooleanTreeCtrl(PSandTag,TagSizer,\r\
-						function()\r\
-							-- Return the selected item in Tag List\r\
-							local item = TagList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\r\
-							if item == -1 then\r\
-								return nil\r\
-							else \r\
-								return TagList:GetItemText(item)		\r\
-							end\r\
-						end, \r\
-					\"Tags\")\r\
-				PSandTagSizer:Add(TagSizer, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-			PSandTag:SetSizer(PSandTagSizer)\r\
-			PSandTagSizer:SetSizeHints(PSandTag)\r\
-		MainBook:AddPage(PSandTag, \"Priorities,Status and Tags\")\r\
-		\r\
-		-- Date Started, Date Finished and Due Date Page\r\
-		DatesPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local DatesPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) \r\
-			\r\
-			-- Date Started Control\r\
-			dateStarted = DateRangeCtrl(DatesPanel,\"Start\",false,\"Date Started\")\r\
-			DatesPanelSizer:Add(dateStarted.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			-- Date Finished Control\r\
-			dateFinished = DateRangeCtrl(DatesPanel,\"Fin\",true,\"Date Finished\")\r\
-			DatesPanelSizer:Add(dateFinished.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			-- Due Date Control\r\
-			dateDue = DateRangeCtrl(DatesPanel,\"Due\",true,\"Due Date\")\r\
-			DatesPanelSizer:Add(dateDue.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			\r\
-\r\
-			DatesPanel:SetSizer(DatesPanelSizer)\r\
-			DatesPanelSizer:SetSizeHints(DatesPanel)\r\
-		MainBook:AddPage(DatesPanel, \"Dates:Due,Started,Finished\")\r\
-\r\
-		-- Who and Access IDs page\r\
-		AccessPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local AccessPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL)\r\
-			\r\
-			local whoSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-			local accSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) \r\
-			\r\
-			local whoLabel = wx.wxStaticText(AccessPanel, wx.wxID_ANY, \"Select Responsible People (Check means Inactive)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-			AccessPanelSizer:Add(whoLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			\r\
-			whoCtrl = CheckListCtrl(AccessPanel,false,\"I\",\"A\")\r\
-			-- Populate the IDs\r\
-			if filterData.Who then\r\
-				for i = 1,#filterData.Who do\r\
-					whoCtrl:InsertItem(filterData.Who[i], false)\r\
-				end\r\
-			end\r\
-			whoSizer:Add(whoCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			WhoBoolCtrl = BooleanTreeCtrl(AccessPanel,whoSizer,whoCtrl:getSelectionFunc(), \"Who\")\r\
-			AccessPanelSizer:Add(whoSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			\r\
-			local accLabel = wx.wxStaticText(AccessPanel, wx.wxID_ANY, \"Select People for access (Check means Read/Write Access)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-			AccessPanelSizer:Add(accLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-			accCtrl = CheckListCtrl(AccessPanel,false,\"W\",\"R\")\r\
-			-- Populate the IDs\r\
-			if filterData.Access then\r\
-				for i = 1,#filterData.Access do\r\
-					accCtrl.InsertItem(accCtrl,filterData.Access[i], false)\r\
-				end\r\
-			end\r\
-			accSizer:Add(accCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			accBoolCtrl = BooleanTreeCtrl(AccessPanel,accSizer,accCtrl:getSelectionFunc(), \"Access\")\r\
-			AccessPanelSizer:Add(accSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-\r\
-			AccessPanel:SetSizer(AccessPanelSizer)\r\
-			AccessPanelSizer:SetSizeHints(AccessPanel)\r\
-		MainBook:AddPage(AccessPanel, \"Access\")\r\
-		\r\
-		-- Schedules Page\r\
-		SchPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local SchPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) \r\
-			local duSizer = wx.wxBoxSizer(wx.wxVERTICAL)	-- Sizer for Date unit elements\r\
-			\r\
-			local typeMatchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Type of Matching\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-			duSizer:Add(typeMatchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-			TypeMatch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{\"Full\",\"Overlap\"})\r\
-			duSizer:Add(TypeMatch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			TypeMatch:SetSelection(1)\r\
-			\r\
-			local typeSchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Type of Schedule\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-			duSizer:Add(typeSchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-			TypeSch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{\"Estimate\",\"Committed\",\"Revisions\",\"Actual\", \"Latest\"})\r\
-			duSizer:Add(TypeSch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			TypeSch:SetSelection(2)\r\
-						\r\
-			local SchRevLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Revision\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-			duSizer:Add(SchRevLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-\r\
-			SchRev = wx.wxComboBox(SchPanel, wx.wxID_ANY,\"Latest\",wx.wxDefaultPosition, wx.wxDefaultSize,{\"Latest\"})\r\
-			duSizer:Add(SchRev,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-\r\
-			-- Event connect to enable disable SchRev\r\
-			TypeSch:Connect(wx.wxEVT_COMMAND_CHOICE_SELECTED,function(event) \r\
-				setfenv(1,package.loaded[modname])\r\
-				if TypeSch:GetString(TypeSch:GetSelection()) == \"Estimate\" or TypeSch:GetString(TypeSch:GetSelection()) == \"Revisions\" then\r\
-					SchRev:Enable(true)\r\
-				else\r\
-					SchRev:Enable(false)\r\
-				end\r\
-			end \r\
-			)\r\
-\r\
-			local DateRangeLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Date Ranges\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\r\
-			duSizer:Add(DateRangeLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			-- Date Ranges Control\r\
-			schDateRanges = DateRangeCtrl(SchPanel,\"ScheduleRange\",true,\"Date Ranges\") \r\
-			duSizer:Add(schDateRanges.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-			\r\
-			SchPanelSizer:Add(duSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-\r\
-			-- Now add the Boolean Control\r\
-			local getSchUnit = function()\r\
-				-- Get the full schedule boolean unit\r\
-				local unit = TypeMatch:GetString(TypeMatch:GetSelection())..\",\"..TypeSch:GetString(TypeSch:GetSelection())\r\
-				if SchRev:IsEnabled() then\r\
-					if SchRev:GetValue() == \"Latest\" then\r\
-						unit = unit..\"(L)\"\r\
-					else\r\
-						unit = unit..\"(\"..tostring(SchRev:GetValue())..\")\"\r\
-					end\r\
-				end\r\
-				schDateRanges:UpdateFilter()\r\
-				if not filter.ScheduleRange then\r\
-					unit = nil\r\
-				else\r\
-					unit = unit..\",\"..filter.ScheduleRange\r\
-				end\r\
-				return unit\r\
-			end \r\
-\r\
-			SchBoolCtrl = BooleanTreeCtrl(SchPanel,SchPanelSizer,getSchUnit, \"Schedules\")\r\
-\r\
-			\r\
-\r\
-			SchPanel:SetSizer(SchPanelSizer)\r\
-			SchPanelSizer:SetSizeHints(SchPanel)\r\
-		MainBook:AddPage(SchPanel, \"Schedules\")\r\
-		\r\
-		-- Custom Script Entry Page\r\
-		ScriptPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\r\
-			local ScriptPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL) \r\
-			\r\
-			-- Text Instruction\r\
-			local InsLabel = wx.wxStaticText(ScriptPanel, wx.wxID_ANY, \"Enter a custom script to filte out tasks additional to the Filter set in the form. The task would be present in the environment in the table called 'task'. Apart from that the environment is what is setup in Globals.safeenv. The 'result' variable should be updated to true if pass or false if does not pass.\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\r\
-			InsLabel:Wrap(frame:GetSize():GetWidth()-25)\r\
-			ScriptPanelSizer:Add(InsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			ScriptBox = wx.wxTextCtrl(ScriptPanel, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)\r\
-			ScriptPanelSizer:Add(ScriptBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\r\
-			\r\
-\r\
-			ScriptPanel:SetSizer(ScriptPanelSizer)\r\
-			ScriptPanelSizer:SetSizeHints(ScriptPanel)\r\
-		MainBook:AddPage(ScriptPanel, \"Custom Script\")\r\
-		\r\
-\r\
-	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	local ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\r\
-	ToBaseButton = wx.wxButton(frame, wx.wxID_ANY, \"Current to Base\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	ButtonSizer:Add(ToBaseButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	CancelButton = wx.wxButton(frame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	ButtonSizer:Add(CancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	ApplyButton = wx.wxButton(frame, wx.wxID_ANY, \"Apply\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\r\
-	ButtonSizer:Add(ApplyButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	MainSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\r\
-	frame:SetSizer(MainSizer)\r\
-	--MainSizer:SetSizeHints(frame)\r\
-	\r\
-	-- Connect event handlers to the buttons\r\
-	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function (event)\r\
-			setfenv(1,package.loaded[modname])		\r\
-			frame:Close()\r\
-			callBack(nil)\r\
-		end\r\
-	)\r\
-	\r\
-	frame:Connect(wx.wxEVT_CLOSE_WINDOW,\r\
-		function (event)\r\
-			setfenv(1,package.loaded[modname])		\r\
-			event:Skip()\r\
-			callBack(nil)\r\
-		end\r\
-	)\r\
-\r\
-	ApplyButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			local f = synthesizeFilter()\r\
-			if not f then\r\
-				return\r\
-			end\r\
-			--print(tableToString(f))\r\
-			frame:Close()\r\
-			callBack(f)\r\
-		end		\r\
-	)\r\
-\r\
---	Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&CriteriaFrame::OnClose);\r\
-\r\
-	-- Task Selection/Clear button press event\r\
-	SelTaskButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED, SelTaskPress)\r\
-	ClearTaskButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\r\
-		function (event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			filter.TasksSet = nil\r\
-			FilterTask:SetLabel(\"No Task Selected\")\r\
-		end\r\
-	)\r\
-	\r\
-	frame:Connect(wx.wxEVT_SIZE,\r\
-		function(event)\r\
-			setfenv(1,package.loaded[modname])\r\
-			InsLabel:Wrap(frame:GetSize():GetWidth())\r\
-			event:Skip()\r\
-		end\r\
-	)\r\
-\r\
-	-- Toolbar button events\r\
-	frame:Connect(ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadFilter)\r\
-	frame:Connect(ID_SAVE,wx.wxEVT_COMMAND_MENU_SELECTED,saveFilter)\r\
-	\r\
-    frame:Layout() -- help sizing the windows before being shown\r\
-    frame:Show(true)\r\
-    setfilter(MainFilter)\r\
-end		-- function filterFormActivate(parent) ends\r\
+-----------------------------------------------------------------------------\
+-- Application: Karm\
+-- Purpose:     Karm application Criteria Entry form UI creation and handling file\
+-- Author:      Milind Gupta\
+-- Created:     2/09/2012\
+-----------------------------------------------------------------------------\
+local prin\
+if Karm.Globals.__DEBUG then\
+	prin = print\
+end\
+local print = prin \
+local wx = wx\
+local io = io\
+local wxaui = wxaui\
+local bit = bit\
+local GUI = Karm.GUI\
+local tostring = tostring\
+local loadfile = loadfile\
+local loadstring = loadstring\
+local setfenv = setfenv\
+local string = string\
+local Globals = Karm.Globals\
+local setmetatable = setmetatable\
+local NewID = Karm.NewID\
+local type = type\
+local math = math\
+local error = error\
+local modname = ...\
+local tableToString = Karm.Utility.tableToString\
+local pairs = pairs\
+local applyFilterHier = Karm.FilterObject.applyFilterHier\
+local collectFilterDataHier = Karm.accumulateTaskDataHier\
+local CW = requireLuaString('CustomWidgets')\
+\
+\
+local GlobalFilter = function() \
+		return Karm.Filter \
+	end\
+	\
+local SData = function()\
+		return Karm.SporeData\
+	end\
+\
+local MainFilter\
+local SporeData\
+\
+module(modname)\
+\
+--local modname = ...\
+\
+--M = {}\
+--package.loaded[modname] = M\
+--setmetatable(M,{[\"__index\"]=_G})\
+--setfenv(1,M)\
+\
+-- Local filter table to store the filter criteria\
+local filter = {}\
+local filterData = {}\
+\
+local noStr = {\
+	Cat = Globals.NoCatStr,\
+	SubCat = Globals.NoSubCatStr,\
+	Priority = Globals.NoPriStr,\
+	Due = Globals.NoDateStr,\
+	Fin = Globals.NoDateStr,\
+	ScheduleRange = Globals.NoDateStr,\
+	Tags = Globals.NoTagStr,\
+	Access = Globals.NoAccessIDStr\
+}\
+\
+local function SelTaskPress(event)\
+	setfenv(1,package.loaded[modname])\
+	local frame = wx.wxFrame(frame, wx.wxID_ANY, \"Select Task\", wx.wxDefaultPosition,\
+		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)\
+	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+	local taskTree = wx.wxTreeCtrl(frame, wx.wxID_ANY, wx.wxDefaultPosition,wx.wxSize(0.9*GUI.initFrameW, 0.9*GUI.initFrameH),bit.bor(wx.wxTR_SINGLE,wx.wxTR_HAS_BUTTONS))\
+	MainSizer:Add(taskTree, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	local buttonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+	local OKButton = wx.wxButton(frame, wx.wxID_ANY, \"OK\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	local CancelButton = wx.wxButton(frame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	local CheckBox = wx.wxCheckBox(frame, wx.wxID_ANY, \"Subtasks\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	\
+	if filter.TasksSet and filter.TasksSet[1].Children then\
+		CheckBox:SetValue(true)\
+	end\
+	buttonSizer:Add(OKButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	buttonSizer:Add(CancelButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	buttonSizer:Add(CheckBox,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	MainSizer:Add(buttonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	\
+	-- Now populate the tree with all the tasks\
+	\
+	-- Add the root\
+	local root = taskTree:AddRoot(\"Task Spores\")\
+	local treeData = {}\
+	treeData[root:GetValue()] = {Key = Globals.ROOTKEY, Parent = nil, Title = \"Task Spores\"}\
+    if SporeData[0] > 0 then\
+-- Populate the tree control view\
+		local count = 0\
+		-- Loop through all the spores\
+        for k,v in pairs(SporeData) do\
+        	if k~=0 then\
+            -- Get the tasks in the spore\
+-- Add the spore to the TaskTree\
+				-- Find the name of the file\
+				local strVar\
+        		local intVar1 = -1\
+				count = count + 1\
+            	for intVar = #k,1,-1 do\
+                	if string.sub(k, intVar, intVar) == \".\" then\
+                    	intVar1 = intVar\
+                	end\
+                	if string.sub(k, intVar, intVar) == \"\\\\\" or string.sub(k, intVar, intVar) == \"/\" then\
+                    	strVar = string.sub(k, intVar + 1, intVar1-1)\
+                    	break\
+                	end\
+            	end\
+            	-- Add the spore node\
+	            local currNode = taskTree:AppendItem(root,strVar)\
+				treeData[currNode:GetValue()] = {Key = Globals.ROOTKEY..k, Parent = root, Title = strVar}\
+				if filter.TasksSet and #filter.TasksSet[1].TaskID > #Globals.ROOTKEY and \
+				  string.sub(filter.TasksSet[1].TaskID,#Globals.ROOTKEY + 1, -1) == k then\
+					taskTree:EnsureVisible(currNode)\
+					taskTree:SelectItem(currNode)\
+				end\
+				local taskList = applyFilterHier(filter, v)\
+-- Now add the tasks under the spore in the TaskTree\
+            	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore\
+	                -- Add the 1st element under the spore\
+	                local parent = currNode\
+		            currNode = taskTree:AppendItem(parent,taskList[1].Title)\
+					treeData[currNode:GetValue()] = {Key = taskList[1].TaskID, Parent = parent, Title = taskList[1].Title}\
+	                for intVar = 2,taskList.count do\
+	                	local cond1 = treeData[currNode:GetValue()].Key ~= Globals.ROOTKEY..k\
+	                	local cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key\
+	                	local cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key..\"_\"\
+                    	while cond1 and not (cond2 and cond3) do\
+                        	-- Go up the hierarchy\
+                        	currNode = treeData[currNode:GetValue()].Parent\
+		                	cond1 = treeData[currNode:GetValue()].Key ~= Globals.ROOTKEY..k\
+		                	cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key\
+		                	cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key..\"_\"\
+                        end\
+                    	-- Now currNode has the node which is the right parent\
+		                parent = currNode\
+			            currNode = taskTree:AppendItem(parent,taskList[intVar].Title)\
+						treeData[currNode:GetValue()] = {Key = taskList[intVar].TaskID, Parent = parent, Title = taskList[intVar].Title}\
+                    end\
+	            end  -- if taskList.count > 0 then ends\
+			end		-- if k~=0 then ends\
+-- Repeat for all spores\
+        end		-- for k,v in pairs(SporeData) do ends\
+    end  -- if SporeData[0] > 0 then ends\
+    \
+	-- Expand the root element\
+	taskTree:Expand(root)\
+	\
+	-- Connect the button events\
+	OKButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+	function (event)\
+		setfenv(1,package.loaded[modname])\
+		local sel = taskTree:GetSelection()\
+		-- Setup the filter\
+		filter.TasksSet = {}\
+		if treeData[sel:GetValue()].Key == Globals.ROOTKEY then\
+			filter.TasksSet = nil\
+		else\
+			filter.TasksSet[1] = {}\
+			-- This is a spore node\
+			if CheckBox:GetValue() then\
+				filter.TasksSet[1].Children = true\
+			end\
+			filter.TasksSet[1].TaskID = treeData[sel:GetValue()].Key\
+			filter.TasksSet[1].Title =  treeData[sel:GetValue()].Title\
+		end\
+		-- Setup the label properly\
+		if filter.TasksSet then\
+			if filter.TasksSet[1].Children then\
+				FilterTask:SetLabel(taskTree:GetItemText(sel)..\" and Children\")\
+			else\
+				FilterTask:SetLabel(taskTree:GetItemText(sel))\
+			end\
+		else\
+			FilterTask:SetLabel(\"No Task Selected\")\
+		end	\
+		frame:Close()\
+	end\
+	)\
+	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+	function (event)\
+		setfenv(1,package.loaded[modname])		\
+		frame:Close()\
+	end\
+	)\
+	\
+	\
+	frame:SetSizer(MainSizer)\
+	MainSizer:SetSizeHints(frame)\
+	frame:Layout()\
+	frame:Show(true)\
+end		-- local function SelTaskPress(event) ends\
+\
+local function initializeFilterForm(filterData)\
+	-- Clear Task Selection\
+	FilterTask:SetLabel(\"No Task Selected\")\
+	-- Clear Category\
+	CatCtrl:ResetCtrl()\
+	-- Clear Sub-Category\
+	SubCatCtrl:ResetCtrl()\
+	-- Clear Priority\
+	PriCtrl:ResetCtrl()\
+	-- Clear Status\
+	StatCtrl:ResetCtrl()\
+	-- Clear Tags List\
+	TagList:DeleteAllItems()\
+	TagBoolCtrl:ResetCtrl()\
+	-- Clear Dates\
+	dateStarted:ResetCtrl()\
+	dateFinished:ResetCtrl()\
+	dateDue:ResetCtrl()\
+	-- Who and Access\
+	whoCtrl:ResetCtrl()\
+	WhoBoolCtrl:ResetCtrl()\
+	accCtrl:ResetCtrl()\
+	accBoolCtrl:ResetCtrl()\
+	-- Schedules\
+	schDateRanges:ResetCtrl()\
+	SchBoolCtrl:ResetCtrl()\
+	filter = {}		-- Clear the filter\
+	-- Fill the data in the controls\
+	CatCtrl:AddListData(filterData.Cat)\
+	SubCatCtrl:AddListData(filterData.SubCat)\
+	PriCtrl:AddListData(filterData.Priority)\
+	StatCtrl:AddListData(Globals.StatusList)\
+	ScriptBox:Clear()\
+	if filterData.Tags then\
+		for i=1,#filterData.Tags do\
+			CW.InsertItem(TagList,filterData.Tags[i])\
+		end\
+	end\
+	if filterData.Who then\
+		for i=1,#filterData.Who do\
+			whoCtrl:InsertItem(filterData.Who[i], false)\
+		end\
+	end\
+	\
+	if filterData.Access then\
+		for i=1,#filterData.Access do\
+			accCtrl:InsertItem(filterData.Access[i], false)\
+		end\
+	end\
+end\
+\
+local function setfilter(f)\
+	-- Initialize the form\
+	initializeFilterForm(filterData)\
+	-- Set the task details\
+	local str = \"\"\
+	if f.Tasks then\
+		filter.TasksSet = {[1]={}}\
+		if f.Tasks[1].Title then\
+			str = f.Tasks[1].Title\
+			filter.TasksSet[1].Title = str\
+		else\
+			for k,v in pairs(SporeData) do\
+				if k~=0 then\
+					local taskList = applyFilterHier({Tasks={[1]={TaskID = f.Tasks.TaskID}}},v)\
+					if #taskList then\
+						str = taskList[1].Title\
+						break\
+					end\
+				end		-- if k~=0 then ends\
+			end		-- for k,v in pairs(SporeData) do ends\
+			if not str then\
+				str = \"TASK ID: \"..f.Tasks[1].TaskID\
+				filter.TasksSet[1].Title = str\
+			end\
+		end	\
+		filter.TasksSet[1].TaskID = f.Tasks[1].TaskID\
+		filter.TasksSet[1].Children = f.Tasks[1].Children\
+		if f.Tasks[1].Children then\
+			str = str..\" and Children\"\
+		end\
+		FilterTask:SetLabel(str)\
+	end\
+	-- Set Category data\
+	if f.Cat then\
+		-- Separate out the items in the comma\
+		-- Trim the string from leading and trailing spaces\
+		local catStr = string.match(f.Cat,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(catStr,-1,-1)~=\",\" then\
+			catStr = catStr .. \",\"\
+		end\
+		local items = {}\
+		for cat in string.gmatch(catStr,\"(.-),\") do\
+			-- Trim leading and trailing spaces\
+			cat = string.match(cat,\"^%s*(.-)%s*$\")			\
+			-- Check if it matches Globals.NoCatStr\
+			if cat == Globals.NoCatStr then\
+				CatCtrl.CheckBox:SetValue(true)\
+			else\
+				items[#items + 1] = cat\
+			end\
+		end\
+		CatCtrl:AddSelListData(items)\
+	end		-- if f.Cat then ends\
+	-- Set Sub-Category data\
+	if f.SubCat then\
+		-- Separate out the items in the comma\
+		-- Trim the string from leading and trailing spaces\
+		local subCatStr = string.match(f.SubCat,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(subCatStr,-1,-1)~=\",\" then\
+			subCatStr = subCatStr .. \",\"\
+		end\
+		local items = {}\
+		for subCat in string.gmatch(subCatStr,\"(.-),\") do\
+			-- Trim leading and trailing spaces\
+			subCat = string.match(subCat,\"^%s*(.-)%s*$\")			\
+			-- Check if it matches Globals.NoSubCatStr\
+			if subCat == Globals.NoSubCatStr then\
+				SubCatCtrl.CheckBox:SetValue(true)\
+			else\
+				items[#items + 1] = subCat\
+			end\
+		end\
+		SubCatCtrl:AddSelListData(items)\
+	end		-- if f.Cat then ends\
+	if f.Tags then\
+		TagBoolCtrl:setExpression(f.Tags)\
+	end		-- if f.Tags then ends\
+	-- Set Priority data\
+	if f.Priority then\
+		-- Separate out the items in the comma\
+		-- Trim the string from leading and trailing spaces\
+		local priStr = string.match(f.Priority,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(priStr,-1,-1)~=\",\" then\
+			priStr = priStr .. \",\"\
+		end\
+		local items = {}\
+		for pri in string.gmatch(priStr,\"(.-),\") do\
+			-- Trim leading and trailing spaces\
+			pri = string.match(pri,\"^%s*(.-)%s*$\")			\
+			-- Check if it matches Globals.NoPriStr\
+			if pri == Globals.NoPriStr then\
+				PriCtrl.CheckBox:SetValue(true)\
+			else\
+				items[#items + 1] = pri\
+			end\
+		end\
+		PriCtrl:AddSelListData(items)\
+	end		-- if f.Priority then ends\
+	-- Set Status data\
+	if f.Status then\
+		-- Separate out the items in the comma\
+		-- Trim the string from leading and trailing spaces\
+		local statStr = string.match(f.Status,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(statStr,-1,-1)~=\",\" then\
+			statStr = statStr .. \",\"\
+		end\
+		local items = {}\
+		for stat in string.gmatch(statStr,\"(.-),\") do\
+			-- Trim leading and trailing spaces\
+			stat = string.match(stat,\"^%s*(.-)%s*$\")			\
+			items[#items + 1] = stat\
+		end\
+		StatCtrl:AddSelListData(items)\
+	end		-- if f.Status then ends\
+	-- Who items\
+	if f.Who then\
+		WhoBoolCtrl:setExpression(f.Who)\
+	end\
+	-- Access items\
+	if f.Access then\
+		accBoolCtrl:setExpression(f.Access)\
+	end		-- if f.Tags then ends\
+	-- Set Start Date data\
+	if f.Start then\
+		do\
+			-- Separate out the items in the comma\
+			-- Trim the string from leading and trailing spaces\
+			local strtStr = string.match(f.Start,\"^%s*(.-)%s*$\")\
+			-- Make sure the string has \",\" at the end\
+			if string.sub(strtStr,-1,-1)~=\",\" then\
+				strtStr = strtStr .. \",\"\
+			end\
+			local items = {}\
+			for strt in string.gmatch(strtStr,\"(.-),\") do\
+				-- Trim leading and trailing spaces\
+				strt = string.match(strt,\"^%s*(.-)%s*$\")\
+				if strt ~= \"\" then			\
+					items[#items + 1] = strt\
+				end\
+			end\
+			dateStarted:setRanges(items)\
+		end		-- do for f.Start\
+	end	\
+	-- Set Due Date data\
+	if f.Due then\
+		-- Separate out the items in the comma\
+		-- Trim the string from leading and trailing spaces\
+		local dueStr = string.match(f.Due,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(dueStr,-1,-1)~=\",\" then\
+			dueStr = dueStr .. \",\"\
+		end\
+		local items = {}\
+		dateDue:setCheckBoxState(nil)\
+		for due in string.gmatch(dueStr,\"(.-),\") do\
+			-- Trim leading and trailing spaces\
+			due = string.match(due,\"^%s*(.-)%s*$\")\
+			if due == noStr.Due then\
+				dateDue:setCheckBoxState(true)\
+			elseif due ~= \"\" then			\
+				items[#items + 1] = due\
+			end\
+		end\
+		dateDue:setRanges(items)\
+	end		-- if f.Due ends here	\
+	-- Set Finish Date data\
+	if f.Fin then\
+		-- Separate out the items in the comma\
+		-- Trim the string from leading and trailing spaces\
+		local finStr = string.match(f.Fin,\"^%s*(.-)%s*$\")\
+		-- Make sure the string has \",\" at the end\
+		if string.sub(finStr,-1,-1)~=\",\" then\
+			finStr = finStr .. \",\"\
+		end\
+		local items = {}\
+		dateFinished:setCheckBoxState(nil)\
+		for fin in string.gmatch(finStr,\"(.-),\") do\
+			-- Trim leading and trailing spaces\
+			fin = string.match(fin,\"^%s*(.-)%s*$\")\
+			if fin == noStr.Fin then\
+				dateFinished:setCheckBoxState(true)\
+			elseif fin ~= \"\" then			\
+				items[#items + 1] = fin\
+			end\
+		end\
+		dateFinished:setRanges(items)\
+	end		-- if f.Due ends here	\
+	-- Set the Schedules Data\
+	if f.Schedules then\
+		SchBoolCtrl:setExpression(f.Schedules)\
+	end		-- if f.Schedules ends here\
+	-- Custom Script\
+	if f.Script then\
+		ScriptBox:SetValue(f.Script)\
+	end\
+end\
+\
+local function synthesizeFilter()\
+	local f = {}\
+	-- Get the tasks information\
+	if filter.TasksSet then\
+		f.Tasks = filter.TasksSet\
+	end\
+	-- Get Who information here\
+	f.Who = WhoBoolCtrl:BooleanExpression()\
+	-- Date Started\
+	local str = \"\"\
+	local items = dateStarted:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end\
+	if str ~= \"\" then \
+		f.Start = str:sub(1,-2)\
+	end\
+	-- Date Finished\
+	str = \"\"\
+	items = dateFinished:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end \
+	if items[0] then\
+		str = str..Globals.NoDateStr..\",\"\
+	end\
+	if str ~= \"\" then\
+		f.Fin = str:sub(1,-2)\
+	end\
+	-- Access information\
+	f.Access = accBoolCtrl:BooleanExpression()\
+	-- Status Information\
+	str = \"\"\
+	items = StatCtrl:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end\
+	if str ~= \"\" then \
+		f.Status = str:sub(1,-2)\
+	end\
+	-- Priority\
+	str = \"\"\
+	items = PriCtrl:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end \
+	if items[0] then\
+		str = str..Globals.NoPriStr..\",\"\
+	end\
+	if str ~= \"\" then\
+		f.Priority = str:sub(1,-2)\
+	end\
+	-- Due Date\
+	str = \"\"\
+	items = dateDue:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end \
+	if items[0] then\
+		str = str..Globals.NoDateStr..\",\"\
+	end\
+	if str ~= \"\" then\
+		f.Due = str:sub(1,-2)\
+	end\
+	-- Category\
+	str = \"\"\
+	items = CatCtrl:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end \
+	if items[0] then\
+		str = str..Globals.NoCatStr..\",\"\
+	end\
+	if str ~= \"\" then\
+		f.Cat = str:sub(1,-2)\
+	end\
+	-- Sub-Category\
+	str = \"\"\
+	items = SubCatCtrl:getSelectedItems()\
+	for i = 1,#items do\
+		str = str..items[i]..\",\"\
+	end \
+	if items[0] then\
+		str = str..Globals.NoSubCatStr..\",\"\
+	end\
+	if str ~= \"\" then\
+		f.SubCat = str:sub(1,-2)\
+	end\
+	-- Tags\
+	f.Tags = TagBoolCtrl:BooleanExpression()\
+	if TagCheckBox:GetValue() then\
+		f.Tags = \"(\"..f.Tags..\") or \"..Globals.NoTagStr\
+	end\
+	-- Schedule\
+	f.Schedules = SchBoolCtrl:BooleanExpression()\
+	-- Custom Script\
+	if ScriptBox:GetValue() ~= \"\" then\
+		local script = ScriptBox:GetValue()\
+		local result, msg = loadstring(script)\
+		if not result then\
+			wx.wxMessageBox(\"Unable to compile the script. Error: \"..msg..\".\\n Please correct and try again.\",\
+                            \"Script Compile Error\",wx.wxOK + wx.wxCENTRE, frame)\
+            return nil\
+		end\
+		f.Script = script\
+	end\
+	return f\
+end\
+\
+local function loadFilter(event)\
+	setfenv(1,package.loaded[modname])\
+	local ValidFilter = function(file)\
+		local safeenv = {}\
+		setmetatable(safeenv, {__index = Globals.safeenv})\
+		local f,message = loadfile(file)\
+		if not f then\
+			return nil,message\
+		end\
+		setfenv(f,safeenv)\
+		f()\
+		if safeenv.filter and type(safeenv.filter) == \"table\" then\
+			if safeenv.filter.Script then\
+				f, message = loadstring(safeenv.filter.Script)\
+				if not f then\
+					return nil,\"Cannot compile custom script in filter. Error: \"..message\
+				end\
+			end\
+			return safeenv.filter\
+		else\
+			return nil,\"Cannot find a valid filter in the file.\"\
+		end\
+	end\
+    local fileDialog = wx.wxFileDialog(frame, \"Open file\",\
+                                       \"\",\
+                                       \"\",\
+                                       \"Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*\",\
+                                       wx.wxOPEN + wx.wxFILE_MUST_EXIST)\
+    if fileDialog:ShowModal() == wx.wxID_OK then\
+    	local result,message = ValidFilter(fileDialog:GetPath())\
+        if not result then\
+            wx.wxMessageBox(\"Unable to load file '\"..fileDialog:GetPath()..\"'.\\n \"..message,\
+                            \"File Load Error\",\
+                            wx.wxOK + wx.wxCENTRE, frame)\
+        else\
+        	setfilter(result)\
+        end\
+    end\
+    fileDialog:Destroy()\
+end\
+\
+local function saveFilter(event)\
+	setfenv(1,package.loaded[modname])\
+    local fileDialog = wx.wxFileDialog(frame, \"Save File\",\
+                                       \"\",\
+                                       \"\",\
+                                       \"Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*\",\
+                                       wx.wxFD_SAVE)\
+    if fileDialog:ShowModal() == wx.wxID_OK then\
+    	local file,err = io.open(fileDialog:GetPath(),\"w+\")\
+    	if not file then\
+            wx.wxMessageBox(\"Unable to save as file '\"..fileDialog:GetPath()..\"'.\\n \"..err,\
+                            \"File Save Error\",\
+                            wx.wxOK + wx.wxCENTRE, frame)\
+        else\
+        	local fil = synthesizeFilter()\
+        	if fil then\
+        		file:write(\"filter=\"..tableToString(fil))\
+        	end\
+        	file:close()\
+        end\
+    end\
+    fileDialog:Destroy()\
+\
+end\
+\
+-- Customized multiselect control\
+do\
+\
+	local UpdateFilter = function(o)\
+		local SelList = o:getSelectedItems()\
+		local filterIndex = o.filterIndex\
+		local str = \"\"\
+		for i = 1,#SelList do\
+			str = str..SelList[i]..\",\"\
+		end\
+		-- Finally Check if none also selected\
+		if SelList[0] then\
+			str = str..noStr[filterIndex]..\",\"\
+		end\
+		if str ~= \"\" then\
+			filter[filterIndex]=string.sub(str,1,-2) -- remove the comma and add it\
+		else\
+			filter[filterIndex]=nil\
+		end\
+	end\
+\
+	MultiSelectCtrl = function(parent, filterIndex, noneSelection, LItems, RItems)\
+		if not filterIndex then\
+			error(\"Need a filterIndex for the MultiSelect Control\",2)\
+		end\
+		local o = CW.MultiSelectCtrl(parent,LItems,RItems,noneSelection)\
+		o.filterIndex = filterIndex\
+		o.UpdateFilter = UpdateFilter\
+		return o\
+	end\
+\
+end\
+\
+-- Customized Date Range control\
+do\
+\
+	local UpdateFilter = function(o)\
+		local SelList = o:getSelectedItems()\
+		local filterIndex = o.filterIndex\
+		local str = \"\"\
+		for i = 1,#SelList do\
+			str = str..SelList[i]..\",\"\
+		end\
+		-- Finally Check if none also selected\
+		if SelList[0] then\
+			str = str..noStr[filterIndex]..\",\"\
+		end\
+		if str ~= \"\" then\
+			filter[filterIndex]=string.sub(str,1,-2) -- remove the comma and add it\
+		else\
+			filter[filterIndex]=nil\
+		end\
+	end\
+\
+	DateRangeCtrl = function(parent, filterIndex, noneSelection, heading)\
+		if not filterIndex then\
+			error(\"Need a filterIndex for the Date Range Control\",2)\
+		end\
+		local o = CW.DateRangeCtrl(parent, noneSelection, heading)\
+		o.filterIndex = filterIndex\
+		o.UpdateFilter = UpdateFilter\
+		return o\
+	end\
+\
+end\
+\
+-- Customized Boolean Tree Control\
+do\
+\
+	local UpdateFilter = function(o)\
+		local filterText = o:BooleanExpression()\
+		if filterText == \"\" then\
+			filter[o.filterIndex]=nil\
+		else\
+			filter[o.filterIndex]=filterText\
+		end\
+	end\
+	\
+	BooleanTreeCtrl = function(parent,sizer,getInfoFunc,filterIndex)\
+		if not filterIndex then\
+			error(\"Need a filterIndex for the Boolean Tree Control\",2)\
+		end\
+		local o = CW.BooleanTreeCtrl(parent,sizer,getInfoFunc)\
+		o.filterIndex = filterIndex\
+		o.UpdateFilter = UpdateFilter\
+		return o	\
+	end\
+\
+end\
+\
+-- Customized Check List Control\
+do\
+	local getSelectionFunc = function(obj)\
+		-- Return the selected item in List\
+		local o = obj		-- Declare an upvalue\
+		return function()\
+			local items = o:getSelectedItems()\
+			if not items[1] then\
+				return nil\
+			else\
+				return items[1].itemText..\",\"..items[1].checked\
+			end\
+		end\
+	end\
+	\
+	CheckListCtrl = function(parent,noneSelection,checkedText,uncheckedText)\
+		local o = CW.CheckListCtrl(parent,noneSelection,checkedText,uncheckedText,true)\
+		o.getSelectionFunc = getSelectionFunc\
+		return o\
+	end\
+\
+end\
+\
+function filterFormActivate(parent, callBack)\
+	MainFilter = GlobalFilter()\
+	SporeData = SData()\
+	-- Accumulate Filter Data across all spores\
+	-- Loop through all the spores\
+	for k,v in pairs(SporeData) do\
+		if k~=0 then\
+			collectFilterDataHier(filterData,v)\
+		end		-- if k~=0 then ends\
+	end		-- for k,v in pairs(SporeData) do ends\
+	\
+	frame = wx.wxFrame(parent, wx.wxID_ANY, \"Filter Form\", wx.wxDefaultPosition,\
+		wx.wxSize(GUI.initFrameW, GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)\
+	-- Create tool bar\
+	ID_LOAD = NewID()\
+	ID_SAVE = NewID()\
+	local toolBar = frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)\
+	local toolBmpSize = toolBar:GetToolBitmapSize()\
+\
+	toolBar:AddTool(ID_LOAD, \"Load\", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), \"Load Filter Criteria\")\
+	toolBar:AddTool(ID_SAVE, \"Save\", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), \"Save Filter Criteria\")\
+	toolBar:Realize()\
+	\
+	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+		MainBook = wxaui.wxAuiNotebook(frame, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxNB_TOP + wxaui.wxAUI_NB_WINDOWLIST_BUTTON)\
+\
+		-- Task, Categories and Sub-Categories Page\
+		TandC = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local TandCSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+				local TaskSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+				SelTaskButton = wx.wxButton(TandC, wx.wxID_ANY, \"Select Task\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				TaskSizer:Add(SelTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				FilterTask = wx.wxStaticText(TandC, wx.wxID_ANY, \"No Task Selected\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				TaskSizer:Add(FilterTask, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				ClearTaskButton = wx.wxButton(TandC, wx.wxID_ANY, \"Clear Task\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+				TaskSizer:Add(ClearTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				TandCSizer:Add(TaskSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+				CategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, \"Select Categories\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				TandCSizer:Add(CategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				\
+				-- Category List boxes and buttons\
+				CatCtrl = MultiSelectCtrl(TandC,\"Cat\",true,filterData.Cat)\
+				TandCSizer:Add(CatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				\
+				SubCategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, \"Select Sub-Categories\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				TandCSizer:Add(SubCategoryLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				-- Sub Category Listboxes and Buttons\
+				SubCatCtrl = MultiSelectCtrl(TandC,\"SubCat\",true,filterData.SubCat)\
+				TandCSizer:Add(SubCatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			\
+			TandC:SetSizer(TandCSizer)\
+			TandCSizer:SetSizeHints(TandC)\
+		MainBook:AddPage(TandC, \"Task and Category\")\
+		\
+		-- Priorities Status and Tags page\
+		PSandTag = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local PSandTagSizer = wx.wxBoxSizer(wx.wxVERTICAL) \
+				PriorityLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, \"Select Priorities\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				PSandTagSizer:Add(PriorityLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				\
+				-- Priority List boxes and buttons\
+				PriCtrl = MultiSelectCtrl(PSandTag,\"Priority\",true,filterData.Priority)\
+				PSandTagSizer:Add(PriCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+				StatusLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, \"Select Status\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				PSandTagSizer:Add(StatusLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				\
+				-- Status List boxes and buttons\
+				StatCtrl = MultiSelectCtrl(PSandTag,\"Status\",false,Globals.StatusList)\
+				PSandTagSizer:Add(StatCtrl.Sizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+				TagsLabel = wx.wxStaticText(PSandTag, wx.wxID_ANY, \"Select Tags\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+				PSandTagSizer:Add(TagsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+				\
+				-- Tag List box, buttons and tree\
+				local TagSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+					local TagListSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+						TagList = wx.wxListCtrl(PSandTag, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxSize(0.1*GUI.initFrameW, 0.1*GUI.initFrameH),\
+							bit.bor(wx.wxLC_REPORT,wx.wxLC_NO_HEADER,wx.wxLC_SINGLE_SEL))\
+						-- Populate the tag list here\
+						--local col = wx.wxListItem()\
+						--col:SetId(0)\
+						TagList:InsertColumn(0,\"Tags\")\
+						if filterData.Tags then\
+							for i=1,#filterData.Tags do\
+								CW.InsertItem(TagList,filterData.Tags[i])\
+							end\
+						end\
+						TagListSizer:Add(TagList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+						TagCheckBox = wx.wxCheckBox(PSandTag, wx.wxID_ANY, \"None Also passes\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+						TagListSizer:Add(TagCheckBox, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+						\
+					TagSizer:Add(TagListSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+					TagBoolCtrl = BooleanTreeCtrl(PSandTag,TagSizer,\
+						function()\
+							-- Return the selected item in Tag List\
+							local item = TagList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)\
+							if item == -1 then\
+								return nil\
+							else \
+								return TagList:GetItemText(item)		\
+							end\
+						end, \
+					\"Tags\")\
+				PSandTagSizer:Add(TagSizer, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+			PSandTag:SetSizer(PSandTagSizer)\
+			PSandTagSizer:SetSizeHints(PSandTag)\
+		MainBook:AddPage(PSandTag, \"Priorities,Status and Tags\")\
+		\
+		-- Date Started, Date Finished and Due Date Page\
+		DatesPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local DatesPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) \
+			\
+			-- Date Started Control\
+			dateStarted = DateRangeCtrl(DatesPanel,\"Start\",false,\"Date Started\")\
+			DatesPanelSizer:Add(dateStarted.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			-- Date Finished Control\
+			dateFinished = DateRangeCtrl(DatesPanel,\"Fin\",true,\"Date Finished\")\
+			DatesPanelSizer:Add(dateFinished.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			-- Due Date Control\
+			dateDue = DateRangeCtrl(DatesPanel,\"Due\",true,\"Due Date\")\
+			DatesPanelSizer:Add(dateDue.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			\
+\
+			DatesPanel:SetSizer(DatesPanelSizer)\
+			DatesPanelSizer:SetSizeHints(DatesPanel)\
+		MainBook:AddPage(DatesPanel, \"Dates:Due,Started,Finished\")\
+\
+		-- Who and Access IDs page\
+		AccessPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local AccessPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL)\
+			\
+			local whoSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+			local accSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) \
+			\
+			local whoLabel = wx.wxStaticText(AccessPanel, wx.wxID_ANY, \"Select Responsible People (Check means Inactive)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+			AccessPanelSizer:Add(whoLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			\
+			whoCtrl = CheckListCtrl(AccessPanel,false,\"I\",\"A\")\
+			-- Populate the IDs\
+			if filterData.Who then\
+				for i = 1,#filterData.Who do\
+					whoCtrl:InsertItem(filterData.Who[i], false)\
+				end\
+			end\
+			whoSizer:Add(whoCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			WhoBoolCtrl = BooleanTreeCtrl(AccessPanel,whoSizer,whoCtrl:getSelectionFunc(), \"Who\")\
+			AccessPanelSizer:Add(whoSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			\
+			local accLabel = wx.wxStaticText(AccessPanel, wx.wxID_ANY, \"Select People for access (Check means Read/Write Access)\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+			AccessPanelSizer:Add(accLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+			accCtrl = CheckListCtrl(AccessPanel,false,\"W\",\"R\")\
+			-- Populate the IDs\
+			if filterData.Access then\
+				for i = 1,#filterData.Access do\
+					accCtrl.InsertItem(accCtrl,filterData.Access[i], false)\
+				end\
+			end\
+			accSizer:Add(accCtrl.Sizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			accBoolCtrl = BooleanTreeCtrl(AccessPanel,accSizer,accCtrl:getSelectionFunc(), \"Access\")\
+			AccessPanelSizer:Add(accSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+\
+			AccessPanel:SetSizer(AccessPanelSizer)\
+			AccessPanelSizer:SetSizeHints(AccessPanel)\
+		MainBook:AddPage(AccessPanel, \"Access\")\
+		\
+		-- Schedules Page\
+		SchPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local SchPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) \
+			local duSizer = wx.wxBoxSizer(wx.wxVERTICAL)	-- Sizer for Date unit elements\
+			\
+			local typeMatchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Type of Matching\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+			duSizer:Add(typeMatchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+			TypeMatch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{\"Full\",\"Overlap\"})\
+			duSizer:Add(TypeMatch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			TypeMatch:SetSelection(1)\
+			\
+			local typeSchLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Type of Schedule\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+			duSizer:Add(typeSchLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+			TypeSch = wx.wxChoice(SchPanel, wx.wxID_ANY,wx.wxDefaultPosition, wx.wxDefaultSize,{\"Estimate\",\"Committed\",\"Revisions\",\"Actual\", \"Latest\"})\
+			duSizer:Add(TypeSch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			TypeSch:SetSelection(2)\
+						\
+			local SchRevLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Revision\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+			duSizer:Add(SchRevLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+\
+			SchRev = wx.wxComboBox(SchPanel, wx.wxID_ANY,\"Latest\",wx.wxDefaultPosition, wx.wxDefaultSize,{\"Latest\"})\
+			duSizer:Add(SchRev,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+\
+			-- Event connect to enable disable SchRev\
+			TypeSch:Connect(wx.wxEVT_COMMAND_CHOICE_SELECTED,function(event) \
+				setfenv(1,package.loaded[modname])\
+				if TypeSch:GetString(TypeSch:GetSelection()) == \"Estimate\" or TypeSch:GetString(TypeSch:GetSelection()) == \"Revisions\" then\
+					SchRev:Enable(true)\
+				else\
+					SchRev:Enable(false)\
+				end\
+			end \
+			)\
+\
+			local DateRangeLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, \"Select Date Ranges\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)\
+			duSizer:Add(DateRangeLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			-- Date Ranges Control\
+			schDateRanges = DateRangeCtrl(SchPanel,\"ScheduleRange\",true,\"Date Ranges\") \
+			duSizer:Add(schDateRanges.Sizer,1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+			\
+			SchPanelSizer:Add(duSizer, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+\
+			-- Now add the Boolean Control\
+			local getSchUnit = function()\
+				-- Get the full schedule boolean unit\
+				local unit = TypeMatch:GetString(TypeMatch:GetSelection())..\",\"..TypeSch:GetString(TypeSch:GetSelection())\
+				if SchRev:IsEnabled() then\
+					if SchRev:GetValue() == \"Latest\" then\
+						unit = unit..\"(L)\"\
+					else\
+						unit = unit..\"(\"..tostring(SchRev:GetValue())..\")\"\
+					end\
+				end\
+				schDateRanges:UpdateFilter()\
+				if not filter.ScheduleRange then\
+					unit = nil\
+				else\
+					unit = unit..\",\"..filter.ScheduleRange\
+				end\
+				return unit\
+			end \
+\
+			SchBoolCtrl = BooleanTreeCtrl(SchPanel,SchPanelSizer,getSchUnit, \"Schedules\")\
+\
+			\
+\
+			SchPanel:SetSizer(SchPanelSizer)\
+			SchPanelSizer:SetSizeHints(SchPanel)\
+		MainBook:AddPage(SchPanel, \"Schedules\")\
+		\
+		-- Custom Script Entry Page\
+		ScriptPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)\
+			local ScriptPanelSizer = wx.wxBoxSizer(wx.wxVERTICAL) \
+			\
+			-- Text Instruction\
+			local InsLabel = wx.wxStaticText(ScriptPanel, wx.wxID_ANY, \"Enter a custom script to filte out tasks additional to the Filter set in the form. The task would be present in the environment in the table called 'task'. Apart from that the environment is what is setup in Globals.safeenv. The 'result' variable should be updated to true if pass or false if does not pass.\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)\
+			InsLabel:Wrap(frame:GetSize():GetWidth()-25)\
+			ScriptPanelSizer:Add(InsLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			ScriptBox = wx.wxTextCtrl(ScriptPanel, wx.wxID_ANY, \"\", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE)\
+			ScriptPanelSizer:Add(ScriptBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)\
+			\
+\
+			ScriptPanel:SetSizer(ScriptPanelSizer)\
+			ScriptPanelSizer:SetSizeHints(ScriptPanel)\
+		MainBook:AddPage(ScriptPanel, \"Custom Script\")\
+		\
+\
+	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	local ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)\
+	ToBaseButton = wx.wxButton(frame, wx.wxID_ANY, \"Current to Base\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	ButtonSizer:Add(ToBaseButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	CancelButton = wx.wxButton(frame, wx.wxID_ANY, \"Cancel\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	ButtonSizer:Add(CancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	ApplyButton = wx.wxButton(frame, wx.wxID_ANY, \"Apply\", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)\
+	ButtonSizer:Add(ApplyButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	MainSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)\
+	frame:SetSizer(MainSizer)\
+	--MainSizer:SetSizeHints(frame)\
+	\
+	-- Connect event handlers to the buttons\
+	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function (event)\
+			setfenv(1,package.loaded[modname])		\
+			frame:Close()\
+			callBack(nil)\
+		end\
+	)\
+	\
+	frame:Connect(wx.wxEVT_CLOSE_WINDOW,\
+		function (event)\
+			setfenv(1,package.loaded[modname])		\
+			event:Skip()\
+			callBack(nil)\
+		end\
+	)\
+\
+	ApplyButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			local f = synthesizeFilter()\
+			if not f then\
+				return\
+			end\
+			--print(tableToString(f))\
+			frame:Close()\
+			callBack(f)\
+		end		\
+	)\
+\
+--	Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&CriteriaFrame::OnClose);\
+\
+	-- Task Selection/Clear button press event\
+	SelTaskButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED, SelTaskPress)\
+	ClearTaskButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,\
+		function (event)\
+			setfenv(1,package.loaded[modname])\
+			filter.TasksSet = nil\
+			FilterTask:SetLabel(\"No Task Selected\")\
+		end\
+	)\
+	\
+	frame:Connect(wx.wxEVT_SIZE,\
+		function(event)\
+			setfenv(1,package.loaded[modname])\
+			InsLabel:Wrap(frame:GetSize():GetWidth())\
+			event:Skip()\
+		end\
+	)\
+\
+	-- Toolbar button events\
+	frame:Connect(ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadFilter)\
+	frame:Connect(ID_SAVE,wx.wxEVT_COMMAND_MENU_SELECTED,saveFilter)\
+	\
+    frame:Layout() -- help sizing the windows before being shown\
+    frame:Show(true)\
+    setfilter(MainFilter)\
+end		-- function filterFormActivate(parent) ends\
 "
-__MANY2ONEFILES['LuaXml']="require(\"LuaXML_lib\")\r\
-\r\
-local base = _G\r\
-local xml = xml\r\
-module(\"xml\")\r\
-\r\
--- symbolic name for tag index, this allows accessing the tag by var[xml.TAG]\r\
-TAG = 0\r\
-\r\
--- sets or returns tag of a LuaXML object\r\
-function tag(var,tag)\r\
-  if base.type(var)~=\"table\" then return end\r\
-  if base.type(tag)==\"nil\" then \r\
-    return var[TAG]\r\
-  end\r\
-  var[TAG] = tag\r\
-end\r\
-\r\
--- creates a new LuaXML object either by setting the metatable of an existing Lua table or by setting its tag\r\
-function new(arg)\r\
-  if base.type(arg)==\"table\" then \r\
-    base.setmetatable(arg,{__index=xml, __tostring=xml.str})\r\
-	return arg\r\
-  end\r\
-  local var={}\r\
-  base.setmetatable(var,{__index=xml, __tostring=xml.str})\r\
-  if base.type(arg)==\"string\" then var[TAG]=arg end\r\
-  return var\r\
-end\r\
-\r\
--- appends a new subordinate LuaXML object to an existing one, optionally sets tag\r\
-function append(var,tag)\r\
-  if base.type(var)~=\"table\" then return end\r\
-  local newVar = new(tag)\r\
-  var[#var+1] = newVar\r\
-  return newVar\r\
-end\r\
-\r\
--- converts any Lua var into an XML string\r\
-function str(var,indent,tagValue)\r\
-  if base.type(var)==\"nil\" then return end\r\
-  local indent = indent or 0\r\
-  local indentStr=\"\"\r\
-  for i = 1,indent do indentStr=indentStr..\"  \" end\r\
-  local tableStr=\"\"\r\
-  \r\
-  if base.type(var)==\"table\" then\r\
-    local tag = var[0] or tagValue or base.type(var)\r\
-    local s = indentStr..\"<\"..tag\r\
-    for k,v in base.pairs(var) do -- attributes \r\
-      if base.type(k)==\"string\" then\r\
-        if base.type(v)==\"table\" and k~=\"_M\" then --  otherwise recursiveness imminent\r\
-          tableStr = tableStr..str(v,indent+1,k)\r\
-        else\r\
-          s = s..\" \"..k..\"=\\\"\"..encode(base.tostring(v))..\"\\\"\"\r\
-        end\r\
-      end\r\
-    end\r\
-    if #var==0 and #tableStr==0 then\r\
-      s = s..\" />\\n\"\r\
-    elseif #var==1 and base.type(var[1])~=\"table\" and #tableStr==0 then -- single element\r\
-      s = s..\">\"..encode(base.tostring(var[1]))..\"</\"..tag..\">\\n\"\r\
-    else\r\
-      s = s..\">\\n\"\r\
-      for k,v in base.ipairs(var) do -- elements\r\
-        if base.type(v)==\"string\" then\r\
-          s = s..indentStr..\"  \"..encode(v)..\" \\n\"\r\
-        else\r\
-          s = s..str(v,indent+1)\r\
-        end\r\
-      end\r\
-      s=s..tableStr..indentStr..\"</\"..tag..\">\\n\"\r\
-    end\r\
-    return s\r\
-  else\r\
-    local tag = base.type(var)\r\
-    return indentStr..\"<\"..tag..\"> \"..encode(base.tostring(var))..\" </\"..tag..\">\\n\"\r\
-  end\r\
-end\r\
-\r\
-\r\
--- saves a Lua var as xml file\r\
-function save(var,filename)\r\
-  if not var then return end\r\
-  if not filename or #filename==0 then return end\r\
-  local file = base.io.open(filename,\"w\")\r\
-  file:write(\"<?xml version=\\\"1.0\\\"?>\\n<!-- file \\\"\",filename, \"\\\", generated by LuaXML -->\\n\\n\")\r\
-  file:write(str(var))\r\
-  base.io.close(file)\r\
-end\r\
-\r\
-\r\
--- recursively parses a Lua table for a substatement fitting to the provided tag and attribute\r\
-function find(var, tag, attributeKey,attributeValue)\r\
-  -- check input:\r\
-  if base.type(var)~=\"table\" then return end\r\
-  if base.type(tag)==\"string\" and #tag==0 then tag=nil end\r\
-  if base.type(attributeKey)~=\"string\" or #attributeKey==0 then attributeKey=nil end\r\
-  if base.type(attributeValue)==\"string\" and #attributeValue==0 then attributeValue=nil end\r\
-  -- compare this table:\r\
-  if tag~=nil then\r\
-    if var[0]==tag and ( attributeValue == nil or var[attributeKey]==attributeValue ) then\r\
-      base.setmetatable(var,{__index=xml, __tostring=xml.str})\r\
-      return var\r\
-    end\r\
-  else\r\
-    if attributeValue == nil or var[attributeKey]==attributeValue then\r\
-      base.setmetatable(var,{__index=xml, __tostring=xml.str})\r\
-      return var\r\
-    end\r\
-  end\r\
-  -- recursively parse subtags:\r\
-  for k,v in base.ipairs(var) do\r\
-    if base.type(v)==\"table\" then\r\
-      local ret = find(v, tag, attributeKey,attributeValue)\r\
-      if ret ~= nil then return ret end\r\
-    end\r\
-  end\r\
-end\r\
+__MANY2ONEFILES['LuaXml']="require(\"LuaXML_lib\")\
+\
+local base = _G\
+local xml = xml\
+module(\"xml\")\
+\
+-- symbolic name for tag index, this allows accessing the tag by var[xml.TAG]\
+TAG = 0\
+\
+-- sets or returns tag of a LuaXML object\
+function tag(var,tag)\
+  if base.type(var)~=\"table\" then return end\
+  if base.type(tag)==\"nil\" then \
+    return var[TAG]\
+  end\
+  var[TAG] = tag\
+end\
+\
+-- creates a new LuaXML object either by setting the metatable of an existing Lua table or by setting its tag\
+function new(arg)\
+  if base.type(arg)==\"table\" then \
+    base.setmetatable(arg,{__index=xml, __tostring=xml.str})\
+	return arg\
+  end\
+  local var={}\
+  base.setmetatable(var,{__index=xml, __tostring=xml.str})\
+  if base.type(arg)==\"string\" then var[TAG]=arg end\
+  return var\
+end\
+\
+-- appends a new subordinate LuaXML object to an existing one, optionally sets tag\
+function append(var,tag)\
+  if base.type(var)~=\"table\" then return end\
+  local newVar = new(tag)\
+  var[#var+1] = newVar\
+  return newVar\
+end\
+\
+-- converts any Lua var into an XML string\
+function str(var,indent,tagValue)\
+  if base.type(var)==\"nil\" then return end\
+  local indent = indent or 0\
+  local indentStr=\"\"\
+  for i = 1,indent do indentStr=indentStr..\"  \" end\
+  local tableStr=\"\"\
+  \
+  if base.type(var)==\"table\" then\
+    local tag = var[0] or tagValue or base.type(var)\
+    local s = indentStr..\"<\"..tag\
+    for k,v in base.pairs(var) do -- attributes \
+      if base.type(k)==\"string\" then\
+        if base.type(v)==\"table\" and k~=\"_M\" then --  otherwise recursiveness imminent\
+          tableStr = tableStr..str(v,indent+1,k)\
+        else\
+          s = s..\" \"..k..\"=\\\"\"..encode(base.tostring(v))..\"\\\"\"\
+        end\
+      end\
+    end\
+    if #var==0 and #tableStr==0 then\
+      s = s..\" />\\n\"\
+    elseif #var==1 and base.type(var[1])~=\"table\" and #tableStr==0 then -- single element\
+      s = s..\">\"..encode(base.tostring(var[1]))..\"</\"..tag..\">\\n\"\
+    else\
+      s = s..\">\\n\"\
+      for k,v in base.ipairs(var) do -- elements\
+        if base.type(v)==\"string\" then\
+          s = s..indentStr..\"  \"..encode(v)..\" \\n\"\
+        else\
+          s = s..str(v,indent+1)\
+        end\
+      end\
+      s=s..tableStr..indentStr..\"</\"..tag..\">\\n\"\
+    end\
+    return s\
+  else\
+    local tag = base.type(var)\
+    return indentStr..\"<\"..tag..\"> \"..encode(base.tostring(var))..\" </\"..tag..\">\\n\"\
+  end\
+end\
+\
+\
+-- saves a Lua var as xml file\
+function save(var,filename)\
+  if not var then return end\
+  if not filename or #filename==0 then return end\
+  local file = base.io.open(filename,\"w\")\
+  file:write(\"<?xml version=\\\"1.0\\\"?>\\n<!-- file \\\"\",filename, \"\\\", generated by LuaXML -->\\n\\n\")\
+  file:write(str(var))\
+  base.io.close(file)\
+end\
+\
+\
+-- recursively parses a Lua table for a substatement fitting to the provided tag and attribute\
+function find(var, tag, attributeKey,attributeValue)\
+  -- check input:\
+  if base.type(var)~=\"table\" then return end\
+  if base.type(tag)==\"string\" and #tag==0 then tag=nil end\
+  if base.type(attributeKey)~=\"string\" or #attributeKey==0 then attributeKey=nil end\
+  if base.type(attributeValue)==\"string\" and #attributeValue==0 then attributeValue=nil end\
+  -- compare this table:\
+  if tag~=nil then\
+    if var[0]==tag and ( attributeValue == nil or var[attributeKey]==attributeValue ) then\
+      base.setmetatable(var,{__index=xml, __tostring=xml.str})\
+      return var\
+    end\
+  else\
+    if attributeValue == nil or var[attributeKey]==attributeValue then\
+      base.setmetatable(var,{__index=xml, __tostring=xml.str})\
+      return var\
+    end\
+  end\
+  -- recursively parse subtags:\
+  for k,v in base.ipairs(var) do\
+    if base.type(v)==\"table\" then\
+      local ret = find(v, tag, attributeKey,attributeValue)\
+      if ret ~= nil then return ret end\
+    end\
+  end\
+end\
 "
-__MANY2ONEFILES['DataHandler']="Karm.TaskObject = {}\r\
-Karm.TaskObject.__index = Karm.TaskObject\r\
-Karm.Utility = {}\r\
--- Task structure\r\
--- Task.\r\
---	Planning\r\
---	[0] = Task\r\
--- 	SporeFile\r\
---	Title\r\
---	Modified\r\
---	DBDATA\r\
---	TaskID\r\
---	Start\r\
---	Fin\r\
---	Private\r\
---	Who\r\
---	Access\r\
---	Assignee\r\
---	Status\r\
---	Parent = Pointer to the Task to which this is a sub task\r\
---	Priority\r\
---	Due\r\
---	Comments\r\
---	Cat\r\
---	SubCat\r\
---	Tags\r\
---	Schedules.\r\
---		[0] = \"Schedules\"\r\
---		Estimate.\r\
---			[0] = \"Estimate\"\r\
---			count\r\
---			[i] = \r\
---		Commit.\r\
---			[0] = \"Commit\"\r\
---		Revs\r\
---		Actual\r\
---	SubTasks.\r\
---		[0] = \"SubTasks\"\r\
---		parent  = pointer to the array containing the list of tasks having the task whose SubTask this is \r\
---		tasks = count of number of subtasks\r\
---		[i] = Task table like this one repeated for sub tasks\r\
-function Karm.TaskObject.getSummary(task)\r\
-	if task then\r\
-		local taskSummary = \"\"\r\
-		if task.TaskID then\r\
-			taskSummary = \"ID: \"..task.TaskID\r\
-		end\r\
-		if task.Title then\r\
-			taskSummary = taskSummary..\"\\nTITLE: \"..task.Title\r\
-		end\r\
-		if task.Start then\r\
-			taskSummary = taskSummary..\"\\nSTART DATE: \"..task.Start\r\
-		end\r\
-		if task.Fin then\r\
-			taskSummary = taskSummary..\"\\nFINISH DATE: \"..task.Fin\r\
-		end\r\
-		if task.Due then\r\
-			taskSummary = taskSummary..\"\\nDUE DATE: \"..task.Due\r\
-		end\r\
-		if task.Status then\r\
-			taskSummary = taskSummary..\"\\nSTATUS: \"..task.Status\r\
-		end\r\
-		-- Responsible People\r\
-		if task.Who then\r\
-			taskSummary = taskSummary..\"\\nPEOPLE: \"\r\
-			local ACT = \"\"\r\
-			local INACT = \"\"\r\
-			for i=1,task.Who.count do\r\
-				if string.upper(task.Who[i].Status) == \"ACTIVE\" then\r\
-					ACT = ACT..\",\"..task.Who[i].ID\r\
-				else\r\
-					INACT = INACT..\",\"..task.Who[i].ID\r\
-				end\r\
-			end\r\
-			if #ACT > 0 then\r\
-				taskSummary = taskSummary..\"\\n   ACTIVE: \"..string.sub(ACT,2,-1)\r\
-			end\r\
-			if #INACT > 0 then\r\
-				taskSummary = taskSummary..\"\\n   INACTIVE: \"..string.sub(INACT,2,-1)\r\
-			end\r\
-		end\r\
-		if task.Access then\r\
-			taskSummary = taskSummary..\"\\nLOCKED: YES\"\r\
-			local RA = \"\"\r\
-			local RWA = \"\"\r\
-			for i = 1,task.Access.count do\r\
-				if string.upper(task.Access[i].Status) == \"READ ONLY\" then\r\
-					RA = RA..\",\"..task.Access[i].ID\r\
-				else\r\
-					RWA = RWA..\",\"..task.Access[i].ID\r\
-				end\r\
-			end\r\
-			if #RA > 0 then\r\
-				taskSummary = taskSummary..\"\\n   READ ACCESS PEOPLE: \"..string.sub(RA,2,-1)\r\
-			end\r\
-			if #RWA > 0 then\r\
-				taskSummary = taskSummary..\"\\n   READ/WRITE ACCESS PEOPLE: \"..string.sub(RWA,2,-1)\r\
-			end\r\
-		end\r\
-		if task.Assignee then\r\
-			taskSummary = taskSummary..\"\\nASSIGNEE: \"\r\
-			for i = 1,#task.Assignee do\r\
-				taskSummary = taskSummary..task.Assignee[i].ID..\",\"\r\
-			end\r\
-			taskSummary = taskSummary:sub(1,-2)\r\
-		end\r\
-		if task.Priority then\r\
-			taskSummary = taskSummary..\"\\nPRIORITY: \"..task.Priority\r\
-		end\r\
-		if task.Private then\r\
-			taskSummary = taskSummary..\"\\nPRIVATE TASK\"\r\
-		end\r\
-		if task.Cat then\r\
-			taskSummary = taskSummary..\"\\nCATEGORY: \"..task.Cat\r\
-		end\r\
-		if task.SubCat then\r\
-			taskSummary = taskSummary..\"\\nSUB-CATEGORY: \"..task.SubCat\r\
-		end\r\
-		if task.Tags then\r\
-			taskSummary = taskSummary..\"\\nTAGS: \"\r\
-			for i = 1,#task.Tags do\r\
-				taskSummary = taskSummary..task.Tags[i]..\",\"\r\
-			end\r\
-			taskSummary = taskSummary:sub(1,-2)\r\
-		end\r\
-		if task.Comments then\r\
-			taskSummary = taskSummary..\"\\nCOMMENTS:\\n\"..task.Comments\r\
-		end\r\
-		return taskSummary\r\
-	else\r\
-		return \"No Task Selected\"\r\
-	end\r\
-end\r\
-\r\
-function Karm.validateSpore(Spore)\r\
-	if not Spore then\r\
-		return nil\r\
-	elseif type(Spore) ~= \"table\" then\r\
-		return nil\r\
-	elseif Spore[0] ~= \"Task_Spore\" then\r\
-		return nil\r\
-	end\r\
-	return true\r\
-end\r\
-\r\
-\r\
-function Karm.TaskObject.getWorkDoneDates(task)\r\
-	if task.Schedules then\r\
-		if task.Schedules.Actual then\r\
-			local dateList = {}\r\
-			for i = 1,#task.Schedules[\"Actual\"][1].Period do\r\
-				dateList[#dateList + 1] = task.Schedules[\"Actual\"][1].Period[i].Date\r\
-			end		-- for i = 1,#task.Schedules[\"Actual\"][1].Period do ends\r\
-			dateList.typeSchedule = \"Actual\"\r\
-			dateList.index = 1\r\
-			return dateList\r\
-		else \r\
-			return nil\r\
-		end\r\
-	else \r\
-		return nil		\r\
-	end		-- if task.Schedules then ends\r\
-end\r\
--- Function to get the list of dates in the latest schedule of the task.\r\
--- if planning == true then the planning schedule dates are returned\r\
-function Karm.TaskObject.getLatestScheduleDates(task,planning)\r\
-	local typeSchedule, index\r\
-	local dateList = {}\r\
-	if planning then\r\
-		if task.Planning and task.Planning.Period then\r\
-			for i = 1,#task.Planning.Period do\r\
-				dateList[#dateList + 1] = task.Planning.Period[i].Date\r\
-			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\r\
-			dateList.typeSchedule = task.Planning.Type\r\
-			dateList.index = task.Planning.index\r\
-			return dateList\r\
-		else\r\
-			return nil\r\
-		end\r\
-	else\r\
-		if task.Schedules then\r\
-			-- Find the latest schedule in the task here\r\
-			if string.upper(task.Status) == \"DONE\" and task.Schedules.Actual then\r\
-				typeSchedule = \"Actual\"\r\
-				index = 1\r\
-			elseif task.Schedules.Revs then\r\
-				-- Actual is not the latest one but Revision is \r\
-				typeSchedule = \"Revs\"\r\
-				index = task.Schedules.Revs.count\r\
-			elseif task.Schedules.Commit then\r\
-				-- Actual and Revisions don't exist but Commit does\r\
-				typeSchedule = \"Commit\"\r\
-				index = 1\r\
-			elseif task.Schedules.Estimate then\r\
-				-- The latest is Estimate\r\
-				typeSchedule = \"Estimate\"\r\
-				index = task.Schedules.Estimate.count\r\
-			else\r\
-				-- task.Schedules can exist if only Actual exists  but task is not DONE yet\r\
-				return nil\r\
-			end\r\
-			-- Now we have the latest schedule type in typeSchedule and the index of it in index\r\
-			for i = 1,#task.Schedules[typeSchedule][index].Period do\r\
-				dateList[#dateList + 1] = task.Schedules[typeSchedule][index].Period[i].Date\r\
-			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\r\
-			dateList.typeSchedule = typeSchedule\r\
-			dateList.index = index\r\
-			return dateList\r\
-		else\r\
-			return nil\r\
-		end\r\
-	end		-- if planning then ends\r\
-end\r\
-\r\
--- Function to convert a table to a string\r\
--- Metatables not followed\r\
--- Unless key is a number it will be taken and converted to a string\r\
-function Karm.Utility.tableToString(t)\r\
-	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)\r\
-	rL[rL.cL] = {}\r\
-	do\r\
-		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)\r\
-		rL[rL.cL].str = \"{\"\r\
-		rL[rL.cL].t = t\r\
-		while true do\r\
-			local k,v = rL[rL.cL]._f(rL[rL.cL]._s,rL[rL.cL]._var)\r\
-			rL[rL.cL]._var = k\r\
-			if not k and rL.cL == 1 then\r\
-				break\r\
-			elseif not k then\r\
-				-- go up in recursion level\r\
-				if string.sub(rL[rL.cL].str,-1,-1) == \",\" then\r\
-					rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)\r\
-				end\r\
-				--print(\"GOING UP:     \"..rL[rL.cL].str..\"}\")\r\
-				rL[rL.cL-1].str = rL[rL.cL-1].str..rL[rL.cL].str..\"}\"\r\
-				rL.cL = rL.cL - 1\r\
-				rL[rL.cL+1] = nil\r\
-				rL[rL.cL].str = rL[rL.cL].str..\",\"\r\
-			else\r\
-				-- Handle the key and value here\r\
-				if type(k) == \"number\" then\r\
-					rL[rL.cL].str = rL[rL.cL].str..\"[\"..tostring(k)..\"]=\"\r\
-				else\r\
-					rL[rL.cL].str = rL[rL.cL].str..tostring(k)..\"=\"\r\
-				end\r\
-				if type(v) == \"table\" then\r\
-					-- Check if this is not a recursive table\r\
-					local goDown = true\r\
-					for i = 1, rL.cL do\r\
-						if v==rL[i].t then\r\
-							-- This is recursive do not go down\r\
-							goDown = false\r\
-							break\r\
-						end\r\
-					end\r\
-					if goDown then\r\
-						-- Go deeper in recursion\r\
-						rL.cL = rL.cL + 1\r\
-						rL[rL.cL] = {}\r\
-						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(v)\r\
-						rL[rL.cL].str = \"{\"\r\
-						rL[rL.cL].t = v\r\
-						--print(\"GOING DOWN:\",k)\r\
-					else\r\
-						rL[rL.cL].str = rL[rL.cL].str..\"\\\"\"..tostring(v)..\"\\\"\"\r\
-						rL[rL.cL].str = rL[rL.cL].str..\",\"\r\
-						--print(k,\"=\",v)\r\
-					end\r\
-				elseif type(v) == \"number\" then\r\
-					rL[rL.cL].str = rL[rL.cL].str..tostring(v)\r\
-					rL[rL.cL].str = rL[rL.cL].str..\",\"\r\
-					--print(k,\"=\",v)\r\
-				else\r\
-					rL[rL.cL].str = rL[rL.cL].str..string.format(\"%q\",tostring(v))\r\
-					rL[rL.cL].str = rL[rL.cL].str..\",\"\r\
-					--print(k,\"=\",v)\r\
-				end		-- if type(v) == \"table\" then ends\r\
-			end		-- if not rL[rL.cL]._var and rL.cL == 1 then ends\r\
-		end		-- while true ends here\r\
-	end		-- do ends\r\
-	if string.sub(rL[rL.cL].str,-1,-1) == \",\" then\r\
-		rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)\r\
-	end\r\
-	rL[rL.cL].str = rL[rL.cL].str..\"}\"\r\
-	return rL[rL.cL].str\r\
-end\r\
-\r\
--- Creates lua code for a table which when executed will create a table t0 which would be the same as the originally passed table\r\
--- Handles the following types for keys and values:\r\
--- Keys: Number, String, Table\r\
--- Values: Number, String, Table, Boolean\r\
--- It also handles recursive and interlinked tables to recreate them back\r\
-function Karm.Utility.tableToString2(t)\r\
-	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)\r\
-	rL[rL.cL] = {}\r\
-	local tabIndex = {}	-- Table to store a list of tables indexed into a string and their variable name\r\
-	local latestTab = 0\r\
-	do\r\
-		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)\r\
-		rL[rL.cL].str = \"t0={}\"	-- t0 would be the main table\r\
-		rL[rL.cL].t = t\r\
-		rL[rL.cL].tabIndex = 0\r\
-		tabIndex[t] = rL[rL.cL].tabIndex\r\
-		while true do\r\
-			local key\r\
-			local k,v = rL[rL.cL]._f(rL[rL.cL]._s,rL[rL.cL]._var)\r\
-			rL[rL.cL]._var = k\r\
-			if not k and rL.cL == 1 then\r\
-				break\r\
-			elseif not k then\r\
-				-- go up in recursion level\r\
-				--print(\"GOING UP:     \"..rL[rL.cL].str..\"}\")\r\
-				rL[rL.cL-1].str = rL[rL.cL-1].str..\"\\n\"..rL[rL.cL].str\r\
-				rL.cL = rL.cL - 1\r\
-				if rL[rL.cL].vNotDone then\r\
-					-- This was a key recursion so add the key string and then doV\r\
-					key = \"t\"..rL[rL.cL].tabIndex..\"[t\"..tostring(rL[rL.cL+1].tabIndex)..\"]\"\r\
-					rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\r\
-					v = rL[rL.cL].vNotDone\r\
-				end\r\
-				rL[rL.cL+1] = nil\r\
-			else\r\
-				-- Handle the key and value here\r\
-				if type(k) == \"number\" then\r\
-					key = \"t\"..rL[rL.cL].tabIndex..\"[\"..tostring(k)..\"]\"\r\
-					rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\r\
-				elseif type(k) == \"string\" then\r\
-					key = \"t\"..rL[rL.cL].tabIndex..\".\"..tostring(k)\r\
-					rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\r\
-				else\r\
-					-- Table key\r\
-					-- Check if the table already exists\r\
-					if tabIndex[k] then\r\
-						key = \"t\"..rL[rL.cL].tabIndex..\"[t\"..tabIndex[k]..\"]\"\r\
-						rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\r\
-					else\r\
-						-- Go deeper to stringify this table\r\
-						latestTab = latestTab + 1\r\
-						rL[rL.cL].str = rL[rL.cL].str..\"\\nt\"..tostring(latestTab)..\"={}\"	-- New table\r\
-						rL[rL.cL].vNotDone = v\r\
-						rL.cL = rL.cL + 1\r\
-						rL[rL.cL] = {}\r\
-						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(k)\r\
-						rL[rL.cL].tabIndex = latestTab\r\
-						rL[rL.cL].t = k\r\
-						rL[rL.cL].str = \"\"\r\
-						tabIndex[k] = rL[rL.cL].tabIndex\r\
-					end		-- if tabIndex[k] then ends\r\
-				end		-- if type(k)ends\r\
-			end		-- if not k and rL.cL == 1 then ends\r\
-			if key then\r\
-				rL[rL.cL].vNotDone = nil\r\
-				if type(v) == \"table\" then\r\
-					-- Check if this table is already indexed\r\
-					if tabIndex[v] then\r\
-						rL[rL.cL].str = rL[rL.cL].str..\"t\"..tabIndex[v]\r\
-					else\r\
-						-- Go deeper in recursion\r\
-						latestTab = latestTab + 1\r\
-						rL[rL.cL].str = rL[rL.cL].str..\"{}\" \r\
-						rL[rL.cL].str = rL[rL.cL].str..\"\\nt\"..tostring(latestTab)..\"=\"..key	-- New table\r\
-						rL.cL = rL.cL + 1\r\
-						rL[rL.cL] = {}\r\
-						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(v)\r\
-						rL[rL.cL].tabIndex = latestTab\r\
-						rL[rL.cL].t = v\r\
-						rL[rL.cL].str = \"\"\r\
-						tabIndex[v] = rL[rL.cL].tabIndex\r\
-						--print(\"GOING DOWN:\",k)\r\
-					end\r\
-				elseif type(v) == \"number\" then\r\
-					rL[rL.cL].str = rL[rL.cL].str..tostring(v)\r\
-					--print(k,\"=\",v)\r\
-				elseif type(v) == \"boolean\" then\r\
-					rL[rL.cL].str = rL[rL.cL].str..tostring(v)				\r\
-				else\r\
-					rL[rL.cL].str = rL[rL.cL].str..string.format(\"%q\",tostring(v))\r\
-					--print(k,\"=\",v)\r\
-				end		-- if type(v) == \"table\" then ends\r\
-			end		-- if doV then ends\r\
-		end		-- while true ends here\r\
-	end		-- do ends\r\
-	return rL[rL.cL].str\r\
-end\r\
-\r\
-function Karm.Utility.combineDateRanges(range1,range2)\r\
-	local comp = Karm.Utility.compareDateRanges(range1,range2)\r\
-\r\
-	local strt1,fin1 = string.match(range1,\"(.-)%-(.*)\")\r\
-	local strt2,fin2 = string.match(range2,\"(.-)%-(.*)\")\r\
-	\r\
-	strt1 = Karm.Utility.toXMLDate(strt1)\r\
-	local idate = Karm.Utility.XMLDate2wxDateTime(strt1)\r\
-	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))\r\
-	local strt1m1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\r\
-	\r\
-	fin1 = Karm.Utility.toXMLDate(fin1)\r\
-	idate = Karm.Utility.XMLDate2wxDateTime(fin1)\r\
-	idate = idate:Add(wx.wxDateSpan(0,0,0,1))\r\
-	local fin1p1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\r\
-\r\
-	strt2 = Karm.Utility.toXMLDate(strt2)\r\
-\r\
-	fin2 = Karm.Utility.toXMLDate(fin2)\r\
-\r\
-	if comp == 1 then\r\
-		return range1\r\
-	elseif comp==2 then\r\
-		-- range1 lies entirely before range2\r\
-		error(\"Disjoint ranges\",2)\r\
-	elseif comp==3 then\r\
-		-- range1 pre-overlaps range2\r\
-		return string.sub(strt1,6,7)..\"/\"..string.sub(strt1,-2,-1)..\"/\"..string.sub(strt1,1,4)..\"-\"..\r\
-			string.sub(fin2,6,7)..\"/\"..string.sub(fin2,-2,-1)..\"/\"..string.sub(fin2,1,4)\r\
-	elseif comp==4 then\r\
-		-- range1 lies entirely inside range2\r\
-		return range2\r\
-	elseif comp==5 then\r\
-		-- range1 post overlaps range2\r\
-		return string.sub(strt2,6,7)..\"/\"..string.sub(strt2,-2,-1)..\"/\"..string.sub(strt2,1,4)..\"-\"..\r\
-			string.sub(fin1,6,7)..\"/\"..string.sub(fin1,-2,-1)..\"/\"..string.sub(fin1,1,4)\r\
-	elseif comp==6 then\r\
-		-- range1 lies entirely after range2\r\
-		error(\"Disjoint ranges\",2)\r\
-	elseif comp==7 then\r\
-		-- range2 lies entirely inside range1\r\
-			return range1\r\
-	end		\r\
-end\r\
-\r\
-function Karm.Utility.XMLDate2wxDateTime(XMLdate)\r\
-	local map = {\r\
-		[1] = wx.wxDateTime.Jan,\r\
-		[2] = wx.wxDateTime.Feb,\r\
-		[3] = wx.wxDateTime.Mar,\r\
-		[4] = wx.wxDateTime.Apr,\r\
-		[5] = wx.wxDateTime.May,\r\
-		[6] = wx.wxDateTime.Jun,\r\
-		[7] = wx.wxDateTime.Jul,\r\
-		[8] = wx.wxDateTime.Aug,\r\
-		[9] = wx.wxDateTime.Sep,\r\
-		[10] = wx.wxDateTime.Oct,\r\
-		[11] = wx.wxDateTime.Nov,\r\
-		[12] = wx.wxDateTime.Dec\r\
-	}\r\
-	return wx.wxDateTimeFromDMY(tonumber(string.sub(XMLdate,-2,-1)),map[tonumber(string.sub(XMLdate,6,7))],tonumber(string.sub(XMLdate,1,4)))\r\
-end\r\
-\r\
---****f* Karm/compareDateRanges\r\
--- FUNCTION\r\
--- Function to compare 2 date ranges\r\
--- \r\
--- INPUT\r\
--- o range1 -- Date Range 1 eg. 2/25/2012-2/27/2012\r\
--- o range2 -- Date Range 2 eg. 2/25/2012-3/27/2012\r\
--- \r\
--- RETURNS\r\
--- o 1 -- If date ranges identical\r\
--- o 2 -- If range1 lies entirely before range2\r\
--- o 3 -- If range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2 and not condition 2\r\
--- o 4 -- If range1 lies entirely inside range2\r\
--- o 5 -- If range1 post overlaps range2 i.e. start date of range 1 >= start date of range 2 and start date of range 1 - 1 day <= end date of range 2 and not condition 4 \r\
--- o 6 -- If range1 lies entirely after range2\r\
--- o 7 -- If range2 lies entirely inside range1\r\
--- o nil -- for error\r\
---\r\
--- SOURCE\r\
-function Karm.Utility.compareDateRanges(range1,range2)\r\
---@@END@@\r\
-	if not(range1 and range2) or range1==\"\" or range2==\"\" then\r\
-		error(\"Expected a valid date range.\",2)\r\
-	end\r\
-	\r\
-	if range1 == range2 then\r\
-		--  date ranges identical\r\
-		return 1\r\
-	end\r\
-	\r\
-	local strt1,fin1 = string.match(range1,\"(.-)%-(.*)\")\r\
-	local strt2,fin2 = string.match(range2,\"(.-)%-(.*)\")\r\
-	\r\
-	strt1 = Karm.Utility.toXMLDate(strt1)\r\
-	local idate = Karm.Utility.XMLDate2wxDateTime(strt1)\r\
-	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))\r\
-	local strt1m1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\r\
-	\r\
-	fin1 = Karm.Utility.toXMLDate(fin1)\r\
-	idate = Karm.Utility.XMLDate2wxDateTime(fin1)\r\
-	idate = idate:Add(wx.wxDateSpan(0,0,0,1))\r\
-	local fin1p1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\r\
-	\r\
-	strt2 = Karm.Utility.toXMLDate(strt2)\r\
-	\r\
-	fin2 = Karm.Utility.toXMLDate(fin2)\r\
-	\r\
-	if strt1>fin1 or strt2>fin2 then\r\
-		error(\"Range given is not valid. Start date should be less than finish date.\",2)\r\
-	end\r\
-	\r\
-	if fin1p1<strt2 then\r\
-		-- range1 lies entirely before range2\r\
-		return 2\r\
-	elseif fin1<=fin2 and strt1<strt2 then\r\
-		-- range1 pre-overlaps range2\r\
-		return 3\r\
-	elseif strt1>strt2 and fin1<fin2 then\r\
-		-- range1 lies entirely inside range2\r\
-		return 4\r\
-	elseif strt1m1<=fin2 and strt1>=strt2 then\r\
-		-- range1 post overlaps range2\r\
-		return 5\r\
-	elseif strt1m1>fin2 then\r\
-		-- range1 lies entirely after range2\r\
-		return 6\r\
-	elseif strt1<strt2 and fin1>fin2 then\r\
-		-- range2 lies entirely inside range1\r\
-		return 7\r\
-	end\r\
-end\r\
---****f* Karm/ToXMLDate\r\
--- FUNCTION\r\
--- Function to convert display format date to XML format date YYYY-MM-DD\r\
--- display date format is MM/DD/YYYY\r\
---\r\
--- INPUT\r\
--- o displayDate -- String variable containing the date string as MM/DD/YYYY\r\
---\r\
--- RETURNS\r\
--- The date as a string compliant to XML date format YYYY-MM-DD\r\
---\r\
--- SOURCE\r\
-function Karm.Utility.toXMLDate(displayDate)\r\
---@@END@@\r\
-\r\
-    local exYear, exMonth, exDate\r\
-    local count = 1\r\
-    for num in string.gmatch(displayDate,\"%d+\") do\r\
-    	if count == 1 then\r\
-    		-- this is month\r\
-    		exMonth = num\r\
-	    	if #exMonth == 1 then\r\
-        		exMonth = \"0\" .. exMonth\r\
-        	end\r\
-        elseif count==2 then\r\
-        	-- this is the date\r\
-        	exDate = num\r\
-        	if #exDate == 1 then\r\
-        		exDate = \"0\" .. exDate\r\
-        	end\r\
-        elseif count== 3 then\r\
-        	-- this is the year\r\
-        	exYear = num\r\
-        	if #exYear == 1 then\r\
-        		exYear = \"000\" .. exYear\r\
-        	elseif #exYear == 2 then\r\
-        		exYear = \"00\" .. exYear\r\
-        	elseif #exYear == 3 then\r\
-        		exYear = \"0\" .. exYear\r\
-        	end\r\
-        end\r\
-        count = count + 1\r\
-	end    \r\
-    return exYear .. \"-\" .. exMonth .. \"-\" .. exDate\r\
-end\r\
-\r\
-function Karm.Utility.getWeekDay(xmlDate)\r\
-	if #xmlDate ~= 10 then\r\
-		error(\"Expected XML Date in the form YYYY-MM-DD\",2)\r\
-	end\r\
-	local WeekDays = {\"Sunday\",\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\",\"Saturday\"}\r\
-	-- Using the Gauss Formula\r\
-	-- http://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Gaussian_algorithm\r\
-	local d = tonumber(xmlDate:sub(-2,-1))\r\
-	local m = tonumber(xmlDate:sub(6,7))\r\
-	m = (m + 9)%12 + 1\r\
-	local Y\r\
-	if m > 10 then\r\
-		Y = string.match(tostring(tonumber(xmlDate:sub(1,4)) - 1),\"%d+\")\r\
-		Y = string.rep(\"0\",4-#Y)..Y\r\
-	else\r\
-		Y = xmlDate:sub(1,4)\r\
-	end\r\
-	local y = tonumber(Y:sub(-2,-1))\r\
-	local c = tonumber(Y:sub(1,2))\r\
-	local w = (d + (2.6*m-0.2)-(2.6*m-0.2)%1 + y + (y/4)-(y/4)%1 + (c/4)-(c/4)%1-2*c)%7+1\r\
-	return WeekDays[w]\r\
-end\r\
-\r\
-function Karm.Utility.addItemToArray(item,array)\r\
-	local pos = 0\r\
-	for i = 1,#array do\r\
-		if array[i] == item  then\r\
-			return array\r\
-		end\r\
-		if array[i]>item then\r\
-			pos = i\r\
-			break\r\
-		end\r\
-	end\r\
-	if pos == 0 then\r\
-		-- place item in the end\r\
-		array[#array+1] = item\r\
-		return array\r\
-	end\r\
-	local newarray = {}\r\
-	for i = 1,pos-1 do\r\
-		newarray[i] = array[i]\r\
-	end\r\
-	newarray[pos] = item\r\
-	for i = pos,#array do\r\
-		newarray[i+1] = array[i]\r\
-	end\r\
-	return newarray\r\
-end\r\
-\r\
--- Function to apply a function to a task and its hierarchy\r\
--- The function should have the task as the 1st argument \r\
--- and whatever it returns is passed to it it as the 2nd argument in the next call to it with the next task\r\
--- In the 1st call the second argument is passed if it is given as the 3rd argument to this function\r\
--- The last return from the function is returned by this function\r\
--- if omitTask is true then the func is not run for the task itself and it starts from the subTasks\r\
-function Karm.TaskObject.applyFuncHier(task, func, initialValue, omitTask)\r\
-	local passedVar	= initialValue	-- Variable passed to the function\r\
-	if not omitTask then\r\
-		passedVar = func(task,initialValue)\r\
-	end\r\
-	if task.SubTasks then\r\
-		-- Traverse the task hierarchy here\r\
-		local hier = task.SubTasks\r\
-		local hierCount = {}\r\
-		hierCount[hier] = 0\r\
-		while hierCount[hier] < #hier or hier.parent do\r\
-			if not(hierCount[hier] < #hier) then\r\
-				if hier == task.SubTasks then\r\
-					-- Do not go above the passed task\r\
-					break\r\
-				end \r\
-				hier = hier.parent\r\
-			else\r\
-				-- Increment the counter\r\
-				hierCount[hier] = hierCount[hier] + 1\r\
-				passedVar = func(hier[hierCount[hier]],passedVar)\r\
-				if hier[hierCount[hier]].SubTasks then\r\
-					-- This task has children so go deeper in the hierarchy\r\
-					hier = hier[hierCount[hier]].SubTasks\r\
-					hierCount[hier] = 0\r\
-				end\r\
-			end\r\
-		end		-- while hierCount[hier] < #hier or hier.parent do ends here\r\
-	end\r\
-	return passedVar\r\
-end\r\
-\r\
--- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil\r\
--- Traversal is in the order as if listing out the tasks for a fully expanded task tree\r\
-function Karm.TaskObject.NextInSequence(task)\r\
-	if not task then\r\
-		error(\"Need a task object to give the next task\", 2)\r\
-	end\r\
-	if not type(task) == \"table\" then\r\
-		error(\"Need a task object to give the next task\", 2)\r\
-	end\r\
-	if task.SubTasks and task.SubTasks[1] then\r\
-		return task.SubTasks[1]\r\
-	end	\r\
-	if task.Next then\r\
-		return task.Next\r\
-	end\r\
-	if task.Parent then\r\
-		local currTask = task.Parent\r\
-		if currTask.Next then\r\
-			return currTask.Next\r\
-		end\r\
-		while currTask.Parent do\r\
-			currTask = currTask.Parent\r\
-			if currTask.Next then\r\
-				return currTask.Next\r\
-			end\r\
-		end\r\
-	end\r\
-end\r\
-\r\
--- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil\r\
--- Traversal is in the order as if listing out the tasks for a fully expanded task tree\r\
-function Karm.TaskObject.PreviousInSequence(task)\r\
-	if not task then\r\
-		error(\"Need a task object to give the next task\", 2)\r\
-	end\r\
-	if not type(task) == \"table\" then\r\
-		error(\"Need a task object to give the next task\", 2)\r\
-	end\r\
-	if task.Previous then\r\
-		local currTask = task.Previous\r\
-		while Karm.TaskObject.NextInSequence(currTask) ~= task do\r\
-			currTask = Karm.TaskObject.NextInSequence(currTask)\r\
-		end\r\
-		return currTask\r\
-	end\r\
-	return task.Parent\r\
-end\r\
-\r\
-function Karm.TaskObject.accumulateTaskData(task,Data)\r\
-	Data = Data or {}\r\
-	Data.Who = Data.Who or {}\r\
-	Data.Access = Data.Access or {}\r\
-	Data.Priority = Data.Priority or {}\r\
-	Data.Cat = Data.Cat or {}\r\
-	Data.SubCat = Data.SubCat or {}\r\
-	Data.Tags = Data.Tags or {}\r\
-	-- Who data\r\
-	for i = 1,#task.Who do\r\
-		Data.Who = Karm.Utility.addItemToArray(task.Who[i].ID,Data.Who)\r\
-	end\r\
-	-- Access Data\r\
-	if task.Access then\r\
-		for i = 1,#task.Access do\r\
-			Data.Access = Karm.Utility.addItemToArray(task.Access[i].ID,Data.Access)\r\
-		end\r\
-	end\r\
-	-- Priority Data\r\
-	if task.Priority then\r\
-		Data.Priority = Karm.Utility.addItemToArray(task.Priority,Data.Priority)\r\
-	end			\r\
-	-- Category Data\r\
-	if task.Cat then\r\
-		Data.Cat = Karm.Utility.addItemToArray(task.Cat,Data.Cat)\r\
-	end			\r\
-	-- Sub-Category Data\r\
-	if task.SubCat then\r\
-		Data.SubCat = Karm.Utility.addItemToArray(task.SubCat,Data.SubCat)\r\
-	end			\r\
-	-- Tags Data\r\
-	if task.Tags then\r\
-		for i = 1,#task.Tags do\r\
-			Data.Tags = Karm.Utility.addItemToArray(task.Tags[i],Data.Tags)\r\
-		end\r\
-	end\r\
-	return Data\r\
-end\r\
-\r\
-\r\
--- Function to collect and return all data from the task heirarchy on the basis of which task filtration criteria can be selected\r\
-function Karm.accumulateTaskDataHier(filterData, taskHier)\r\
-	local hier = taskHier\r\
-	-- Reset the hierarchy if not already done so\r\
-	while hier.parent do\r\
-		hier = hier.parent\r\
-	end\r\
-	for i = 1,#hier do\r\
-		filterData = Karm.TaskObject.applyFuncHier(hier[i],Karm.TaskObject.accumulateTaskData,filterData)\r\
-	end\r\
-end\r\
-\r\
--- Old version \r\
---function Karm.accumulateTaskDataHier(filterData, taskHier)\r\
---	local hier = taskHier\r\
---	local hierCount = {}\r\
---	-- Reset the hierarchy if not already done so\r\
---	while hier.parent do\r\
---		hier = hier.parent\r\
---	end\r\
---	-- Traverse the task hierarchy here\r\
---	hierCount[hier] = 0\r\
---	while hierCount[hier] < #hier or hier.parent do\r\
---		if not(hierCount[hier] < #hier) then\r\
---			if hier == taskHier then\r\
---				-- Do not go above the passed task\r\
---				break\r\
---			end \r\
---			hier = hier.parent\r\
---		else\r\
---			-- Increment the counter\r\
---			hierCount[hier] = hierCount[hier] + 1\r\
---			Karm.TaskObject.accumulateTaskData(hier[hierCount[hier]],filterData)\r\
---			if hier[hierCount[hier]].SubTasks then\r\
---				-- This task has children so go deeper in the hierarchy\r\
---				hier = hier[hierCount[hier]].SubTasks\r\
---				hierCount[hier] = 0\r\
---			end\r\
---		end\r\
---	end		-- while hierCount[hier] < #hier or hier.parent do ends here\r\
---end\r\
-\r\
-function Karm.accumulateTaskDataList(filterData,taskList)\r\
-	for i=1,#taskList do\r\
-		Karm.TaskObject.accumulateTaskData(taskList[i],filterData)\r\
-	end\r\
-end\r\
-\r\
--- Function to make a copy of a task\r\
--- Each task has at most 9 tables:\r\
--- Who\r\
--- Access\r\
--- Assignee\r\
--- Schedules\r\
--- Tags\r\
--- Parent\r\
--- SubTasks\r\
--- DBDATA\r\
--- Planning  \r\
-\r\
--- 1st 5 are made a copy of\r\
--- Parent is the same linked tables\r\
--- If copySubTasks is true then SubTasks are made a copy as well with the same parameters otherwise it is the same linked SubTask table\r\
--- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table\r\
--- Normally the task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the task parents\r\
--- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks\r\
--- Planning is not copied over\r\
-function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParents)\r\
-	-- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value\r\
-	local copyTableFunc\r\
-	local function copyTable(t, deep, seen)\r\
-	    seen = seen or {}\r\
-	    if t == nil then return nil end\r\
-	    if seen[t] then return seen[t] end\r\
-	\r\
-	    local nt = {}\r\
-	    for k, v in pairs(t) do\r\
-	        if deep and type(v) == 'table' then\r\
-	            nt[k] = copyTableFunc(v, deep, seen)\r\
-	        else\r\
-	            nt[k] = v\r\
-	        end\r\
-	    end\r\
-	    setmetatable(nt, copyTableFunc(getmetatable(t), deep, seen))\r\
-	    seen[t] = nt\r\
-	    return nt\r\
-	end\r\
-	copyTableFunc = copyTable\r\
-\r\
-	if not task then\r\
-		return\r\
-	end\r\
-	local nTask = {}\r\
-	for k,v in pairs(task) do\r\
-		if k ~= \"Planning\" and not (k == \"DBDATA\" and removeDBDATA)then\r\
-			if k ~= \"Who\" and k ~= \"Schedules\" and k~= \"Tags\" and k ~= \"Access\" and k ~= \"Assignee\" and not (k == \"SubTasks\" and copySubTasks)then\r\
-				nTask[k] = task[k]\r\
-			else\r\
-				if k == \"SubTasks\" then\r\
-					-- This has to be copied in 2 steps\r\
-					local parent\r\
-					if task.Parent then\r\
-						parent = task.Parent.SubTasks\r\
-					else\r\
-						-- Must be a root node in a Spore so take the Spore table as the parent itself\r\
-						parent = task.SubTasks.parent\r\
-					end\r\
-					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]=\"SubTasks\"}\r\
-					for i = 1,#task.SubTasks do\r\
-						nTask.SubTasks[i] = Karm.TaskObject.copy(task.SubTasks[i],true,removeDBDATA,true)\r\
-					end\r\
-				else\r\
-					nTask[k] = copyTable(task[k],true)\r\
-				end\r\
-			end\r\
-		end\r\
-	end		-- for k,v in pairs(task) do ends\r\
-	if not keepOldTaskParents and nTask.SubTasks then\r\
-		-- Correct for the task parents of all subtasks\r\
-		Karm.TaskObject.applyFuncHier(nTask,function(task, subTaskParent)\r\
-								if task.SubTasks then\r\
-									if subTaskParent then\r\
-										task.SubTasks.parent = task.Parent.SubTasks\r\
-									end\r\
-									for i = 1,#task.SubTasks do\r\
-										task.SubTasks[i].Parent = task\r\
-									end\r\
-								end\r\
-								return true\r\
-							end\r\
-		)\r\
-	end\r\
-	Karm.TaskObject.MakeTaskObject(nTask)\r\
-	return nTask\r\
-end		-- function Karm.TaskObject.copy(task)ends\r\
-\r\
-function Karm.TaskObject.MakeTaskObject(task)\r\
-	setmetatable(task,Karm.TaskObject)\r\
-end\r\
-\r\
--- Function to convert a task to a task list with incremental schedules i.e. 1st will be same as task passed (but a copy of it) and last task will have 1st schedule only\r\
--- The task ID however have additional _n where n is a serial number from 1 \r\
-function Karm.TaskObject.incSchTasks(task)\r\
-	local taskList = {}\r\
-	taskList[1] = Karm.TaskObject.copy(task)\r\
-	taskList[1].TaskID = taskList[1].TaskID..\"_1\"\r\
-	while taskList[#taskList].Schedules do\r\
-		-- Find the latest schedule in the task here\r\
-		if string.upper(taskList[#taskList].Status) == \"DONE\" and taskList[#taskList].Schedules.Actual then\r\
-			-- Actual Schedule is the latest so remove this one\r\
-			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\r\
-			-- Remove the actual schedule\r\
-			taskList[#taskList].Schedules.Actual = nil\r\
-			-- Change the task ID\r\
-			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\r\
-		elseif taskList[#taskList].Schedules.Revs then\r\
-			-- Actual is not the latest one but Revision is \r\
-			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\r\
-			-- Remove the latest Revision Schedule\r\
-			taskList[#taskList].Schedules.Revs[taskList[#taskList].Schedules.Revs.count] = nil\r\
-			taskList[#taskList].Schedules.Revs.count = taskList[#taskList].Schedules.Revs.count - 1\r\
-			if taskList[#taskList].Schedules.Revs.count == 0 then\r\
-				taskList[#taskList].Schedules.Revs = nil\r\
-			end\r\
-			-- Change the task ID\r\
-			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\r\
-		elseif taskList[#taskList].Schedules.Commit then\r\
-			-- Actual and Revisions don't exist but Commit does\r\
-			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\r\
-			-- Remove the Commit Schedule\r\
-			taskList[#taskList].Schedules.Commit = nil\r\
-			-- Change the task ID\r\
-			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\r\
-		elseif taskList[#taskList].Schedules.Estimate then\r\
-			-- The latest is Estimate\r\
-			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\r\
-			-- Remove the latest Estimate Schedule\r\
-			taskList[#taskList].Schedules.Estimate[taskList[#taskList].Schedules.Estimate.count] = nil\r\
-			taskList[#taskList].Schedules.Estimate.count = taskList[#taskList].Schedules.Estimate.count - 1\r\
-			if taskList[#taskList].Schedules.Estimate.count == 0 then\r\
-				taskList[#taskList].Schedules.Estimate = nil\r\
-			end\r\
-			-- Change the task ID\r\
-			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\r\
-		elseif not taskList[#taskList].Schedules.Estimate and not taskList[#taskList].Schedules.Commit\r\
-		  and not taskList[#taskList].Schedules.Revs then\r\
-		  	-- Since there can be an Actual Schedule but task is not done so Schedules cannot be nil\r\
-		  	break\r\
-		end\r\
-		if not taskList[#taskList].Schedules.Estimate and not taskList[#taskList].Schedules.Commit \r\
-		  and not taskList[#taskList].Schedules.Revs and not taskList[#taskList].Schedules.Actual then\r\
-			taskList[#taskList].Schedules = nil\r\
-		end\r\
-	end			-- while taskList[#taskList].Schedules do ends\r\
-	taskList[#taskList] = nil\r\
-	return taskList\r\
-end		-- function Karm.TaskObject.incSchTasks(task) ends\r\
-\r\
--- Function to return an Empty task that satisfies the minimum requirements\r\
-function Karm.getEmptyTask(SporeFile)\r\
-	local nTask = {}\r\
-	nTask[0] = \"Task\"\r\
-	nTask.SporeFile = SporeFile\r\
-	nTask.Title = \"DUMMY\"\r\
-	nTask.TaskID = \"DUMMY\"\r\
-	nTask.Start = \"1900-01-01\"\r\
-	nTask.Public = true\r\
-	nTask.Who = {[0] = \"Who\", count = 1,[1] = \"DUMMY\"}\r\
-	nTask.Status = \"Not Started\"\r\
-	Karm.TaskObject.MakeTaskObject(nTask)\r\
-	return nTask\r\
-end\r\
-\r\
--- Function to cycle the planning schedule type for a task\r\
--- This function depends on the task setting methodology chosen to be in the sequence of Estimate->Commit->Revs->Actual\r\
--- So conversions are:\r\
--- Nothing->Estimate\r\
--- Estimate->Commit\r\
--- Commit->Revs\r\
--- Revs->Actual\r\
--- Actual->Back to Estimate\r\
-function Karm.TaskObject.togglePlanningType(task,type)\r\
-	if not task.Planning then\r\
-		task.Planning = {}\r\
-	end\r\
-	if type == \"NORMAL\" then\r\
-		local dateList = Karm.TaskObject.getLatestScheduleDates(task)\r\
-		if not dateList then\r\
-			dateList = {}\r\
-			dateList.index = 0\r\
-			dateList.typeSchedule = \"Estimate\"\r\
-		end\r\
-				\r\
-		if not task.Planning.Type then\r\
-			if dateList.typeSchedule == \"Estimate\" then\r\
-				task.Planning.Type = \"Estimate\"\r\
-				task.Planning.index = dateList.index + 1\r\
-			elseif dateList.typeSchedule == \"Commit\" then\r\
-				task.Planning.Type = \"Revs\"\r\
-				task.Planning.index = 1\r\
-			elseif dateList.typeSchedule == \"Revs\" then\r\
-				task.Planning.Type = \"Revs\"\r\
-				task.Planning.index = dateList.index + 1\r\
-			else\r\
-				task.Planning.Type = \"Actual\"\r\
-				task.Planning.index = 1		\r\
-			end\r\
-		elseif task.Planning.Type == \"Estimate\" then\r\
-			task.Planning.Type = \"Commit\"\r\
-			task.Planning.index = 1\r\
-		elseif task.Planning.Type == \"Commit\" then\r\
-			task.Planning.Type = \"Revs\"\r\
-			if task.Schedules and task.Schedules.Revs then\r\
-				task.Planning.index = #task.Schedules.Revs + 1\r\
-			else\r\
-				task.Planning.index = 1\r\
-			end\r\
-		elseif task.Planning.Type == \"Revs\" then\r\
-			-- in \"NORMAL\" type the schedule does not go to \"Actual\"\r\
-			task.Planning.Type = \"Estimate\"\r\
-			if task.Schedules and task.Schedules.Estimate then\r\
-				task.Planning.index = #task.Schedules.Estimate + 1\r\
-			else\r\
-				task.Planning.index = 1\r\
-			end\r\
-		end		-- if not task.Planning.Type then ends\r\
-	else\r\
-		task.Planning.Type = \"Actual\"\r\
-		task.Planning.index = 1\r\
-	end		-- if type == \"NORMAL\" then ends\r\
-end\r\
-\r\
-\r\
--- Function to toggle a planning date in the given task. If the planning schedule table is not present it creates it with the schedule type Estimate\r\
--- returns 1 if added, 2 if removed, 3 if removed and no more planning schedule left\r\
-function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)\r\
-	if not task.Planning then\r\
-		Karm.TaskObject.togglePlanningType(task,type)\r\
-		task.Planning.Period = {\r\
-									[0]=\"Period\",\r\
-									count=1,\r\
-									[1]={\r\
-											[0]=\"DP\",\r\
-											Date = xmlDate\r\
-										}\r\
-								}\r\
-		\r\
-		return 1\r\
-	end\r\
-	if not task.Planning.Period then\r\
-		task.Planning.Period = {\r\
-									[0]=\"Period\",\r\
-									count=1,\r\
-									[1]={\r\
-											[0]=\"DP\",\r\
-											Date = xmlDate\r\
-										}\r\
-								}\r\
-		\r\
-		return 1\r\
-	end\r\
-	for i=1,task.Planning.Period.count do\r\
-		if task.Planning.Period[i].Date == xmlDate then\r\
-			-- Remove this date\r\
-			for j=i+1,task.Planning.Period.count do\r\
-				task.Planning.Period[j-1] = task.Planning.Period[j]\r\
-			end\r\
-			task.Planning.Period[task.Planning.Period.count] = nil\r\
-			task.Planning.Period.count = task.Planning.Period.count - 1\r\
-			if task.Planning.Period.count>0 then\r\
-				return 2\r\
-			else\r\
-				task.Planning = nil\r\
-				return 3\r\
-			end\r\
-		elseif task.Planning.Period[i].Date > xmlDate then\r\
-			-- Insert Date here\r\
-			task.Planning.Period.count = task.Planning.Period.count + 1\r\
-			for j = task.Planning.Period.count,i+1,-1 do\r\
-				task.Planning.Period[j] = task.Planning.Period[j-1]\r\
-			end\r\
-			task.Planning.Period[i] = {[0]=\"DP\",Date=xmlDate}\r\
-			return 1\r\
-		end\r\
-	end\r\
-	-- Date must be added in the end\r\
-	task.Planning.Period.count = task.Planning.Period.count + 1\r\
-	task.Planning.Period[task.Planning.Period.count] = {[0]=\"DP\",Date = xmlDate	}\r\
-	return 1\r\
-end\r\
-\r\
-function Karm.TaskObject.add2Spore(task,dataStruct)\r\
-	if not task.SubTasks then\r\
-		task.SubTasks = {parent = dataStruct, tasks = 0, [0]=\"SubTasks\"}\r\
-	end\r\
-	dataStruct.tasks = dataStruct.tasks + 1\r\
-	dataStruct[dataStruct.tasks] = task \r\
-	if dataStruct.tasks > 1 then\r\
-		dataStruct[dataStruct.tasks - 1].Next = dataStruct[dataStruct.tasks]\r\
-		dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks-1]\r\
-	end\r\
-end\r\
-\r\
-function Karm.TaskObject.getNewChildTaskID(parent)\r\
-	local taskID\r\
-	if not parent.SubTasks then\r\
-		taskID = parent.TaskID..\"_1\"\r\
-	else \r\
-		local intVar1 = 0\r\
-		for count = 1,#parent.SubTasks do\r\
-	        local tempTaskID = parent.SubTasks[count].TaskID\r\
-	        if tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1)) > intVar1 then\r\
-	            intVar1 = tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1))\r\
-	        end\r\
-		end\r\
-		intVar1 = intVar1 + 1\r\
-		taskID = parent.TaskID..\"_\"..tostring(intVar1)\r\
-	end\r\
-	return taskID\r\
-end\r\
-\r\
--- Function to add a task according to the specified relation\r\
-function Karm.TaskObject.add2Parent(task, parent, Spore)\r\
-	if not (task and parent) then\r\
-		error(\"nil parameter cannot be handled at add2Parent in DataHandler.lua.\",2)\r\
-	end\r\
-	if getmetatable(task) ~= Karm.TaskObject or getmetatable(parent) ~= Karm.TaskObject then\r\
-		error(\"Need a valid task and parent task object to add the task to parent\", 2)\r\
-	end\r\
-	if not parent.SubTasks then\r\
-		parent.SubTasks = {tasks = 0, [0]=\"SubTasks\"}\r\
-		if not parent.Parent then\r\
-			if not Spore then\r\
-				error(\"nil parameter cannot be handled at add2Parent in DataHandler.lua.\",2)\r\
-			end\r\
-			-- This is a Spore root node\r\
-			parent.SubTasks.parent = Spore\r\
-		else\r\
-			parent.SubTasks.parent = parent.Parent.SubTasks\r\
-		end \r\
-	end\r\
-	parent.SubTasks.tasks = parent.SubTasks.tasks + 1\r\
-	parent.SubTasks[parent.SubTasks.tasks] = task\r\
-	if parent.SubTasks.tasks > 1 then\r\
-		parent.SubTasks[parent.SubTasks.tasks - 1].Next = parent.SubTasks[parent.SubTasks.tasks]\r\
-		parent.SubTasks[parent.SubTasks.tasks].Previous = parent.SubTasks[parent.SubTasks.tasks-1]\r\
-	end\r\
-end\r\
-\r\
--- Function to get all work done dates for a task and color and type for each date\r\
--- This function is called by the taskTree UI element to display the Gantt chart\r\
--- if bubble is true it bubbles up the latest schedule dates of the entire task hierarchy to this task\r\
---\r\
--- The function returns a table in the following format\r\
--- typeSchedule - Type of schedule for this task\r\
--- index - index of schedule for this task\r\
--- Subtables starting from index 1 corresponding to each date\r\
-	-- Each subtable has the following keys:\r\
-	-- Date - XML format date \r\
-	-- typeSchedule - Type of schedule the date comes from \"Estimate\", \"Commit\", \"Revision\", \"Actual\"\r\
-	-- index - the index of the schedule\r\
-	-- Bubbled - True/False - True if date is from a subtask \r\
-	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart\r\
-	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date\r\
-	-- Text - Text to be written in the Gantt cell for the date\r\
-function Karm.TaskObject.getWorkDates(task,bubble)\r\
-	local updateDateTable = function(task,dateTable)\r\
-		local dateList = Karm.TaskObject.getWorkDoneDates(task)\r\
-		if dateList then\r\
-			if not dateTable then\r\
-				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\r\
-			end\r\
-			for i = 1,#dateList do\r\
-				local found = false\r\
-				local index = 0\r\
-				for j = 1,#dateTable do\r\
-					if dateTable[j].Date == dateList[i] then\r\
-						found = true\r\
-						break\r\
-					end\r\
-					if dateTable[j].Date > dateList[i] then\r\
-						index = j\r\
-						break\r\
-					end\r\
-				end\r\
-				if not found then\r\
-					-- Create a space at index\r\
-					for j = #dateTable, index, -1 do\r\
-						dateTable[j+1] = dateTable[j]\r\
-					end\r\
-					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,\r\
-					Blue=Karm.GUI.ScheduleColor.Blue-Karm.GUI.bubbleOffset.Blue}\r\
-					if newColor.Red < 0 then newColor.Red = 0 end\r\
-					if newColor.Green < 0 then newColor.Green = 0 end\r\
-					if newColor.Blue < 0 then newColor.Blue = 0 end\r\
-					dateTable[index] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \r\
-					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = \"\"}\r\
-				end\r\
-			end		-- for i = 1,#dateList do ends\r\
-		end		-- if dateList then ends\r\
-		return dateTable\r\
-	end\r\
-	if bubble then\r\
-		local dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable)\r\
-		return dateTable\r\
-	else \r\
-		-- Just get the latest dates for this task\r\
-		local dateList = Karm.TaskObject.getWorkDoneDates(task)\r\
-		if dateList then\r\
-			-- Convert the dateList to modified return table\r\
-			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\r\
-			for i = 1,#dateList do\r\
-				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \r\
-				  Bubbled = nil, BackColor = Karm.GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = \"\"}\r\
-			end\r\
-			return dateTable\r\
-		else\r\
-			return nil\r\
-		end\r\
-	end\r\
-end\r\
-\r\
--- Function to get all dates for a task and color and type for each date\r\
--- This function is called by the taskTree UI element to display the Gantt chart\r\
--- if bubble is true it bubbles up the latest schedule dates of the entire task hierarchy to this task\r\
--- if planning is true it returns the planning date list for this task\r\
---\r\
--- The function returns a table in the following format\r\
--- typeSchedule - Type of schedule for this task\r\
--- index - index of schedule for this task\r\
--- Subtables starting from index 1 corresponding to each date\r\
-	-- Each subtable has the following keys:\r\
-	-- Date - XML format date \r\
-	-- typeSchedule - Type of schedule the date comes from \"Estimate\", \"Commit\", \"Revision\", \"Actual\"\r\
-	-- index - the index of the schedule\r\
-	-- Bubbled - True/False - True if date is from a subtask \r\
-	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart\r\
-	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date\r\
-	-- Text - Text to be written in the Gantt cell for the date\r\
-function Karm.TaskObject.getDates(task,bubble,planning)\r\
-	local plan = planning\r\
-	local updateDateTable = function(task,dateTable)\r\
-		local dateList = Karm.TaskObject.getLatestScheduleDates(task,plan)\r\
-		if dateList then\r\
-			if not dateTable then\r\
-				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\r\
-			end\r\
-			for i = 1,#dateList do\r\
-				local found = false\r\
-				local index = 0\r\
-				for j = 1,#dateTable do\r\
-					if dateTable[j].Date == dateList[i] then\r\
-						found = true\r\
-						break\r\
-					end\r\
-					if dateTable[j].Date > dateList[i] then\r\
-						index = j - 1\r\
-						break\r\
-					end\r\
-				end\r\
-				if not found then\r\
-					-- Create a space at index + 1\r\
-					for j = #dateTable, index+1, -1 do\r\
-						dateTable[j+1] = dateTable[j]\r\
-					end\r\
-					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,\r\
-					Blue=Karm.GUI.ScheduleColor.Blue-Karm.GUI.bubbleOffset.Blue}\r\
-					if newColor.Red < 0 then newColor.Red = 0 end\r\
-					if newColor.Green < 0 then newColor.Green = 0 end\r\
-					if newColor.Blue < 0 then newColor.Blue = 0 end\r\
-					dateTable[index+1] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \r\
-					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = dateList.typeSchedule:sub(1,1)}\r\
-				end\r\
-			end		-- for i = 1,#dateList do ends\r\
-		end		-- if dateList then ends\r\
-		return dateTable\r\
-	end\r\
-	if bubble then\r\
-		-- Main task schedule\r\
-		local dateTable = updateDateTable(task)\r\
-		if dateTable then\r\
-			for i = 1,#dateTable do\r\
-				dateTable[i].Bubbled = nil\r\
-				dateTable[i].BackColor = Karm.GUI.ScheduleColor\r\
-				dateTable[i].Text = \"\"\r\
-			end\r\
-		end\r\
-		plan = nil\r\
-		dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable,dateTable, true)\r\
-		return dateTable\r\
-	else \r\
-		-- Just get the latest dates for this task\r\
-		local dateList = Karm.TaskObject.getLatestScheduleDates(task,planning)\r\
-		if dateList then\r\
-			-- Convert the dateList to modified return table\r\
-			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\r\
-			for i = 1,#dateList do\r\
-				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \r\
-				  Bubbled = nil, BackColor = Karm.GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = \"\"}\r\
-			end\r\
-			return dateTable\r\
-		else\r\
-			return nil\r\
-		end\r\
-	end\r\
-end\r\
-\r\
--- function to update the taskID in the whole hierarchy\r\
-function Karm.TaskObject.updateTaskID(task,taskID)\r\
-	if not(task and taskID) then\r\
-		error(\"Need a task and taskID for Karm.TaskObject.updateTaskID in DataHandler.lua\",2)\r\
-	end\r\
-	local prevTaskID = task.TaskID\r\
-	Karm.TaskObject.applyFuncHier(task,function(task,taskIDs)\r\
-							task.TaskID = task.TaskID:gsub(\"^\"..taskIDs.prevTaskID,taskIDs.newTaskID)\r\
-							return taskIDs\r\
-						end, {prevTaskID = prevTaskID, newTaskID = taskID}\r\
-	)\r\
-end\r\
-\r\
--- Old Version\r\
---function Karm.TaskObject.updateTaskID(task,taskID)\r\
---	if not(task and taskID) then\r\
---		error(\"Need a task and taskID for Karm.TaskObject.updateTaskID in DataHandler.lua\",2)\r\
---	end\r\
---	local prevTaskID = task.TaskID\r\
---	task.TaskID = taskID\r\
---	if task.SubTasks then\r\
---		local currNode = task.SubTasks\r\
---		local hierCount = {}\r\
---		-- Traverse the task hierarchy here\r\
---		hierCount[currNode] = 0\r\
---		while hierCount[currNode] < #currNode or currNode.parent do\r\
---			if not(hierCount[currNode] < #currNode) then\r\
---				if currNode == task.SubTasks then\r\
---					-- Do not go above the passed task\r\
---					break\r\
---				end \r\
---				currNode = currNode.parent\r\
---			else\r\
---				-- Increment the counter\r\
---				hierCount[currNode] = hierCount[currNode] + 1\r\
---				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub(\"^\"..prevTaskID,task.TaskID)\r\
---				if currNode[hierCount[currNode]].SubTasks then\r\
---					-- This task has children so go deeper in the hierarchy\r\
---					currNode = currNode[hierCount[currNode]].SubTasks\r\
---					hierCount[currNode] = 0\r\
---				end\r\
---			end\r\
---		end		-- while hierCount[hier] < #hier or hier.parent do ends here\r\
---	end		-- if task.SubTasks then ends\r\
---end\r\
-\r\
--- Function to move the task before/after\r\
-function Karm.TaskObject.bubbleTask(task,relative,beforeAfter,parent)\r\
-	if task.Parent ~= relative.Parent then\r\
-		error(\"The task and relative should be on the same level in the Karm.TaskObject.bubbleTask call in DataHandler.lua\",2)\r\
-	end\r\
-	if not (task.Parent or parent) then\r\
-		error(\"parent argument should be specified for tasks/relative that do not have a parent defined in Karm.TaskObject.bubbleTask call in DataHandler.lua\",2)\r\
-	end	\r\
-	if task==relative then\r\
-		return\r\
-	end\r\
-	local pTable, swapID\r\
-	if not task.Parent then\r\
-		-- These are root nodes in a spore\r\
-		pTable = parent\r\
-		swapID = false	-- since IDs for spore root nodes should not be swapped since they are roots and unique\r\
-	else\r\
-		pTable = relative.Parent.SubTasks\r\
-		swapID = true\r\
-	end\r\
-	if beforeAfter:upper() == \"AFTER\" then\r\
-		-- Next Sibling\r\
-		-- Find the relative and task number\r\
-		local posRel, posTask\r\
-		for i = 1,pTable.tasks do\r\
-			if pTable[i] == relative then\r\
-				posRel = i\r\
-			end\r\
-			if pTable[i] == task then\r\
-				posTask = i\r\
-			end\r\
-		end\r\
-		if posRel < posTask then\r\
-			-- Start the bubble up \r\
-			for i = posTask,posRel+2,-1 do\r\
-				if swapID then\r\
-					-- Swap TaskID\r\
-					local tim1 = pTable[i].TaskID\r\
-					local ti = pTable[i-1].TaskID\r\
-					Karm.TaskObject.updateTaskID(pTable[i],ti) \r\
-					Karm.TaskObject.updateTaskID(pTable[i-1],tim1)\r\
-				end \r\
-				-- Swap task position\r\
-				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]\r\
-				-- Update the Previous and Next pointers\r\
-				pTable[i].Previous = pTable[i-1]\r\
-				pTable[i-1].Next = pTable[i]\r\
-				if i > 2 then\r\
-					pTable[i-2].Next = pTable[i-1]\r\
-					pTable[i-1].Previous = pTable[i-2]\r\
-				else\r\
-					pTable[i-1].Previous = nil\r\
-				end\r\
-				if i < pTable.tasks then\r\
-					pTable[i].Next = pTable[i+1]\r\
-					pTable[i+1].Previous = pTable[i]\r\
-				else\r\
-					pTable[i].Next = nil\r\
-				end\r\
-			end\r\
-		else\r\
-			-- Start the bubble down \r\
-			for i = posTask,posRel-1 do\r\
-				if swapID then\r\
-					-- Swap TaskID\r\
-					local tip1 = pTable[i].TaskID\r\
-					local ti = pTable[i+1].TaskID\r\
-					Karm.TaskObject.updateTaskID(pTable[i],ti) \r\
-					Karm.TaskObject.updateTaskID(pTable[i+1],tip1)\r\
-				end \r\
-				-- Swap task position\r\
-				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]\r\
-				-- Update the Previous and Next pointers\r\
-				pTable[i+1].Previous = pTable[i]\r\
-				pTable[i].Next = pTable[i+1]\r\
-				if i > 1 then\r\
-					pTable[i-1].Next = pTable[i]\r\
-					pTable[i].Previous = pTable[i-1]\r\
-				else\r\
-					pTable[i].Previous = nil\r\
-				end\r\
-				if i+1 < pTable.tasks then\r\
-					pTable[i+1].Next = pTable[i+2]\r\
-					pTable[i+2].Previous = pTable[i+1]\r\
-				else\r\
-					pTable[i+1].Next = nil\r\
-				end\r\
-			end\r\
-		end\r\
-	else\r\
-		-- Previous sibling\r\
-		-- Find the relative and task number\r\
-		local posRel, posTask\r\
-		for i = 1,pTable.tasks do\r\
-			if pTable[i] == relative then\r\
-				posRel = i\r\
-			end\r\
-			if pTable[i] == task then\r\
-				posTask = i\r\
-			end\r\
-		end\r\
-		if posRel < posTask then\r\
-			-- Start the bubble up \r\
-			for i = posTask,posRel+1,-1 do\r\
-				if swapID then\r\
-					-- Swap TaskID\r\
-					local tim1 = pTable[i].TaskID\r\
-					local ti = pTable[i-1].TaskID\r\
-					Karm.TaskObject.updateTaskID(pTable[i],ti) \r\
-					Karm.TaskObject.updateTaskID(pTable[i-1],tim1)\r\
-				end \r\
-				-- Swap task position\r\
-				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]\r\
-				-- Update the Previous and Next pointers\r\
-				pTable[i].Previous = pTable[i-1]\r\
-				pTable[i-1].Next = pTable[i]\r\
-				if i > 2 then\r\
-					pTable[i-2].Next = pTable[i-1]\r\
-					pTable[i-1].Previous = pTable[i-2]\r\
-				else\r\
-					pTable[i-1].Previous = nil\r\
-				end\r\
-				if i < pTable.tasks then\r\
-					pTable[i].Next = pTable[i+1]\r\
-					pTable[i+1].Previous = pTable[i]\r\
-				else\r\
-					pTable[i].Next = nil\r\
-				end\r\
-			end\r\
-		else\r\
-			-- Start the bubble down \r\
-			for i = posTask,posRel-2 do\r\
-				if swapID then\r\
-					-- Swap TaskID\r\
-					local tip1 = pTable[i].TaskID\r\
-					local ti = pTable[i+1].TaskID\r\
-					Karm.TaskObject.updateTaskID(pTable[i],ti) \r\
-					Karm.TaskObject.updateTaskID(pTable[i+1],tip1)\r\
-				end \r\
-				-- Swap task position\r\
-				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]\r\
-				-- Update the Previous and Next pointers\r\
-				pTable[i+1].Previous = pTable[i]\r\
-				pTable[i].Next = pTable[i+1]\r\
-				if i > 1 then\r\
-					pTable[i-1].Next = pTable[i]\r\
-					pTable[i].Previous = pTable[i-1]\r\
-				else\r\
-					pTable[i].Previous = nil\r\
-				end\r\
-				if i+1 < pTable.tasks then\r\
-					pTable[i+1].Next = pTable[i+2]\r\
-					pTable[i+2].Previous = pTable[i+1]\r\
-				else\r\
-					pTable[i+1].Next = nil\r\
-				end\r\
-			end\r\
-		end\r\
-	end\r\
-\r\
-end\r\
-\r\
---function DeleteTaskFromSpore(task, Spore)\r\
---	if task.Parent then\r\
---		error(\"DeleteTaskFromSpore: Cannot delete task that is not a root task in Spore.\",2)\r\
---	end\r\
---	local taskList\r\
---	taskList = Spore\r\
---	for i = 1,#taskList do\r\
---		if taskList[i] == task then\r\
---			for j = i, #taskList-1 do\r\
---				taskList[j] = taskList[j+1]\r\
---			end\r\
---			taskList[#taskList] = nil\r\
---			taskList.tasks = taskList.tasks - 1\r\
---			break\r\
---		end\r\
---	end\r\
---end\r\
-\r\
-function Karm.TaskObject.DeleteFromDB(task)\r\
-	local taskList\r\
-	if not task.Parent then\r\
-		taskList = task.SubTasks.parent		\r\
-	else\r\
-		taskList = task.Parent.SubTasks\r\
-	end\r\
-	for i = 1,#taskList do\r\
-		if taskList[i] == task then\r\
-			for j = i, #taskList-1 do\r\
-				taskList[j] = taskList[j+1]\r\
-				if j>1 then\r\
-					taskList[j].Previous = taskList[j-1]\r\
-					taskList[j-1].Next = taskList[j]\r\
-				end\r\
-			end\r\
-			taskList[#taskList] = nil\r\
-			taskList.tasks = taskList.tasks - 1\r\
-			break\r\
-		end\r\
-	end\r\
-end\r\
-\r\
-function Karm.sporeTitle(path)\r\
-	-- Find the name of the file\r\
-	local strVar\r\
-	local intVar1 = -1\r\
-	for intVar = #path,1,-1 do\r\
-		if string.sub(path, intVar, intVar) == \".\" then\r\
-	    	intVar1 = intVar\r\
-		end\r\
-		if string.sub(path, intVar, intVar) == \"\\\\\" or string.sub(path, intVar, intVar) == \"/\" then\r\
-	    	strVar = string.sub(path, intVar + 1, intVar1-1)\r\
-	    	break\r\
-		end\r\
-	end\r\
-	if not strVar then\r\
-		strVar = path\r\
-	end\r\
-	return strVar\r\
-end\r\
-\r\
-function Karm.TaskObject.IsSpore(task)\r\
-	if task.TaskID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then\r\
-		return true\r\
-	else\r\
-		return false\r\
-	end\r\
-end\r\
-\r\
--- Function to convert XML data from a single spore to internal data structure\r\
--- Task structure\r\
--- Task.\r\
---	Planning.\r\
---	[0] = Task\r\
--- 	SporeFile\r\
---	Title\r\
---	Modified\r\
---	DBDATA.\r\
---	TaskID\r\
---	Start\r\
---	Fin\r\
---	Private\r\
---	Who.\r\
---	Access.\r\
---	Assignee.\r\
---	Status\r\
---	Parent. = Pointer to the Task to which this is a sub task (Nil for root tasks in a Spore)\r\
---  Next. = Pointer to the next task under the same Parent (Nil if this is the last task)\r\
---  Previous. = Pointer to the previous task under the same Parent (Nil if this is the first task)\r\
---	Priority\r\
---	Due\r\
---	Comments\r\
---	Cat\r\
---	SubCat\r\
---	Tags.\r\
---	Schedules.\r\
---		[0] = \"Schedules\"\r\
---		Estimate.\r\
---			[0] = \"Estimate\"\r\
---			count\r\
---			[i] = \r\
---		Commit.\r\
---			[0] = \"Commit\"\r\
---		Revs\r\
---		Actual\r\
---	SubTasks.\r\
---		[0] = \"SubTasks\"\r\
---		parent  = pointer to the array containing the list of tasks having the task whose SubTask Node this is (Points to Spore table for root tasks of a Spore)\r\
---		tasks = count of number of subtasks\r\
---		[i] = Task table like this one repeated for sub tasks\r\
-\r\
-function Karm.XML2Data(SporeXML, SporeFile)\r\
-	-- tasks counts the number of tasks at the current level\r\
-	-- index 0 contains the name of this level to make it compatible with LuaXml\r\
-	local dataStruct = {Title = Karm.sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Karm.Globals.ROOTKEY..SporeFile, [0] = \"Task_Spore\"}	-- to create the data structure\r\
-	if SporeXML[0]~=\"Task_Spore\" then\r\
-		return nil\r\
-	end\r\
-	local currNode = SporeXML		-- currNode contains the current XML node being processed\r\
-	local hierInfo = {}\r\
-	hierInfo[currNode] = {count = 1}		-- hierInfo contains associated information with the currNode i.e. its Parent and count of the node being processed\r\
-	while(currNode[hierInfo[currNode].count] or hierInfo[currNode].parent) do\r\
-		if not(currNode[hierInfo[currNode].count]) then\r\
-			currNode = hierInfo[currNode].parent\r\
-			dataStruct = dataStruct.parent\r\
-		else\r\
-			if currNode[hierInfo[currNode].count][0] == \"Task\" then\r\
-				local task = currNode[hierInfo[currNode].count]\r\
-				hierInfo[currNode].count = hierInfo[currNode].count + 1\r\
-				local necessary = 0\r\
-				dataStruct.tasks = dataStruct.tasks + 1\r\
-				dataStruct[dataStruct.tasks] = {[0] = \"Task\"}\r\
-				\r\
-				dataStruct[dataStruct.tasks].SporeFile = SporeFile\r\
-				-- Set the Previous and next pointers\r\
-				if dataStruct.tasks > 1 then\r\
-					dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks - 1]\r\
-				end\r\
-				dataStruct[dataStruct.tasks].Next = dataStruct[dataStruct.tasks + 1]\r\
-				-- Each task has a Parent Attribute which points to a parent Task containing this task. For root tasks in the spore this is nil\r\
-				dataStruct[dataStruct.tasks].Parent = hierInfo[currNode].parentTask\r\
-				-- Extract all task information here\r\
-				local count = 1\r\
-				while(task[count]) do\r\
-					if task[count][0] == \"Title\" then\r\
-						dataStruct[dataStruct.tasks].Title = task[count][1]\r\
-						necessary = necessary + 1\r\
-					elseif task[count][0] == \"Modified\" then\r\
-						if task[count][1] == \"YES\" then\r\
-							dataStruct[dataStruct.tasks].Modified = true\r\
-						else\r\
-							dataStruct[dataStruct.tasks].Modified = false\r\
-						end\r\
-						necessary = necessary + 1\r\
-					elseif task[count][0] == \"DB-Data\" then\r\
-						dataStruct[dataStruct.tasks].DBDATA = {[0]=\"DB-Data\",DBID = task[count][1][1], Updated = task[count][2][1]}\r\
-					elseif task[count][0] == \"TaskID\" then\r\
-						dataStruct[dataStruct.tasks].TaskID = task[count][1]\r\
-						necessary = necessary + 1\r\
-					elseif task[count][0] == \"Start\" then\r\
-						dataStruct[dataStruct.tasks].Start = task[count][1]\r\
-						necessary = necessary + 1\r\
-					elseif task[count][0] == \"Fin\" then\r\
-						dataStruct[dataStruct.tasks].Fin = task[count][1]\r\
-					elseif task[count][0] == \"Private\" then\r\
-						if task[count][1] == \"Private\" then\r\
-							dataStruct[dataStruct.tasks].Private = true\r\
-						else\r\
-							dataStruct[dataStruct.tasks].Private = false\r\
-						end\r\
-						necessary = necessary + 1\r\
-					elseif task[count][0] == \"People\" then\r\
-						for j = 1,#task[count] do\r\
-							if task[count][j][0] == \"Who\" then\r\
-								local WhoTable = {[0]=\"Who\", count = #task[count][j]}\r\
-								-- Loop through all the items in the Who element\r\
-								for i = 1,#task[count][j] do\r\
-									WhoTable[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}\r\
-								end\r\
-								necessary = necessary + 1\r\
-								dataStruct[dataStruct.tasks].Who = WhoTable\r\
-							elseif task[count][j][0] == \"Locked\" then\r\
-								local locked = {[0]=\"Access\", count = #task[count][j]}\r\
-								-- Loop through all the items in the Locked element Access List\r\
-								for i = 1,#task[count][j] do\r\
-									locked[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}\r\
-								end\r\
-								dataStruct[dataStruct.tasks].Access = locked\r\
-							elseif task[count][j][0] == \"Assignee\" then\r\
-								local assignee = {[0]=\"Assignee\", count = #task[count][j]}\r\
-								-- Loop through all the items in the Assignee element\r\
-								for i = 1,#task[count][j] do\r\
-									assignee[i] = {ID = task[count][j][i][1]}\r\
-								end				\r\
-								dataStruct[dataStruct.tasks].Assignee = assignee					\r\
-							end		-- if task[count][j][0] == \"Who\" then ends here				\r\
-						end		-- for j = 1,#task[count] do ends here				\r\
-					elseif task[count][0] == \"Status\" then\r\
-						dataStruct[dataStruct.tasks].Status = task[count][1]\r\
-						necessary = necessary + 1\r\
-					elseif task[count][0] == \"Priority\" then\r\
-						dataStruct[dataStruct.tasks].Priority = task[count][1]\r\
-					elseif task[count][0] == \"Due\" then\r\
-						dataStruct[dataStruct.tasks].Due = task[count][1]\r\
-					elseif task[count][0] == \"Comments\" then\r\
-						dataStruct[dataStruct.tasks].Comments = task[count][1]\r\
-					elseif task[count][0] == \"Category\" then\r\
-						dataStruct[dataStruct.tasks].Cat = task[count][1]\r\
-					elseif task[count][0] == \"Sub-Category\" then\r\
-						dataStruct[dataStruct.tasks].SubCat = task[count][1]\r\
-					elseif task[count][0] == \"Tags\" then\r\
-						local tagTable = {[0]=\"Tags\", count = #task[count]}\r\
-						-- Loop through all the items in the Tags element\r\
-						for i = 1,#task[count] do\r\
-							tagTable[i] = task[count][i][1]\r\
-						end\r\
-						dataStruct[dataStruct.tasks].Tags = tagTable\r\
-					elseif task[count][0] == \"Schedules\" then\r\
-						local schedule = {[0]=\"Schedules\"}\r\
-						for i = 1,#task[count] do\r\
-							if task[count][i][0] == \"Estimate\" then\r\
-								local estimate = {[0]=\"Estimate\", count = #task[count][i]}\r\
-								-- Loop through all the estimates\r\
-								for j = 1,#task[count][i] do\r\
-									estimate[j] = {[0]=\"Estimate\"}\r\
-									-- Loop through the children of Estimates element\r\
-									for n = 1,#task[count][i][j] do\r\
-										if task[count][i][j][n][0] == \"Hours\" then\r\
-											estimate[j].Hours = task[count][i][j][n][1]\r\
-										elseif task[count][i][j][n][0] == \"Comment\" then\r\
-											estimate[j].Comment = task[count][i][j][n][1]\r\
-										elseif task[count][i][j][0] == \"Updated\" then\r\
-											estimate[j].Updated = task[count][i][j][n][1]\r\
-										elseif task[count][i][j][n][0] == \"Period\" then\r\
-											local period = {[0] = \"Period\", count = #task[count][i][j][n]}\r\
-											-- Loop through all the day plans\r\
-											for k = 1,#task[count][i][j][n] do\r\
-												period[k] = {[0] = \"DP\", Date = task[count][i][j][n][k][1][1]}\r\
-												if task[count][i][j][n][k][2] then\r\
-													if task[count][i][j][n][k][2] == \"Hours\" then\r\
-														period[k].Hours = task[count][i][j][n][k][2][1]\r\
-													else\r\
-														-- Collect all the time plans\r\
-														period[k].TP = {[0]=\"Time Plan\", count = #task[count][i][j][n][k]-1}\r\
-														for m = 2,#task[count][i][j][n][k] do\r\
-															-- Add this time plan to the kth day plan\r\
-															period[k].TP[m-1] = {STA = task[count][i][j][n][k][m][1][1], STP = task[count][i][j][n][k][m][2][1]}\r\
-														end\r\
-													end\r\
-												end		-- if task[count][i][n][k][2] then ends\r\
-											end		-- for k = 1,#task[count][i][j] do ends\r\
-											estimate[j].Period = period\r\
-										end		-- if task[count][i][j][0] == \"Hours\" then ends\r\
-									end		-- for n = 1,#task[count][i][j] do ends\r\
-								end		-- for j = 1,#task[count][i] do ends\r\
-								schedule.Estimate = estimate\r\
-							elseif task[count][i][0] == \"Commit\" then\r\
-								local commit = {[0]=\"Commit\"}\r\
-								commit.Comment = task[count][i][1][1][1]\r\
-								commit.Updated = task[count][i][1][2][1]\r\
-								local period = {[0] = \"Period\", count = #task[count][i][1][3]}\r\
-								-- Loop through all the day plans\r\
-								for k = 1,#task[count][i][1][3] do\r\
-									period[k] = {[0] = \"DP\", Date = task[count][i][1][3][k][1][1]}\r\
-									if task[count][i][1][3][k][2] then\r\
-										if task[count][i][1][3][k][2] == \"Hours\" then\r\
-											period[k].Hours = task[count][i][1][3][k][2][1]\r\
-										else\r\
-											-- Collect all the time plans\r\
-											period[k].TP = {[0]=\"Time Plan\", count = #task[count][i][1][3][k]-1}\r\
-											for m = 2,#task[count][i][1][3][k] do\r\
-												-- Add this time plan to the kth day plan\r\
-												period[k].TP[m-1] = {STA = task[count][i][1][3][k][m][1][1], STP = task[count][i][1][3][k][m][2][1]}\r\
-											end\r\
-										end\r\
-									end		-- if task[count][i][n][k][2] then ends\r\
-								end		-- for k = 1,#task[count][i][j] do ends\r\
-								commit.Period = period\r\
-								schedule.Commit = {commit,[0]=\"Commit\", count = 1}\r\
-							elseif task[count][i][0] == \"Revs\" then\r\
-								local revs = {[0]=\"Revs\", count = #task[count][i]}\r\
-								-- Loop through all the Revisions\r\
-								for j = 1,#task[count][i] do\r\
-									revs[j] = {[0]=\"Revs\"}\r\
-									-- Loop through the children of Revision element\r\
-									for n = 1,#task[count][i][j] do\r\
-										if task[count][i][j][n][0] == \"Comment\" then\r\
-											revs[j].Comment = task[count][i][j][n][1]\r\
-										elseif task[count][i][j][0] == \"Updated\" then\r\
-											revs[j].Updated = task[count][i][j][n][1]\r\
-										elseif task[count][i][j][n][0] == \"Period\" then\r\
-											local period = {[0] = \"Period\", count = #task[count][i][j][n]}\r\
-											-- Loop through all the day plans\r\
-											for k = 1,#task[count][i][j][n] do\r\
-												period[k] = {[0] = \"DP\", Date = task[count][i][j][n][k][1][1]}\r\
-												if task[count][i][j][n][k][2] then\r\
-													if task[count][i][j][n][k][2] == \"Hours\" then\r\
-														period[k].Hours = task[count][i][j][n][k][2][1]\r\
-													else\r\
-														-- Collect all the time plans\r\
-														period[k].TP = {[0]=\"Time Plan\", count = #task[count][i][j][n][k]-1}\r\
-														for m = 2,#task[count][i][j][n][k] do\r\
-															-- Add this time plan to the kth day plan\r\
-															period[k].TP[m-1] = {STA = task[count][i][j][n][k][m][1][1], STP = task[count][i][j][n][k][m][2][1]}\r\
-														end\r\
-													end\r\
-												end		-- if task[count][i][n][k][2] then ends\r\
-											end		-- for k = 1,#task[count][i][j] do ends\r\
-											revs[j].Period = period\r\
-										end		-- if task[count][i][j][0] == \"Hours\" then ends\r\
-									end		-- for n = 1,#task[count][i][j] do ends\r\
-								end		-- for j = 1,#task[count][i] do ends\r\
-								schedule.Revs = revs\r\
-							elseif task[count][i][0] == \"Actual\" then\r\
-								local actual = {[0]= \"Actual\", count = 1}\r\
-								local period = {[0] = \"Period\", count = #task[count][i]-1} \r\
-								-- Loop through all the work done elements\r\
-								for j = 2,period.count+1 do\r\
-									period[j] = {[0]=\"WD\", Date = task[count][i][j][1][1]}\r\
-									for k = 2,#task[count][i][j] do\r\
-										if task[count][i][j][k][0] == \"Hours\" then\r\
-											period[j].Hours = task[count][i][j][k][1]\r\
-										elseif task[count][i][j][k][0] == \"Comment\" then\r\
-											period[j].Comment = task[count][i][j][k][1]\r\
-										end\r\
-									end\r\
-								end\r\
-								actual[1] = {Period = period,[0]=\"Actual\", Updated = task[count][i][1][1]}\r\
-								schedule.Actual = actual\r\
-							end							\r\
-						end\r\
-						dataStruct[dataStruct.tasks].Schedules = schedule\r\
-					elseif task[count][0] == \"SubTasks\" then\r\
-						hierInfo[task[count]] = {count = 1, parent = currNode,parentTask = dataStruct[dataStruct.tasks]}\r\
-						currNode = task[count]\r\
-						dataStruct[dataStruct.tasks].SubTasks = {parent = dataStruct, tasks = 0, [0]=\"SubTasks\"}\r\
-						dataStruct = dataStruct[dataStruct.tasks].SubTasks\r\
-					end\r\
-					count = count + 1\r\
-				end		-- while(task[count]) do ends\r\
-				if necessary < 7 then\r\
-					-- this is not valid task\r\
-					dataStruct[dataStruct.tasks] = nil\r\
-					dataStruct.tasks = dataStruct.tasks - 1\r\
-				end\r\
-			else\r\
-				if currNode[hierInfo[currNode].parent] then\r\
-					currNode = hierInfo[currNode].parent\r\
-					dataStruct = dataStruct.parent\r\
-				end		-- if currNode[hierInfo[level].parent ends here\r\
-			end		-- if currNode[hierInfo[level].count][0] == \"Task\"  ends here\r\
-		end		-- if not(currNode[hierInfo[currNode].count]) then ends\r\
-	end		-- while(currNode[hierInfo[level].count]) ends here\r\
-	while dataStruct.parent do\r\
-		dataStruct = dataStruct.parent\r\
-	end\r\
-	\r\
-	-- Convert all tasks to proper task Objects\r\
-	local list1 = Karm.FilterObject.applyFilterHier(nil,Spore)\r\
-	if #list1 > 0 then\r\
-		for i = 1,#list1 do\r\
-			Karm.TaskObject.MakeTaskObject(list1[i])\r\
-		end\r\
-	end        	\r\
-	\r\
-	-- Create a SubTasks node for each root node to get link to spore data table\r\
-	for i = 1,#dataStruct do\r\
-		if not dataStruct[i].SubTasks then\r\
-			dataStruct[i].SubTasks = {parent = dataStruct, tasks = 0, [0]=\"SubTasks\"}\r\
-		end\r\
-	end\r\
-	return dataStruct\r\
-end		-- function Karm.XML2Data(SporeXML) ends here\r\
+__MANY2ONEFILES['DataHandler']="Karm.TaskObject = {}\
+Karm.TaskObject.__index = Karm.TaskObject\
+Karm.Utility = {}\
+-- Task structure\
+-- Task.\
+--	Planning\
+--	[0] = Task\
+-- 	SporeFile\
+--	Title\
+--	Modified\
+--	DBDATA\
+--	TaskID\
+--	Start\
+--	Fin\
+--	Private\
+--	Who\
+--	Access\
+--	Assignee\
+--	Status\
+--	Parent = Pointer to the Task to which this is a sub task\
+--	Priority\
+--	Due\
+--	Comments\
+--	Cat\
+--	SubCat\
+--	Tags\
+--	Schedules.\
+--		[0] = \"Schedules\"\
+--		Estimate.\
+--			[0] = \"Estimate\"\
+--			count\
+--			[i] = \
+--		Commit.\
+--			[0] = \"Commit\"\
+--		Revs\
+--		Actual\
+--	SubTasks.\
+--		[0] = \"SubTasks\"\
+--		parent  = pointer to the array containing the list of tasks having the task whose SubTask this is \
+--		tasks = count of number of subtasks\
+--		[i] = Task table like this one repeated for sub tasks\
+function Karm.TaskObject.getSummary(task)\
+	if task then\
+		local taskSummary = \"\"\
+		if task.TaskID then\
+			taskSummary = \"ID: \"..task.TaskID\
+		end\
+		if task.Title then\
+			taskSummary = taskSummary..\"\\nTITLE: \"..task.Title\
+		end\
+		if task.Start then\
+			taskSummary = taskSummary..\"\\nSTART DATE: \"..task.Start\
+		end\
+		if task.Fin then\
+			taskSummary = taskSummary..\"\\nFINISH DATE: \"..task.Fin\
+		end\
+		if task.Due then\
+			taskSummary = taskSummary..\"\\nDUE DATE: \"..task.Due\
+		end\
+		if task.Status then\
+			taskSummary = taskSummary..\"\\nSTATUS: \"..task.Status\
+		end\
+		-- Responsible People\
+		if task.Who then\
+			taskSummary = taskSummary..\"\\nPEOPLE: \"\
+			local ACT = \"\"\
+			local INACT = \"\"\
+			for i=1,task.Who.count do\
+				if string.upper(task.Who[i].Status) == \"ACTIVE\" then\
+					ACT = ACT..\",\"..task.Who[i].ID\
+				else\
+					INACT = INACT..\",\"..task.Who[i].ID\
+				end\
+			end\
+			if #ACT > 0 then\
+				taskSummary = taskSummary..\"\\n   ACTIVE: \"..string.sub(ACT,2,-1)\
+			end\
+			if #INACT > 0 then\
+				taskSummary = taskSummary..\"\\n   INACTIVE: \"..string.sub(INACT,2,-1)\
+			end\
+		end\
+		if task.Access then\
+			taskSummary = taskSummary..\"\\nLOCKED: YES\"\
+			local RA = \"\"\
+			local RWA = \"\"\
+			for i = 1,task.Access.count do\
+				if string.upper(task.Access[i].Status) == \"READ ONLY\" then\
+					RA = RA..\",\"..task.Access[i].ID\
+				else\
+					RWA = RWA..\",\"..task.Access[i].ID\
+				end\
+			end\
+			if #RA > 0 then\
+				taskSummary = taskSummary..\"\\n   READ ACCESS PEOPLE: \"..string.sub(RA,2,-1)\
+			end\
+			if #RWA > 0 then\
+				taskSummary = taskSummary..\"\\n   READ/WRITE ACCESS PEOPLE: \"..string.sub(RWA,2,-1)\
+			end\
+		end\
+		if task.Assignee then\
+			taskSummary = taskSummary..\"\\nASSIGNEE: \"\
+			for i = 1,#task.Assignee do\
+				taskSummary = taskSummary..task.Assignee[i].ID..\",\"\
+			end\
+			taskSummary = taskSummary:sub(1,-2)\
+		end\
+		if task.Priority then\
+			taskSummary = taskSummary..\"\\nPRIORITY: \"..task.Priority\
+		end\
+		if task.Private then\
+			taskSummary = taskSummary..\"\\nPRIVATE TASK\"\
+		end\
+		if task.Cat then\
+			taskSummary = taskSummary..\"\\nCATEGORY: \"..task.Cat\
+		end\
+		if task.SubCat then\
+			taskSummary = taskSummary..\"\\nSUB-CATEGORY: \"..task.SubCat\
+		end\
+		if task.Tags then\
+			taskSummary = taskSummary..\"\\nTAGS: \"\
+			for i = 1,#task.Tags do\
+				taskSummary = taskSummary..task.Tags[i]..\",\"\
+			end\
+			taskSummary = taskSummary:sub(1,-2)\
+		end\
+		if task.Comments then\
+			taskSummary = taskSummary..\"\\nCOMMENTS:\\n\"..task.Comments\
+		end\
+		return taskSummary\
+	else\
+		return \"No Task Selected\"\
+	end\
+end\
+\
+function Karm.validateSpore(Spore)\
+	if not Spore then\
+		return nil\
+	elseif type(Spore) ~= \"table\" then\
+		return nil\
+	elseif Spore[0] ~= \"Task_Spore\" then\
+		return nil\
+	end\
+	return true\
+end\
+\
+\
+function Karm.TaskObject.getWorkDoneDates(task)\
+	if task.Schedules then\
+		if task.Schedules.Actual then\
+			local dateList = {}\
+			for i = 1,#task.Schedules[\"Actual\"][1].Period do\
+				dateList[#dateList + 1] = task.Schedules[\"Actual\"][1].Period[i].Date\
+			end		-- for i = 1,#task.Schedules[\"Actual\"][1].Period do ends\
+			dateList.typeSchedule = \"Actual\"\
+			dateList.index = 1\
+			return dateList\
+		else \
+			return nil\
+		end\
+	else \
+		return nil		\
+	end		-- if task.Schedules then ends\
+end\
+-- Function to get the list of dates in the latest schedule of the task.\
+-- if planning == true then the planning schedule dates are returned\
+function Karm.TaskObject.getLatestScheduleDates(task,planning)\
+	local typeSchedule, index\
+	local dateList = {}\
+	if planning then\
+		if task.Planning and task.Planning.Period then\
+			for i = 1,#task.Planning.Period do\
+				dateList[#dateList + 1] = task.Planning.Period[i].Date\
+			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\
+			dateList.typeSchedule = task.Planning.Type\
+			dateList.index = task.Planning.index\
+			return dateList\
+		else\
+			return nil\
+		end\
+	else\
+		if task.Schedules then\
+			-- Find the latest schedule in the task here\
+			if string.upper(task.Status) == \"DONE\" and task.Schedules.Actual then\
+				typeSchedule = \"Actual\"\
+				index = 1\
+			elseif task.Schedules.Revs then\
+				-- Actual is not the latest one but Revision is \
+				typeSchedule = \"Revs\"\
+				index = task.Schedules.Revs.count\
+			elseif task.Schedules.Commit then\
+				-- Actual and Revisions don't exist but Commit does\
+				typeSchedule = \"Commit\"\
+				index = 1\
+			elseif task.Schedules.Estimate then\
+				-- The latest is Estimate\
+				typeSchedule = \"Estimate\"\
+				index = task.Schedules.Estimate.count\
+			else\
+				-- task.Schedules can exist if only Actual exists  but task is not DONE yet\
+				return nil\
+			end\
+			-- Now we have the latest schedule type in typeSchedule and the index of it in index\
+			for i = 1,#task.Schedules[typeSchedule][index].Period do\
+				dateList[#dateList + 1] = task.Schedules[typeSchedule][index].Period[i].Date\
+			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\
+			dateList.typeSchedule = typeSchedule\
+			dateList.index = index\
+			return dateList\
+		else\
+			return nil\
+		end\
+	end		-- if planning then ends\
+end\
+\
+-- Function to convert a table to a string\
+-- Metatables not followed\
+-- Unless key is a number it will be taken and converted to a string\
+function Karm.Utility.tableToString(t)\
+	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)\
+	rL[rL.cL] = {}\
+	do\
+		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)\
+		rL[rL.cL].str = \"{\"\
+		rL[rL.cL].t = t\
+		while true do\
+			local k,v = rL[rL.cL]._f(rL[rL.cL]._s,rL[rL.cL]._var)\
+			rL[rL.cL]._var = k\
+			if not k and rL.cL == 1 then\
+				break\
+			elseif not k then\
+				-- go up in recursion level\
+				if string.sub(rL[rL.cL].str,-1,-1) == \",\" then\
+					rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)\
+				end\
+				--print(\"GOING UP:     \"..rL[rL.cL].str..\"}\")\
+				rL[rL.cL-1].str = rL[rL.cL-1].str..rL[rL.cL].str..\"}\"\
+				rL.cL = rL.cL - 1\
+				rL[rL.cL+1] = nil\
+				rL[rL.cL].str = rL[rL.cL].str..\",\"\
+			else\
+				-- Handle the key and value here\
+				if type(k) == \"number\" then\
+					rL[rL.cL].str = rL[rL.cL].str..\"[\"..tostring(k)..\"]=\"\
+				else\
+					rL[rL.cL].str = rL[rL.cL].str..tostring(k)..\"=\"\
+				end\
+				if type(v) == \"table\" then\
+					-- Check if this is not a recursive table\
+					local goDown = true\
+					for i = 1, rL.cL do\
+						if v==rL[i].t then\
+							-- This is recursive do not go down\
+							goDown = false\
+							break\
+						end\
+					end\
+					if goDown then\
+						-- Go deeper in recursion\
+						rL.cL = rL.cL + 1\
+						rL[rL.cL] = {}\
+						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(v)\
+						rL[rL.cL].str = \"{\"\
+						rL[rL.cL].t = v\
+						--print(\"GOING DOWN:\",k)\
+					else\
+						rL[rL.cL].str = rL[rL.cL].str..\"\\\"\"..tostring(v)..\"\\\"\"\
+						rL[rL.cL].str = rL[rL.cL].str..\",\"\
+						--print(k,\"=\",v)\
+					end\
+				elseif type(v) == \"number\" then\
+					rL[rL.cL].str = rL[rL.cL].str..tostring(v)\
+					rL[rL.cL].str = rL[rL.cL].str..\",\"\
+					--print(k,\"=\",v)\
+				else\
+					rL[rL.cL].str = rL[rL.cL].str..string.format(\"%q\",tostring(v))\
+					rL[rL.cL].str = rL[rL.cL].str..\",\"\
+					--print(k,\"=\",v)\
+				end		-- if type(v) == \"table\" then ends\
+			end		-- if not rL[rL.cL]._var and rL.cL == 1 then ends\
+		end		-- while true ends here\
+	end		-- do ends\
+	if string.sub(rL[rL.cL].str,-1,-1) == \",\" then\
+		rL[rL.cL].str = string.sub(rL[rL.cL].str,1,-2)\
+	end\
+	rL[rL.cL].str = rL[rL.cL].str..\"}\"\
+	return rL[rL.cL].str\
+end\
+\
+-- Creates lua code for a table which when executed will create a table t0 which would be the same as the originally passed table\
+-- Handles the following types for keys and values:\
+-- Keys: Number, String, Table\
+-- Values: Number, String, Table, Boolean\
+-- It also handles recursive and interlinked tables to recreate them back\
+function Karm.Utility.tableToString2(t)\
+	local rL = {cL = 1}	-- Table to track recursion into nested tables (cL = current recursion level)\
+	rL[rL.cL] = {}\
+	local tabIndex = {}	-- Table to store a list of tables indexed into a string and their variable name\
+	local latestTab = 0\
+	do\
+		rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(t)\
+		rL[rL.cL].str = \"t0={}\"	-- t0 would be the main table\
+		rL[rL.cL].t = t\
+		rL[rL.cL].tabIndex = 0\
+		tabIndex[t] = rL[rL.cL].tabIndex\
+		while true do\
+			local key\
+			local k,v = rL[rL.cL]._f(rL[rL.cL]._s,rL[rL.cL]._var)\
+			rL[rL.cL]._var = k\
+			if not k and rL.cL == 1 then\
+				break\
+			elseif not k then\
+				-- go up in recursion level\
+				--print(\"GOING UP:     \"..rL[rL.cL].str..\"}\")\
+				rL[rL.cL-1].str = rL[rL.cL-1].str..\"\\n\"..rL[rL.cL].str\
+				rL.cL = rL.cL - 1\
+				if rL[rL.cL].vNotDone then\
+					-- This was a key recursion so add the key string and then doV\
+					key = \"t\"..rL[rL.cL].tabIndex..\"[t\"..tostring(rL[rL.cL+1].tabIndex)..\"]\"\
+					rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\
+					v = rL[rL.cL].vNotDone\
+				end\
+				rL[rL.cL+1] = nil\
+			else\
+				-- Handle the key and value here\
+				if type(k) == \"number\" then\
+					key = \"t\"..rL[rL.cL].tabIndex..\"[\"..tostring(k)..\"]\"\
+					rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\
+				elseif type(k) == \"string\" then\
+					key = \"t\"..rL[rL.cL].tabIndex..\".\"..tostring(k)\
+					rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\
+				else\
+					-- Table key\
+					-- Check if the table already exists\
+					if tabIndex[k] then\
+						key = \"t\"..rL[rL.cL].tabIndex..\"[t\"..tabIndex[k]..\"]\"\
+						rL[rL.cL].str = rL[rL.cL].str..\"\\n\"..key..\"=\"\
+					else\
+						-- Go deeper to stringify this table\
+						latestTab = latestTab + 1\
+						rL[rL.cL].str = rL[rL.cL].str..\"\\nt\"..tostring(latestTab)..\"={}\"	-- New table\
+						rL[rL.cL].vNotDone = v\
+						rL.cL = rL.cL + 1\
+						rL[rL.cL] = {}\
+						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(k)\
+						rL[rL.cL].tabIndex = latestTab\
+						rL[rL.cL].t = k\
+						rL[rL.cL].str = \"\"\
+						tabIndex[k] = rL[rL.cL].tabIndex\
+					end		-- if tabIndex[k] then ends\
+				end		-- if type(k)ends\
+			end		-- if not k and rL.cL == 1 then ends\
+			if key then\
+				rL[rL.cL].vNotDone = nil\
+				if type(v) == \"table\" then\
+					-- Check if this table is already indexed\
+					if tabIndex[v] then\
+						rL[rL.cL].str = rL[rL.cL].str..\"t\"..tabIndex[v]\
+					else\
+						-- Go deeper in recursion\
+						latestTab = latestTab + 1\
+						rL[rL.cL].str = rL[rL.cL].str..\"{}\" \
+						rL[rL.cL].str = rL[rL.cL].str..\"\\nt\"..tostring(latestTab)..\"=\"..key	-- New table\
+						rL.cL = rL.cL + 1\
+						rL[rL.cL] = {}\
+						rL[rL.cL]._f,rL[rL.cL]._s,rL[rL.cL]._var = pairs(v)\
+						rL[rL.cL].tabIndex = latestTab\
+						rL[rL.cL].t = v\
+						rL[rL.cL].str = \"\"\
+						tabIndex[v] = rL[rL.cL].tabIndex\
+						--print(\"GOING DOWN:\",k)\
+					end\
+				elseif type(v) == \"number\" then\
+					rL[rL.cL].str = rL[rL.cL].str..tostring(v)\
+					--print(k,\"=\",v)\
+				elseif type(v) == \"boolean\" then\
+					rL[rL.cL].str = rL[rL.cL].str..tostring(v)				\
+				else\
+					rL[rL.cL].str = rL[rL.cL].str..string.format(\"%q\",tostring(v))\
+					--print(k,\"=\",v)\
+				end		-- if type(v) == \"table\" then ends\
+			end		-- if doV then ends\
+		end		-- while true ends here\
+	end		-- do ends\
+	return rL[rL.cL].str\
+end\
+\
+function Karm.Utility.combineDateRanges(range1,range2)\
+	local comp = Karm.Utility.compareDateRanges(range1,range2)\
+\
+	local strt1,fin1 = string.match(range1,\"(.-)%-(.*)\")\
+	local strt2,fin2 = string.match(range2,\"(.-)%-(.*)\")\
+	\
+	strt1 = Karm.Utility.toXMLDate(strt1)\
+	local idate = Karm.Utility.XMLDate2wxDateTime(strt1)\
+	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))\
+	local strt1m1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\
+	\
+	fin1 = Karm.Utility.toXMLDate(fin1)\
+	idate = Karm.Utility.XMLDate2wxDateTime(fin1)\
+	idate = idate:Add(wx.wxDateSpan(0,0,0,1))\
+	local fin1p1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\
+\
+	strt2 = Karm.Utility.toXMLDate(strt2)\
+\
+	fin2 = Karm.Utility.toXMLDate(fin2)\
+\
+	if comp == 1 then\
+		return range1\
+	elseif comp==2 then\
+		-- range1 lies entirely before range2\
+		error(\"Disjoint ranges\",2)\
+	elseif comp==3 then\
+		-- range1 pre-overlaps range2\
+		return string.sub(strt1,6,7)..\"/\"..string.sub(strt1,-2,-1)..\"/\"..string.sub(strt1,1,4)..\"-\"..\
+			string.sub(fin2,6,7)..\"/\"..string.sub(fin2,-2,-1)..\"/\"..string.sub(fin2,1,4)\
+	elseif comp==4 then\
+		-- range1 lies entirely inside range2\
+		return range2\
+	elseif comp==5 then\
+		-- range1 post overlaps range2\
+		return string.sub(strt2,6,7)..\"/\"..string.sub(strt2,-2,-1)..\"/\"..string.sub(strt2,1,4)..\"-\"..\
+			string.sub(fin1,6,7)..\"/\"..string.sub(fin1,-2,-1)..\"/\"..string.sub(fin1,1,4)\
+	elseif comp==6 then\
+		-- range1 lies entirely after range2\
+		error(\"Disjoint ranges\",2)\
+	elseif comp==7 then\
+		-- range2 lies entirely inside range1\
+			return range1\
+	end		\
+end\
+\
+function Karm.Utility.XMLDate2wxDateTime(XMLdate)\
+	local map = {\
+		[1] = wx.wxDateTime.Jan,\
+		[2] = wx.wxDateTime.Feb,\
+		[3] = wx.wxDateTime.Mar,\
+		[4] = wx.wxDateTime.Apr,\
+		[5] = wx.wxDateTime.May,\
+		[6] = wx.wxDateTime.Jun,\
+		[7] = wx.wxDateTime.Jul,\
+		[8] = wx.wxDateTime.Aug,\
+		[9] = wx.wxDateTime.Sep,\
+		[10] = wx.wxDateTime.Oct,\
+		[11] = wx.wxDateTime.Nov,\
+		[12] = wx.wxDateTime.Dec\
+	}\
+	return wx.wxDateTimeFromDMY(tonumber(string.sub(XMLdate,-2,-1)),map[tonumber(string.sub(XMLdate,6,7))],tonumber(string.sub(XMLdate,1,4)))\
+end\
+\
+--****f* Karm/compareDateRanges\
+-- FUNCTION\
+-- Function to compare 2 date ranges\
+-- \
+-- INPUT\
+-- o range1 -- Date Range 1 eg. 2/25/2012-2/27/2012\
+-- o range2 -- Date Range 2 eg. 2/25/2012-3/27/2012\
+-- \
+-- RETURNS\
+-- o 1 -- If date ranges identical\
+-- o 2 -- If range1 lies entirely before range2\
+-- o 3 -- If range1 pre-overlaps range2 i.e. start date of range 1 is < start date of range 2 and end date of range1 is <= end date of range2 and not condition 2\
+-- o 4 -- If range1 lies entirely inside range2\
+-- o 5 -- If range1 post overlaps range2 i.e. start date of range 1 >= start date of range 2 and start date of range 1 - 1 day <= end date of range 2 and not condition 4 \
+-- o 6 -- If range1 lies entirely after range2\
+-- o 7 -- If range2 lies entirely inside range1\
+-- o nil -- for error\
+--\
+-- SOURCE\
+function Karm.Utility.compareDateRanges(range1,range2)\
+--@@END@@\
+	if not(range1 and range2) or range1==\"\" or range2==\"\" then\
+		error(\"Expected a valid date range.\",2)\
+	end\
+	\
+	if range1 == range2 then\
+		--  date ranges identical\
+		return 1\
+	end\
+	\
+	local strt1,fin1 = string.match(range1,\"(.-)%-(.*)\")\
+	local strt2,fin2 = string.match(range2,\"(.-)%-(.*)\")\
+	\
+	strt1 = Karm.Utility.toXMLDate(strt1)\
+	local idate = Karm.Utility.XMLDate2wxDateTime(strt1)\
+	idate = idate:Subtract(wx.wxDateSpan(0,0,0,1))\
+	local strt1m1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\
+	\
+	fin1 = Karm.Utility.toXMLDate(fin1)\
+	idate = Karm.Utility.XMLDate2wxDateTime(fin1)\
+	idate = idate:Add(wx.wxDateSpan(0,0,0,1))\
+	local fin1p1 = Karm.Utility.toXMLDate(idate:Format(\"%m/%d/%Y\"))\
+	\
+	strt2 = Karm.Utility.toXMLDate(strt2)\
+	\
+	fin2 = Karm.Utility.toXMLDate(fin2)\
+	\
+	if strt1>fin1 or strt2>fin2 then\
+		error(\"Range given is not valid. Start date should be less than finish date.\",2)\
+	end\
+	\
+	if fin1p1<strt2 then\
+		-- range1 lies entirely before range2\
+		return 2\
+	elseif fin1<=fin2 and strt1<strt2 then\
+		-- range1 pre-overlaps range2\
+		return 3\
+	elseif strt1>strt2 and fin1<fin2 then\
+		-- range1 lies entirely inside range2\
+		return 4\
+	elseif strt1m1<=fin2 and strt1>=strt2 then\
+		-- range1 post overlaps range2\
+		return 5\
+	elseif strt1m1>fin2 then\
+		-- range1 lies entirely after range2\
+		return 6\
+	elseif strt1<strt2 and fin1>fin2 then\
+		-- range2 lies entirely inside range1\
+		return 7\
+	end\
+end\
+--****f* Karm/ToXMLDate\
+-- FUNCTION\
+-- Function to convert display format date to XML format date YYYY-MM-DD\
+-- display date format is MM/DD/YYYY\
+--\
+-- INPUT\
+-- o displayDate -- String variable containing the date string as MM/DD/YYYY\
+--\
+-- RETURNS\
+-- The date as a string compliant to XML date format YYYY-MM-DD\
+--\
+-- SOURCE\
+function Karm.Utility.toXMLDate(displayDate)\
+--@@END@@\
+\
+    local exYear, exMonth, exDate\
+    local count = 1\
+    for num in string.gmatch(displayDate,\"%d+\") do\
+    	if count == 1 then\
+    		-- this is month\
+    		exMonth = num\
+	    	if #exMonth == 1 then\
+        		exMonth = \"0\" .. exMonth\
+        	end\
+        elseif count==2 then\
+        	-- this is the date\
+        	exDate = num\
+        	if #exDate == 1 then\
+        		exDate = \"0\" .. exDate\
+        	end\
+        elseif count== 3 then\
+        	-- this is the year\
+        	exYear = num\
+        	if #exYear == 1 then\
+        		exYear = \"000\" .. exYear\
+        	elseif #exYear == 2 then\
+        		exYear = \"00\" .. exYear\
+        	elseif #exYear == 3 then\
+        		exYear = \"0\" .. exYear\
+        	end\
+        end\
+        count = count + 1\
+	end    \
+    return exYear .. \"-\" .. exMonth .. \"-\" .. exDate\
+end\
+\
+function Karm.Utility.getWeekDay(xmlDate)\
+	if #xmlDate ~= 10 then\
+		error(\"Expected XML Date in the form YYYY-MM-DD\",2)\
+	end\
+	local WeekDays = {\"Sunday\",\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\",\"Saturday\"}\
+	-- Using the Gauss Formula\
+	-- http://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Gaussian_algorithm\
+	local d = tonumber(xmlDate:sub(-2,-1))\
+	local m = tonumber(xmlDate:sub(6,7))\
+	m = (m + 9)%12 + 1\
+	local Y\
+	if m > 10 then\
+		Y = string.match(tostring(tonumber(xmlDate:sub(1,4)) - 1),\"%d+\")\
+		Y = string.rep(\"0\",4-#Y)..Y\
+	else\
+		Y = xmlDate:sub(1,4)\
+	end\
+	local y = tonumber(Y:sub(-2,-1))\
+	local c = tonumber(Y:sub(1,2))\
+	local w = (d + (2.6*m-0.2)-(2.6*m-0.2)%1 + y + (y/4)-(y/4)%1 + (c/4)-(c/4)%1-2*c)%7+1\
+	return WeekDays[w]\
+end\
+\
+function Karm.Utility.addItemToArray(item,array)\
+	local pos = 0\
+	for i = 1,#array do\
+		if array[i] == item  then\
+			return array\
+		end\
+		if array[i]>item then\
+			pos = i\
+			break\
+		end\
+	end\
+	if pos == 0 then\
+		-- place item in the end\
+		array[#array+1] = item\
+		return array\
+	end\
+	local newarray = {}\
+	for i = 1,pos-1 do\
+		newarray[i] = array[i]\
+	end\
+	newarray[pos] = item\
+	for i = pos,#array do\
+		newarray[i+1] = array[i]\
+	end\
+	return newarray\
+end\
+\
+-- Function to apply a function to a task and its hierarchy\
+-- The function should have the task as the 1st argument \
+-- and whatever it returns is passed to it it as the 2nd argument in the next call to it with the next task\
+-- In the 1st call the second argument is passed if it is given as the 3rd argument to this function\
+-- The last return from the function is returned by this function\
+-- if omitTask is true then the func is not run for the task itself and it starts from the subTasks\
+function Karm.TaskObject.applyFuncHier(task, func, initialValue, omitTask)\
+	local passedVar	= initialValue	-- Variable passed to the function\
+	if not omitTask then\
+		passedVar = func(task,initialValue)\
+	end\
+	if task.SubTasks then\
+		-- Traverse the task hierarchy here\
+		local hier = task.SubTasks\
+		local hierCount = {}\
+		hierCount[hier] = 0\
+		while hierCount[hier] < #hier or hier.parent do\
+			if not(hierCount[hier] < #hier) then\
+				if hier == task.SubTasks then\
+					-- Do not go above the passed task\
+					break\
+				end \
+				hier = hier.parent\
+			else\
+				-- Increment the counter\
+				hierCount[hier] = hierCount[hier] + 1\
+				passedVar = func(hier[hierCount[hier]],passedVar)\
+				if hier[hierCount[hier]].SubTasks then\
+					-- This task has children so go deeper in the hierarchy\
+					hier = hier[hierCount[hier]].SubTasks\
+					hierCount[hier] = 0\
+				end\
+			end\
+		end		-- while hierCount[hier] < #hier or hier.parent do ends here\
+	end\
+	return passedVar\
+end\
+\
+-- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil\
+-- Traversal is in the order as if listing out the tasks for a fully expanded task tree\
+function Karm.TaskObject.NextInSequence(task)\
+	if not task then\
+		error(\"Need a task object to give the next task\", 2)\
+	end\
+	if not type(task) == \"table\" then\
+		error(\"Need a task object to give the next task\", 2)\
+	end\
+	if task.SubTasks and task.SubTasks[1] then\
+		return task.SubTasks[1]\
+	end	\
+	if task.Next then\
+		return task.Next\
+	end\
+	if task.Parent then\
+		local currTask = task.Parent\
+		if currTask.Next then\
+			return currTask.Next\
+		end\
+		while currTask.Parent do\
+			currTask = currTask.Parent\
+			if currTask.Next then\
+				return currTask.Next\
+			end\
+		end\
+	end\
+end\
+\
+-- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil\
+-- Traversal is in the order as if listing out the tasks for a fully expanded task tree\
+function Karm.TaskObject.PreviousInSequence(task)\
+	if not task then\
+		error(\"Need a task object to give the next task\", 2)\
+	end\
+	if not type(task) == \"table\" then\
+		error(\"Need a task object to give the next task\", 2)\
+	end\
+	if task.Previous then\
+		local currTask = task.Previous\
+		while Karm.TaskObject.NextInSequence(currTask) ~= task do\
+			currTask = Karm.TaskObject.NextInSequence(currTask)\
+		end\
+		return currTask\
+	end\
+	return task.Parent\
+end\
+\
+function Karm.TaskObject.accumulateTaskData(task,Data)\
+	Data = Data or {}\
+	Data.Who = Data.Who or {}\
+	Data.Access = Data.Access or {}\
+	Data.Priority = Data.Priority or {}\
+	Data.Cat = Data.Cat or {}\
+	Data.SubCat = Data.SubCat or {}\
+	Data.Tags = Data.Tags or {}\
+	-- Who data\
+	for i = 1,#task.Who do\
+		Data.Who = Karm.Utility.addItemToArray(task.Who[i].ID,Data.Who)\
+	end\
+	-- Access Data\
+	if task.Access then\
+		for i = 1,#task.Access do\
+			Data.Access = Karm.Utility.addItemToArray(task.Access[i].ID,Data.Access)\
+		end\
+	end\
+	-- Priority Data\
+	if task.Priority then\
+		Data.Priority = Karm.Utility.addItemToArray(task.Priority,Data.Priority)\
+	end			\
+	-- Category Data\
+	if task.Cat then\
+		Data.Cat = Karm.Utility.addItemToArray(task.Cat,Data.Cat)\
+	end			\
+	-- Sub-Category Data\
+	if task.SubCat then\
+		Data.SubCat = Karm.Utility.addItemToArray(task.SubCat,Data.SubCat)\
+	end			\
+	-- Tags Data\
+	if task.Tags then\
+		for i = 1,#task.Tags do\
+			Data.Tags = Karm.Utility.addItemToArray(task.Tags[i],Data.Tags)\
+		end\
+	end\
+	return Data\
+end\
+\
+\
+-- Function to collect and return all data from the task heirarchy on the basis of which task filtration criteria can be selected\
+function Karm.accumulateTaskDataHier(filterData, taskHier)\
+	local hier = taskHier\
+	-- Reset the hierarchy if not already done so\
+	while hier.parent do\
+		hier = hier.parent\
+	end\
+	for i = 1,#hier do\
+		filterData = Karm.TaskObject.applyFuncHier(hier[i],Karm.TaskObject.accumulateTaskData,filterData)\
+	end\
+end\
+\
+-- Old version \
+--function Karm.accumulateTaskDataHier(filterData, taskHier)\
+--	local hier = taskHier\
+--	local hierCount = {}\
+--	-- Reset the hierarchy if not already done so\
+--	while hier.parent do\
+--		hier = hier.parent\
+--	end\
+--	-- Traverse the task hierarchy here\
+--	hierCount[hier] = 0\
+--	while hierCount[hier] < #hier or hier.parent do\
+--		if not(hierCount[hier] < #hier) then\
+--			if hier == taskHier then\
+--				-- Do not go above the passed task\
+--				break\
+--			end \
+--			hier = hier.parent\
+--		else\
+--			-- Increment the counter\
+--			hierCount[hier] = hierCount[hier] + 1\
+--			Karm.TaskObject.accumulateTaskData(hier[hierCount[hier]],filterData)\
+--			if hier[hierCount[hier]].SubTasks then\
+--				-- This task has children so go deeper in the hierarchy\
+--				hier = hier[hierCount[hier]].SubTasks\
+--				hierCount[hier] = 0\
+--			end\
+--		end\
+--	end		-- while hierCount[hier] < #hier or hier.parent do ends here\
+--end\
+\
+function Karm.accumulateTaskDataList(filterData,taskList)\
+	for i=1,#taskList do\
+		Karm.TaskObject.accumulateTaskData(taskList[i],filterData)\
+	end\
+end\
+\
+-- Function to make a copy of a task\
+-- Each task has at most 9 tables:\
+-- Who\
+-- Access\
+-- Assignee\
+-- Schedules\
+-- Tags\
+-- Parent\
+-- SubTasks\
+-- DBDATA\
+-- Planning  \
+\
+-- 1st 5 are made a copy of\
+-- Parent is the same linked tables\
+-- If copySubTasks is true then SubTasks are made a copy as well with the same parameters otherwise it is the same linked SubTask table\
+-- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table\
+-- Normally the task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the task parents\
+-- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks\
+-- Planning is not copied over\
+function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParents)\
+	-- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value\
+	local copyTableFunc\
+	local function copyTable(t, deep, seen)\
+	    seen = seen or {}\
+	    if t == nil then return nil end\
+	    if seen[t] then return seen[t] end\
+	\
+	    local nt = {}\
+	    for k, v in pairs(t) do\
+	        if deep and type(v) == 'table' then\
+	            nt[k] = copyTableFunc(v, deep, seen)\
+	        else\
+	            nt[k] = v\
+	        end\
+	    end\
+	    setmetatable(nt, copyTableFunc(getmetatable(t), deep, seen))\
+	    seen[t] = nt\
+	    return nt\
+	end\
+	copyTableFunc = copyTable\
+\
+	if not task then\
+		return\
+	end\
+	local nTask = {}\
+	for k,v in pairs(task) do\
+		if k ~= \"Planning\" and not (k == \"DBDATA\" and removeDBDATA)then\
+			if k ~= \"Who\" and k ~= \"Schedules\" and k~= \"Tags\" and k ~= \"Access\" and k ~= \"Assignee\" and not (k == \"SubTasks\" and copySubTasks)then\
+				nTask[k] = task[k]\
+			else\
+				if k == \"SubTasks\" then\
+					-- This has to be copied in 2 steps\
+					local parent\
+					if task.Parent then\
+						parent = task.Parent.SubTasks\
+					else\
+						-- Must be a root node in a Spore so take the Spore table as the parent itself\
+						parent = task.SubTasks.parent\
+					end\
+					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]=\"SubTasks\"}\
+					for i = 1,#task.SubTasks do\
+						nTask.SubTasks[i] = Karm.TaskObject.copy(task.SubTasks[i],true,removeDBDATA,true)\
+					end\
+				else\
+					nTask[k] = copyTable(task[k],true)\
+				end\
+			end\
+		end\
+	end		-- for k,v in pairs(task) do ends\
+	if not keepOldTaskParents and nTask.SubTasks then\
+		-- Correct for the task parents of all subtasks\
+		Karm.TaskObject.applyFuncHier(nTask,function(task, subTaskParent)\
+								if task.SubTasks then\
+									if subTaskParent then\
+										task.SubTasks.parent = task.Parent.SubTasks\
+									end\
+									for i = 1,#task.SubTasks do\
+										task.SubTasks[i].Parent = task\
+									end\
+								end\
+								return true\
+							end\
+		)\
+	end\
+	Karm.TaskObject.MakeTaskObject(nTask)\
+	return nTask\
+end		-- function Karm.TaskObject.copy(task)ends\
+\
+function Karm.TaskObject.MakeTaskObject(task)\
+	setmetatable(task,Karm.TaskObject)\
+end\
+\
+-- Function to convert a task to a task list with incremental schedules i.e. 1st will be same as task passed (but a copy of it) and last task will have 1st schedule only\
+-- The task ID however have additional _n where n is a serial number from 1 \
+function Karm.TaskObject.incSchTasks(task)\
+	local taskList = {}\
+	taskList[1] = Karm.TaskObject.copy(task)\
+	taskList[1].TaskID = taskList[1].TaskID..\"_1\"\
+	while taskList[#taskList].Schedules do\
+		-- Find the latest schedule in the task here\
+		if string.upper(taskList[#taskList].Status) == \"DONE\" and taskList[#taskList].Schedules.Actual then\
+			-- Actual Schedule is the latest so remove this one\
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\
+			-- Remove the actual schedule\
+			taskList[#taskList].Schedules.Actual = nil\
+			-- Change the task ID\
+			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\
+		elseif taskList[#taskList].Schedules.Revs then\
+			-- Actual is not the latest one but Revision is \
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\
+			-- Remove the latest Revision Schedule\
+			taskList[#taskList].Schedules.Revs[taskList[#taskList].Schedules.Revs.count] = nil\
+			taskList[#taskList].Schedules.Revs.count = taskList[#taskList].Schedules.Revs.count - 1\
+			if taskList[#taskList].Schedules.Revs.count == 0 then\
+				taskList[#taskList].Schedules.Revs = nil\
+			end\
+			-- Change the task ID\
+			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\
+		elseif taskList[#taskList].Schedules.Commit then\
+			-- Actual and Revisions don't exist but Commit does\
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\
+			-- Remove the Commit Schedule\
+			taskList[#taskList].Schedules.Commit = nil\
+			-- Change the task ID\
+			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\
+		elseif taskList[#taskList].Schedules.Estimate then\
+			-- The latest is Estimate\
+			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])\
+			-- Remove the latest Estimate Schedule\
+			taskList[#taskList].Schedules.Estimate[taskList[#taskList].Schedules.Estimate.count] = nil\
+			taskList[#taskList].Schedules.Estimate.count = taskList[#taskList].Schedules.Estimate.count - 1\
+			if taskList[#taskList].Schedules.Estimate.count == 0 then\
+				taskList[#taskList].Schedules.Estimate = nil\
+			end\
+			-- Change the task ID\
+			taskList[#taskList].TaskID = task.TaskID..\"_\"..tostring(#taskList)\
+		elseif not taskList[#taskList].Schedules.Estimate and not taskList[#taskList].Schedules.Commit\
+		  and not taskList[#taskList].Schedules.Revs then\
+		  	-- Since there can be an Actual Schedule but task is not done so Schedules cannot be nil\
+		  	break\
+		end\
+		if not taskList[#taskList].Schedules.Estimate and not taskList[#taskList].Schedules.Commit \
+		  and not taskList[#taskList].Schedules.Revs and not taskList[#taskList].Schedules.Actual then\
+			taskList[#taskList].Schedules = nil\
+		end\
+	end			-- while taskList[#taskList].Schedules do ends\
+	taskList[#taskList] = nil\
+	return taskList\
+end		-- function Karm.TaskObject.incSchTasks(task) ends\
+\
+-- Function to return an Empty task that satisfies the minimum requirements\
+function Karm.getEmptyTask(SporeFile)\
+	local nTask = {}\
+	nTask[0] = \"Task\"\
+	nTask.SporeFile = SporeFile\
+	nTask.Title = \"DUMMY\"\
+	nTask.TaskID = \"DUMMY\"\
+	nTask.Start = \"1900-01-01\"\
+	nTask.Public = true\
+	nTask.Who = {[0] = \"Who\", count = 1,[1] = \"DUMMY\"}\
+	nTask.Status = \"Not Started\"\
+	Karm.TaskObject.MakeTaskObject(nTask)\
+	return nTask\
+end\
+\
+-- Function to cycle the planning schedule type for a task\
+-- This function depends on the task setting methodology chosen to be in the sequence of Estimate->Commit->Revs->Actual\
+-- So conversions are:\
+-- Nothing->Estimate\
+-- Estimate->Commit\
+-- Commit->Revs\
+-- Revs->Actual\
+-- Actual->Back to Estimate\
+function Karm.TaskObject.togglePlanningType(task,type)\
+	if not task.Planning then\
+		task.Planning = {}\
+	end\
+	if type == \"NORMAL\" then\
+		local dateList = Karm.TaskObject.getLatestScheduleDates(task)\
+		if not dateList then\
+			dateList = {}\
+			dateList.index = 0\
+			dateList.typeSchedule = \"Estimate\"\
+		end\
+				\
+		if not task.Planning.Type then\
+			if dateList.typeSchedule == \"Estimate\" then\
+				task.Planning.Type = \"Estimate\"\
+				task.Planning.index = dateList.index + 1\
+			elseif dateList.typeSchedule == \"Commit\" then\
+				task.Planning.Type = \"Revs\"\
+				task.Planning.index = 1\
+			elseif dateList.typeSchedule == \"Revs\" then\
+				task.Planning.Type = \"Revs\"\
+				task.Planning.index = dateList.index + 1\
+			else\
+				task.Planning.Type = \"Actual\"\
+				task.Planning.index = 1		\
+			end\
+		elseif task.Planning.Type == \"Estimate\" then\
+			task.Planning.Type = \"Commit\"\
+			task.Planning.index = 1\
+		elseif task.Planning.Type == \"Commit\" then\
+			task.Planning.Type = \"Revs\"\
+			if task.Schedules and task.Schedules.Revs then\
+				task.Planning.index = #task.Schedules.Revs + 1\
+			else\
+				task.Planning.index = 1\
+			end\
+		elseif task.Planning.Type == \"Revs\" then\
+			-- in \"NORMAL\" type the schedule does not go to \"Actual\"\
+			task.Planning.Type = \"Estimate\"\
+			if task.Schedules and task.Schedules.Estimate then\
+				task.Planning.index = #task.Schedules.Estimate + 1\
+			else\
+				task.Planning.index = 1\
+			end\
+		end		-- if not task.Planning.Type then ends\
+	else\
+		task.Planning.Type = \"Actual\"\
+		task.Planning.index = 1\
+	end		-- if type == \"NORMAL\" then ends\
+end\
+\
+\
+-- Function to toggle a planning date in the given task. If the planning schedule table is not present it creates it with the schedule type Estimate\
+-- returns 1 if added, 2 if removed, 3 if removed and no more planning schedule left\
+function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)\
+	if not task.Planning then\
+		Karm.TaskObject.togglePlanningType(task,type)\
+		task.Planning.Period = {\
+									[0]=\"Period\",\
+									count=1,\
+									[1]={\
+											[0]=\"DP\",\
+											Date = xmlDate\
+										}\
+								}\
+		\
+		return 1\
+	end\
+	if not task.Planning.Period then\
+		task.Planning.Period = {\
+									[0]=\"Period\",\
+									count=1,\
+									[1]={\
+											[0]=\"DP\",\
+											Date = xmlDate\
+										}\
+								}\
+		\
+		return 1\
+	end\
+	for i=1,task.Planning.Period.count do\
+		if task.Planning.Period[i].Date == xmlDate then\
+			-- Remove this date\
+			for j=i+1,task.Planning.Period.count do\
+				task.Planning.Period[j-1] = task.Planning.Period[j]\
+			end\
+			task.Planning.Period[task.Planning.Period.count] = nil\
+			task.Planning.Period.count = task.Planning.Period.count - 1\
+			if task.Planning.Period.count>0 then\
+				return 2\
+			else\
+				task.Planning = nil\
+				return 3\
+			end\
+		elseif task.Planning.Period[i].Date > xmlDate then\
+			-- Insert Date here\
+			task.Planning.Period.count = task.Planning.Period.count + 1\
+			for j = task.Planning.Period.count,i+1,-1 do\
+				task.Planning.Period[j] = task.Planning.Period[j-1]\
+			end\
+			task.Planning.Period[i] = {[0]=\"DP\",Date=xmlDate}\
+			return 1\
+		end\
+	end\
+	-- Date must be added in the end\
+	task.Planning.Period.count = task.Planning.Period.count + 1\
+	task.Planning.Period[task.Planning.Period.count] = {[0]=\"DP\",Date = xmlDate	}\
+	return 1\
+end\
+\
+function Karm.TaskObject.add2Spore(task,dataStruct)\
+	if not task.SubTasks then\
+		task.SubTasks = {parent = dataStruct, tasks = 0, [0]=\"SubTasks\"}\
+	end\
+	dataStruct.tasks = dataStruct.tasks + 1\
+	dataStruct[dataStruct.tasks] = task \
+	if dataStruct.tasks > 1 then\
+		dataStruct[dataStruct.tasks - 1].Next = dataStruct[dataStruct.tasks]\
+		dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks-1]\
+	end\
+end\
+\
+function Karm.TaskObject.getNewChildTaskID(parent)\
+	local taskID\
+	if not parent.SubTasks then\
+		taskID = parent.TaskID..\"_1\"\
+	else \
+		local intVar1 = 0\
+		for count = 1,#parent.SubTasks do\
+	        local tempTaskID = parent.SubTasks[count].TaskID\
+	        if tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1)) > intVar1 then\
+	            intVar1 = tonumber(tempTaskID:sub(-(#tempTaskID - #parent.TaskID - 1),-1))\
+	        end\
+		end\
+		intVar1 = intVar1 + 1\
+		taskID = parent.TaskID..\"_\"..tostring(intVar1)\
+	end\
+	return taskID\
+end\
+\
+-- Function to add a task according to the specified relation\
+function Karm.TaskObject.add2Parent(task, parent, Spore)\
+	if not (task and parent) then\
+		error(\"nil parameter cannot be handled at add2Parent in DataHandler.lua.\",2)\
+	end\
+	if getmetatable(task) ~= Karm.TaskObject or getmetatable(parent) ~= Karm.TaskObject then\
+		error(\"Need a valid task and parent task object to add the task to parent\", 2)\
+	end\
+	if not parent.SubTasks then\
+		parent.SubTasks = {tasks = 0, [0]=\"SubTasks\"}\
+		if not parent.Parent then\
+			if not Spore then\
+				error(\"nil parameter cannot be handled at add2Parent in DataHandler.lua.\",2)\
+			end\
+			-- This is a Spore root node\
+			parent.SubTasks.parent = Spore\
+		else\
+			parent.SubTasks.parent = parent.Parent.SubTasks\
+		end \
+	end\
+	parent.SubTasks.tasks = parent.SubTasks.tasks + 1\
+	parent.SubTasks[parent.SubTasks.tasks] = task\
+	if parent.SubTasks.tasks > 1 then\
+		parent.SubTasks[parent.SubTasks.tasks - 1].Next = parent.SubTasks[parent.SubTasks.tasks]\
+		parent.SubTasks[parent.SubTasks.tasks].Previous = parent.SubTasks[parent.SubTasks.tasks-1]\
+	end\
+end\
+\
+-- Function to get all work done dates for a task and color and type for each date\
+-- This function is called by the taskTree UI element to display the Gantt chart\
+-- if bubble is true it bubbles up the latest schedule dates of the entire task hierarchy to this task\
+--\
+-- The function returns a table in the following format\
+-- typeSchedule - Type of schedule for this task\
+-- index - index of schedule for this task\
+-- Subtables starting from index 1 corresponding to each date\
+	-- Each subtable has the following keys:\
+	-- Date - XML format date \
+	-- typeSchedule - Type of schedule the date comes from \"Estimate\", \"Commit\", \"Revision\", \"Actual\"\
+	-- index - the index of the schedule\
+	-- Bubbled - True/False - True if date is from a subtask \
+	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart\
+	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date\
+	-- Text - Text to be written in the Gantt cell for the date\
+function Karm.TaskObject.getWorkDates(task,bubble)\
+	local updateDateTable = function(task,dateTable)\
+		local dateList = Karm.TaskObject.getWorkDoneDates(task)\
+		if dateList then\
+			if not dateTable then\
+				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\
+			end\
+			for i = 1,#dateList do\
+				local found = false\
+				local index = 0\
+				for j = 1,#dateTable do\
+					if dateTable[j].Date == dateList[i] then\
+						found = true\
+						break\
+					end\
+					if dateTable[j].Date > dateList[i] then\
+						index = j\
+						break\
+					end\
+				end\
+				if not found then\
+					-- Create a space at index\
+					for j = #dateTable, index, -1 do\
+						dateTable[j+1] = dateTable[j]\
+					end\
+					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,\
+					Blue=Karm.GUI.ScheduleColor.Blue-Karm.GUI.bubbleOffset.Blue}\
+					if newColor.Red < 0 then newColor.Red = 0 end\
+					if newColor.Green < 0 then newColor.Green = 0 end\
+					if newColor.Blue < 0 then newColor.Blue = 0 end\
+					dateTable[index] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \
+					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = \"\"}\
+				end\
+			end		-- for i = 1,#dateList do ends\
+		end		-- if dateList then ends\
+		return dateTable\
+	end\
+	if bubble then\
+		local dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable)\
+		return dateTable\
+	else \
+		-- Just get the latest dates for this task\
+		local dateList = Karm.TaskObject.getWorkDoneDates(task)\
+		if dateList then\
+			-- Convert the dateList to modified return table\
+			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\
+			for i = 1,#dateList do\
+				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \
+				  Bubbled = nil, BackColor = Karm.GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = \"\"}\
+			end\
+			return dateTable\
+		else\
+			return nil\
+		end\
+	end\
+end\
+\
+-- Function to get all dates for a task and color and type for each date\
+-- This function is called by the taskTree UI element to display the Gantt chart\
+-- if bubble is true it bubbles up the latest schedule dates of the entire task hierarchy to this task\
+-- if planning is true it returns the planning date list for this task\
+--\
+-- The function returns a table in the following format\
+-- typeSchedule - Type of schedule for this task\
+-- index - index of schedule for this task\
+-- Subtables starting from index 1 corresponding to each date\
+	-- Each subtable has the following keys:\
+	-- Date - XML format date \
+	-- typeSchedule - Type of schedule the date comes from \"Estimate\", \"Commit\", \"Revision\", \"Actual\"\
+	-- index - the index of the schedule\
+	-- Bubbled - True/False - True if date is from a subtask \
+	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart\
+	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date\
+	-- Text - Text to be written in the Gantt cell for the date\
+function Karm.TaskObject.getDates(task,bubble,planning)\
+	local plan = planning\
+	local updateDateTable = function(task,dateTable)\
+		local dateList = Karm.TaskObject.getLatestScheduleDates(task,plan)\
+		if dateList then\
+			if not dateTable then\
+				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\
+			end\
+			for i = 1,#dateList do\
+				local found = false\
+				local index = 0\
+				for j = 1,#dateTable do\
+					if dateTable[j].Date == dateList[i] then\
+						found = true\
+						break\
+					end\
+					if dateTable[j].Date > dateList[i] then\
+						index = j - 1\
+						break\
+					end\
+				end\
+				if not found then\
+					-- Create a space at index + 1\
+					for j = #dateTable, index+1, -1 do\
+						dateTable[j+1] = dateTable[j]\
+					end\
+					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,\
+					Blue=Karm.GUI.ScheduleColor.Blue-Karm.GUI.bubbleOffset.Blue}\
+					if newColor.Red < 0 then newColor.Red = 0 end\
+					if newColor.Green < 0 then newColor.Green = 0 end\
+					if newColor.Blue < 0 then newColor.Blue = 0 end\
+					dateTable[index+1] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \
+					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = dateList.typeSchedule:sub(1,1)}\
+				end\
+			end		-- for i = 1,#dateList do ends\
+		end		-- if dateList then ends\
+		return dateTable\
+	end\
+	if bubble then\
+		-- Main task schedule\
+		local dateTable = updateDateTable(task)\
+		if dateTable then\
+			for i = 1,#dateTable do\
+				dateTable[i].Bubbled = nil\
+				dateTable[i].BackColor = Karm.GUI.ScheduleColor\
+				dateTable[i].Text = \"\"\
+			end\
+		end\
+		plan = nil\
+		dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable,dateTable, true)\
+		return dateTable\
+	else \
+		-- Just get the latest dates for this task\
+		local dateList = Karm.TaskObject.getLatestScheduleDates(task,planning)\
+		if dateList then\
+			-- Convert the dateList to modified return table\
+			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}\
+			for i = 1,#dateList do\
+				dateTable[i] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, \
+				  Bubbled = nil, BackColor = Karm.GUI.ScheduleColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = \"\"}\
+			end\
+			return dateTable\
+		else\
+			return nil\
+		end\
+	end\
+end\
+\
+-- function to update the taskID in the whole hierarchy\
+function Karm.TaskObject.updateTaskID(task,taskID)\
+	if not(task and taskID) then\
+		error(\"Need a task and taskID for Karm.TaskObject.updateTaskID in DataHandler.lua\",2)\
+	end\
+	local prevTaskID = task.TaskID\
+	Karm.TaskObject.applyFuncHier(task,function(task,taskIDs)\
+							task.TaskID = task.TaskID:gsub(\"^\"..taskIDs.prevTaskID,taskIDs.newTaskID)\
+							return taskIDs\
+						end, {prevTaskID = prevTaskID, newTaskID = taskID}\
+	)\
+end\
+\
+-- Old Version\
+--function Karm.TaskObject.updateTaskID(task,taskID)\
+--	if not(task and taskID) then\
+--		error(\"Need a task and taskID for Karm.TaskObject.updateTaskID in DataHandler.lua\",2)\
+--	end\
+--	local prevTaskID = task.TaskID\
+--	task.TaskID = taskID\
+--	if task.SubTasks then\
+--		local currNode = task.SubTasks\
+--		local hierCount = {}\
+--		-- Traverse the task hierarchy here\
+--		hierCount[currNode] = 0\
+--		while hierCount[currNode] < #currNode or currNode.parent do\
+--			if not(hierCount[currNode] < #currNode) then\
+--				if currNode == task.SubTasks then\
+--					-- Do not go above the passed task\
+--					break\
+--				end \
+--				currNode = currNode.parent\
+--			else\
+--				-- Increment the counter\
+--				hierCount[currNode] = hierCount[currNode] + 1\
+--				currNode[hierCount[currNode]].TaskID = currNode[hierCount[currNode]].TaskID:gsub(\"^\"..prevTaskID,task.TaskID)\
+--				if currNode[hierCount[currNode]].SubTasks then\
+--					-- This task has children so go deeper in the hierarchy\
+--					currNode = currNode[hierCount[currNode]].SubTasks\
+--					hierCount[currNode] = 0\
+--				end\
+--			end\
+--		end		-- while hierCount[hier] < #hier or hier.parent do ends here\
+--	end		-- if task.SubTasks then ends\
+--end\
+\
+-- Function to move the task before/after\
+function Karm.TaskObject.bubbleTask(task,relative,beforeAfter,parent)\
+	if task.Parent ~= relative.Parent then\
+		error(\"The task and relative should be on the same level in the Karm.TaskObject.bubbleTask call in DataHandler.lua\",2)\
+	end\
+	if not (task.Parent or parent) then\
+		error(\"parent argument should be specified for tasks/relative that do not have a parent defined in Karm.TaskObject.bubbleTask call in DataHandler.lua\",2)\
+	end	\
+	if task==relative then\
+		return\
+	end\
+	local pTable, swapID\
+	if not task.Parent then\
+		-- These are root nodes in a spore\
+		pTable = parent\
+		swapID = false	-- since IDs for spore root nodes should not be swapped since they are roots and unique\
+	else\
+		pTable = relative.Parent.SubTasks\
+		swapID = true\
+	end\
+	if beforeAfter:upper() == \"AFTER\" then\
+		-- Next Sibling\
+		-- Find the relative and task number\
+		local posRel, posTask\
+		for i = 1,pTable.tasks do\
+			if pTable[i] == relative then\
+				posRel = i\
+			end\
+			if pTable[i] == task then\
+				posTask = i\
+			end\
+		end\
+		if posRel < posTask then\
+			-- Start the bubble up \
+			for i = posTask,posRel+2,-1 do\
+				if swapID then\
+					-- Swap TaskID\
+					local tim1 = pTable[i].TaskID\
+					local ti = pTable[i-1].TaskID\
+					Karm.TaskObject.updateTaskID(pTable[i],ti) \
+					Karm.TaskObject.updateTaskID(pTable[i-1],tim1)\
+				end \
+				-- Swap task position\
+				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]\
+				-- Update the Previous and Next pointers\
+				pTable[i].Previous = pTable[i-1]\
+				pTable[i-1].Next = pTable[i]\
+				if i > 2 then\
+					pTable[i-2].Next = pTable[i-1]\
+					pTable[i-1].Previous = pTable[i-2]\
+				else\
+					pTable[i-1].Previous = nil\
+				end\
+				if i < pTable.tasks then\
+					pTable[i].Next = pTable[i+1]\
+					pTable[i+1].Previous = pTable[i]\
+				else\
+					pTable[i].Next = nil\
+				end\
+			end\
+		else\
+			-- Start the bubble down \
+			for i = posTask,posRel-1 do\
+				if swapID then\
+					-- Swap TaskID\
+					local tip1 = pTable[i].TaskID\
+					local ti = pTable[i+1].TaskID\
+					Karm.TaskObject.updateTaskID(pTable[i],ti) \
+					Karm.TaskObject.updateTaskID(pTable[i+1],tip1)\
+				end \
+				-- Swap task position\
+				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]\
+				-- Update the Previous and Next pointers\
+				pTable[i+1].Previous = pTable[i]\
+				pTable[i].Next = pTable[i+1]\
+				if i > 1 then\
+					pTable[i-1].Next = pTable[i]\
+					pTable[i].Previous = pTable[i-1]\
+				else\
+					pTable[i].Previous = nil\
+				end\
+				if i+1 < pTable.tasks then\
+					pTable[i+1].Next = pTable[i+2]\
+					pTable[i+2].Previous = pTable[i+1]\
+				else\
+					pTable[i+1].Next = nil\
+				end\
+			end\
+		end\
+	else\
+		-- Previous sibling\
+		-- Find the relative and task number\
+		local posRel, posTask\
+		for i = 1,pTable.tasks do\
+			if pTable[i] == relative then\
+				posRel = i\
+			end\
+			if pTable[i] == task then\
+				posTask = i\
+			end\
+		end\
+		if posRel < posTask then\
+			-- Start the bubble up \
+			for i = posTask,posRel+1,-1 do\
+				if swapID then\
+					-- Swap TaskID\
+					local tim1 = pTable[i].TaskID\
+					local ti = pTable[i-1].TaskID\
+					Karm.TaskObject.updateTaskID(pTable[i],ti) \
+					Karm.TaskObject.updateTaskID(pTable[i-1],tim1)\
+				end \
+				-- Swap task position\
+				pTable[i],pTable[i-1] = pTable[i-1],pTable[i]\
+				-- Update the Previous and Next pointers\
+				pTable[i].Previous = pTable[i-1]\
+				pTable[i-1].Next = pTable[i]\
+				if i > 2 then\
+					pTable[i-2].Next = pTable[i-1]\
+					pTable[i-1].Previous = pTable[i-2]\
+				else\
+					pTable[i-1].Previous = nil\
+				end\
+				if i < pTable.tasks then\
+					pTable[i].Next = pTable[i+1]\
+					pTable[i+1].Previous = pTable[i]\
+				else\
+					pTable[i].Next = nil\
+				end\
+			end\
+		else\
+			-- Start the bubble down \
+			for i = posTask,posRel-2 do\
+				if swapID then\
+					-- Swap TaskID\
+					local tip1 = pTable[i].TaskID\
+					local ti = pTable[i+1].TaskID\
+					Karm.TaskObject.updateTaskID(pTable[i],ti) \
+					Karm.TaskObject.updateTaskID(pTable[i+1],tip1)\
+				end \
+				-- Swap task position\
+				pTable[i],pTable[i+1] = pTable[i+1],pTable[i]\
+				-- Update the Previous and Next pointers\
+				pTable[i+1].Previous = pTable[i]\
+				pTable[i].Next = pTable[i+1]\
+				if i > 1 then\
+					pTable[i-1].Next = pTable[i]\
+					pTable[i].Previous = pTable[i-1]\
+				else\
+					pTable[i].Previous = nil\
+				end\
+				if i+1 < pTable.tasks then\
+					pTable[i+1].Next = pTable[i+2]\
+					pTable[i+2].Previous = pTable[i+1]\
+				else\
+					pTable[i+1].Next = nil\
+				end\
+			end\
+		end\
+	end\
+\
+end\
+\
+--function DeleteTaskFromSpore(task, Spore)\
+--	if task.Parent then\
+--		error(\"DeleteTaskFromSpore: Cannot delete task that is not a root task in Spore.\",2)\
+--	end\
+--	local taskList\
+--	taskList = Spore\
+--	for i = 1,#taskList do\
+--		if taskList[i] == task then\
+--			for j = i, #taskList-1 do\
+--				taskList[j] = taskList[j+1]\
+--			end\
+--			taskList[#taskList] = nil\
+--			taskList.tasks = taskList.tasks - 1\
+--			break\
+--		end\
+--	end\
+--end\
+\
+function Karm.TaskObject.DeleteFromDB(task)\
+	local taskList\
+	if not task.Parent then\
+		taskList = task.SubTasks.parent		\
+	else\
+		taskList = task.Parent.SubTasks\
+	end\
+	for i = 1,#taskList do\
+		if taskList[i] == task then\
+			for j = i, #taskList-1 do\
+				taskList[j] = taskList[j+1]\
+				if j>1 then\
+					taskList[j].Previous = taskList[j-1]\
+					taskList[j-1].Next = taskList[j]\
+				end\
+			end\
+			taskList[#taskList] = nil\
+			taskList.tasks = taskList.tasks - 1\
+			break\
+		end\
+	end\
+end\
+\
+function Karm.sporeTitle(path)\
+	-- Find the name of the file\
+	local strVar\
+	local intVar1 = -1\
+	for intVar = #path,1,-1 do\
+		if string.sub(path, intVar, intVar) == \".\" then\
+	    	intVar1 = intVar\
+		end\
+		if string.sub(path, intVar, intVar) == \"\\\\\" or string.sub(path, intVar, intVar) == \"/\" then\
+	    	strVar = string.sub(path, intVar + 1, intVar1-1)\
+	    	break\
+		end\
+	end\
+	if not strVar then\
+		strVar = path\
+	end\
+	return strVar\
+end\
+\
+function Karm.TaskObject.IsSpore(task)\
+	if task.TaskID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then\
+		return true\
+	else\
+		return false\
+	end\
+end\
+\
+-- Function to convert XML data from a single spore to internal data structure\
+-- Task structure\
+-- Task.\
+--	Planning.\
+--	[0] = Task\
+-- 	SporeFile\
+--	Title\
+--	Modified\
+--	DBDATA.\
+--	TaskID\
+--	Start\
+--	Fin\
+--	Private\
+--	Who.\
+--	Access.\
+--	Assignee.\
+--	Status\
+--	Parent. = Pointer to the Task to which this is a sub task (Nil for root tasks in a Spore)\
+--  Next. = Pointer to the next task under the same Parent (Nil if this is the last task)\
+--  Previous. = Pointer to the previous task under the same Parent (Nil if this is the first task)\
+--	Priority\
+--	Due\
+--	Comments\
+--	Cat\
+--	SubCat\
+--	Tags.\
+--	Schedules.\
+--		[0] = \"Schedules\"\
+--		Estimate.\
+--			[0] = \"Estimate\"\
+--			count\
+--			[i] = \
+--		Commit.\
+--			[0] = \"Commit\"\
+--		Revs\
+--		Actual\
+--	SubTasks.\
+--		[0] = \"SubTasks\"\
+--		parent  = pointer to the array containing the list of tasks having the task whose SubTask Node this is (Points to Spore table for root tasks of a Spore)\
+--		tasks = count of number of subtasks\
+--		[i] = Task table like this one repeated for sub tasks\
+\
+function Karm.XML2Data(SporeXML, SporeFile)\
+	-- tasks counts the number of tasks at the current level\
+	-- index 0 contains the name of this level to make it compatible with LuaXml\
+	local dataStruct = {Title = Karm.sporeTitle(SporeFile), SporeFile = SporeFile, tasks = 0, TaskID = Karm.Globals.ROOTKEY..SporeFile, [0] = \"Task_Spore\"}	-- to create the data structure\
+	if SporeXML[0]~=\"Task_Spore\" then\
+		return nil\
+	end\
+	local currNode = SporeXML		-- currNode contains the current XML node being processed\
+	local hierInfo = {}\
+	hierInfo[currNode] = {count = 1}		-- hierInfo contains associated information with the currNode i.e. its Parent and count of the node being processed\
+	while(currNode[hierInfo[currNode].count] or hierInfo[currNode].parent) do\
+		if not(currNode[hierInfo[currNode].count]) then\
+			currNode = hierInfo[currNode].parent\
+			dataStruct = dataStruct.parent\
+		else\
+			if currNode[hierInfo[currNode].count][0] == \"Task\" then\
+				local task = currNode[hierInfo[currNode].count]\
+				hierInfo[currNode].count = hierInfo[currNode].count + 1\
+				local necessary = 0\
+				dataStruct.tasks = dataStruct.tasks + 1\
+				dataStruct[dataStruct.tasks] = {[0] = \"Task\"}\
+				\
+				dataStruct[dataStruct.tasks].SporeFile = SporeFile\
+				-- Set the Previous and next pointers\
+				if dataStruct.tasks > 1 then\
+					dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks - 1]\
+				end\
+				dataStruct[dataStruct.tasks].Next = dataStruct[dataStruct.tasks + 1]\
+				-- Each task has a Parent Attribute which points to a parent Task containing this task. For root tasks in the spore this is nil\
+				dataStruct[dataStruct.tasks].Parent = hierInfo[currNode].parentTask\
+				-- Extract all task information here\
+				local count = 1\
+				while(task[count]) do\
+					if task[count][0] == \"Title\" then\
+						dataStruct[dataStruct.tasks].Title = task[count][1]\
+						necessary = necessary + 1\
+					elseif task[count][0] == \"Modified\" then\
+						if task[count][1] == \"YES\" then\
+							dataStruct[dataStruct.tasks].Modified = true\
+						else\
+							dataStruct[dataStruct.tasks].Modified = false\
+						end\
+						necessary = necessary + 1\
+					elseif task[count][0] == \"DB-Data\" then\
+						dataStruct[dataStruct.tasks].DBDATA = {[0]=\"DB-Data\",DBID = task[count][1][1], Updated = task[count][2][1]}\
+					elseif task[count][0] == \"TaskID\" then\
+						dataStruct[dataStruct.tasks].TaskID = task[count][1]\
+						necessary = necessary + 1\
+					elseif task[count][0] == \"Start\" then\
+						dataStruct[dataStruct.tasks].Start = task[count][1]\
+						necessary = necessary + 1\
+					elseif task[count][0] == \"Fin\" then\
+						dataStruct[dataStruct.tasks].Fin = task[count][1]\
+					elseif task[count][0] == \"Private\" then\
+						if task[count][1] == \"Private\" then\
+							dataStruct[dataStruct.tasks].Private = true\
+						else\
+							dataStruct[dataStruct.tasks].Private = false\
+						end\
+						necessary = necessary + 1\
+					elseif task[count][0] == \"People\" then\
+						for j = 1,#task[count] do\
+							if task[count][j][0] == \"Who\" then\
+								local WhoTable = {[0]=\"Who\", count = #task[count][j]}\
+								-- Loop through all the items in the Who element\
+								for i = 1,#task[count][j] do\
+									WhoTable[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}\
+								end\
+								necessary = necessary + 1\
+								dataStruct[dataStruct.tasks].Who = WhoTable\
+							elseif task[count][j][0] == \"Locked\" then\
+								local locked = {[0]=\"Access\", count = #task[count][j]}\
+								-- Loop through all the items in the Locked element Access List\
+								for i = 1,#task[count][j] do\
+									locked[i] = {ID = task[count][j][i][1][1], Status = task[count][j][i][2][1]}\
+								end\
+								dataStruct[dataStruct.tasks].Access = locked\
+							elseif task[count][j][0] == \"Assignee\" then\
+								local assignee = {[0]=\"Assignee\", count = #task[count][j]}\
+								-- Loop through all the items in the Assignee element\
+								for i = 1,#task[count][j] do\
+									assignee[i] = {ID = task[count][j][i][1]}\
+								end				\
+								dataStruct[dataStruct.tasks].Assignee = assignee					\
+							end		-- if task[count][j][0] == \"Who\" then ends here				\
+						end		-- for j = 1,#task[count] do ends here				\
+					elseif task[count][0] == \"Status\" then\
+						dataStruct[dataStruct.tasks].Status = task[count][1]\
+						necessary = necessary + 1\
+					elseif task[count][0] == \"Priority\" then\
+						dataStruct[dataStruct.tasks].Priority = task[count][1]\
+					elseif task[count][0] == \"Due\" then\
+						dataStruct[dataStruct.tasks].Due = task[count][1]\
+					elseif task[count][0] == \"Comments\" then\
+						dataStruct[dataStruct.tasks].Comments = task[count][1]\
+					elseif task[count][0] == \"Category\" then\
+						dataStruct[dataStruct.tasks].Cat = task[count][1]\
+					elseif task[count][0] == \"Sub-Category\" then\
+						dataStruct[dataStruct.tasks].SubCat = task[count][1]\
+					elseif task[count][0] == \"Tags\" then\
+						local tagTable = {[0]=\"Tags\", count = #task[count]}\
+						-- Loop through all the items in the Tags element\
+						for i = 1,#task[count] do\
+							tagTable[i] = task[count][i][1]\
+						end\
+						dataStruct[dataStruct.tasks].Tags = tagTable\
+					elseif task[count][0] == \"Schedules\" then\
+						local schedule = {[0]=\"Schedules\"}\
+						for i = 1,#task[count] do\
+							if task[count][i][0] == \"Estimate\" then\
+								local estimate = {[0]=\"Estimate\", count = #task[count][i]}\
+								-- Loop through all the estimates\
+								for j = 1,#task[count][i] do\
+									estimate[j] = {[0]=\"Estimate\"}\
+									-- Loop through the children of Estimates element\
+									for n = 1,#task[count][i][j] do\
+										if task[count][i][j][n][0] == \"Hours\" then\
+											estimate[j].Hours = task[count][i][j][n][1]\
+										elseif task[count][i][j][n][0] == \"Comment\" then\
+											estimate[j].Comment = task[count][i][j][n][1]\
+										elseif task[count][i][j][0] == \"Updated\" then\
+											estimate[j].Updated = task[count][i][j][n][1]\
+										elseif task[count][i][j][n][0] == \"Period\" then\
+											local period = {[0] = \"Period\", count = #task[count][i][j][n]}\
+											-- Loop through all the day plans\
+											for k = 1,#task[count][i][j][n] do\
+												period[k] = {[0] = \"DP\", Date = task[count][i][j][n][k][1][1]}\
+												if task[count][i][j][n][k][2] then\
+													if task[count][i][j][n][k][2] == \"Hours\" then\
+														period[k].Hours = task[count][i][j][n][k][2][1]\
+													else\
+														-- Collect all the time plans\
+														period[k].TP = {[0]=\"Time Plan\", count = #task[count][i][j][n][k]-1}\
+														for m = 2,#task[count][i][j][n][k] do\
+															-- Add this time plan to the kth day plan\
+															period[k].TP[m-1] = {STA = task[count][i][j][n][k][m][1][1], STP = task[count][i][j][n][k][m][2][1]}\
+														end\
+													end\
+												end		-- if task[count][i][n][k][2] then ends\
+											end		-- for k = 1,#task[count][i][j] do ends\
+											estimate[j].Period = period\
+										end		-- if task[count][i][j][0] == \"Hours\" then ends\
+									end		-- for n = 1,#task[count][i][j] do ends\
+								end		-- for j = 1,#task[count][i] do ends\
+								schedule.Estimate = estimate\
+							elseif task[count][i][0] == \"Commit\" then\
+								local commit = {[0]=\"Commit\"}\
+								commit.Comment = task[count][i][1][1][1]\
+								commit.Updated = task[count][i][1][2][1]\
+								local period = {[0] = \"Period\", count = #task[count][i][1][3]}\
+								-- Loop through all the day plans\
+								for k = 1,#task[count][i][1][3] do\
+									period[k] = {[0] = \"DP\", Date = task[count][i][1][3][k][1][1]}\
+									if task[count][i][1][3][k][2] then\
+										if task[count][i][1][3][k][2] == \"Hours\" then\
+											period[k].Hours = task[count][i][1][3][k][2][1]\
+										else\
+											-- Collect all the time plans\
+											period[k].TP = {[0]=\"Time Plan\", count = #task[count][i][1][3][k]-1}\
+											for m = 2,#task[count][i][1][3][k] do\
+												-- Add this time plan to the kth day plan\
+												period[k].TP[m-1] = {STA = task[count][i][1][3][k][m][1][1], STP = task[count][i][1][3][k][m][2][1]}\
+											end\
+										end\
+									end		-- if task[count][i][n][k][2] then ends\
+								end		-- for k = 1,#task[count][i][j] do ends\
+								commit.Period = period\
+								schedule.Commit = {commit,[0]=\"Commit\", count = 1}\
+							elseif task[count][i][0] == \"Revs\" then\
+								local revs = {[0]=\"Revs\", count = #task[count][i]}\
+								-- Loop through all the Revisions\
+								for j = 1,#task[count][i] do\
+									revs[j] = {[0]=\"Revs\"}\
+									-- Loop through the children of Revision element\
+									for n = 1,#task[count][i][j] do\
+										if task[count][i][j][n][0] == \"Comment\" then\
+											revs[j].Comment = task[count][i][j][n][1]\
+										elseif task[count][i][j][0] == \"Updated\" then\
+											revs[j].Updated = task[count][i][j][n][1]\
+										elseif task[count][i][j][n][0] == \"Period\" then\
+											local period = {[0] = \"Period\", count = #task[count][i][j][n]}\
+											-- Loop through all the day plans\
+											for k = 1,#task[count][i][j][n] do\
+												period[k] = {[0] = \"DP\", Date = task[count][i][j][n][k][1][1]}\
+												if task[count][i][j][n][k][2] then\
+													if task[count][i][j][n][k][2] == \"Hours\" then\
+														period[k].Hours = task[count][i][j][n][k][2][1]\
+													else\
+														-- Collect all the time plans\
+														period[k].TP = {[0]=\"Time Plan\", count = #task[count][i][j][n][k]-1}\
+														for m = 2,#task[count][i][j][n][k] do\
+															-- Add this time plan to the kth day plan\
+															period[k].TP[m-1] = {STA = task[count][i][j][n][k][m][1][1], STP = task[count][i][j][n][k][m][2][1]}\
+														end\
+													end\
+												end		-- if task[count][i][n][k][2] then ends\
+											end		-- for k = 1,#task[count][i][j] do ends\
+											revs[j].Period = period\
+										end		-- if task[count][i][j][0] == \"Hours\" then ends\
+									end		-- for n = 1,#task[count][i][j] do ends\
+								end		-- for j = 1,#task[count][i] do ends\
+								schedule.Revs = revs\
+							elseif task[count][i][0] == \"Actual\" then\
+								local actual = {[0]= \"Actual\", count = 1}\
+								local period = {[0] = \"Period\", count = #task[count][i]-1} \
+								-- Loop through all the work done elements\
+								for j = 2,period.count+1 do\
+									period[j] = {[0]=\"WD\", Date = task[count][i][j][1][1]}\
+									for k = 2,#task[count][i][j] do\
+										if task[count][i][j][k][0] == \"Hours\" then\
+											period[j].Hours = task[count][i][j][k][1]\
+										elseif task[count][i][j][k][0] == \"Comment\" then\
+											period[j].Comment = task[count][i][j][k][1]\
+										end\
+									end\
+								end\
+								actual[1] = {Period = period,[0]=\"Actual\", Updated = task[count][i][1][1]}\
+								schedule.Actual = actual\
+							end							\
+						end\
+						dataStruct[dataStruct.tasks].Schedules = schedule\
+					elseif task[count][0] == \"SubTasks\" then\
+						hierInfo[task[count]] = {count = 1, parent = currNode,parentTask = dataStruct[dataStruct.tasks]}\
+						currNode = task[count]\
+						dataStruct[dataStruct.tasks].SubTasks = {parent = dataStruct, tasks = 0, [0]=\"SubTasks\"}\
+						dataStruct = dataStruct[dataStruct.tasks].SubTasks\
+					end\
+					count = count + 1\
+				end		-- while(task[count]) do ends\
+				if necessary < 7 then\
+					-- this is not valid task\
+					dataStruct[dataStruct.tasks] = nil\
+					dataStruct.tasks = dataStruct.tasks - 1\
+				end\
+			else\
+				if currNode[hierInfo[currNode].parent] then\
+					currNode = hierInfo[currNode].parent\
+					dataStruct = dataStruct.parent\
+				end		-- if currNode[hierInfo[level].parent ends here\
+			end		-- if currNode[hierInfo[level].count][0] == \"Task\"  ends here\
+		end		-- if not(currNode[hierInfo[currNode].count]) then ends\
+	end		-- while(currNode[hierInfo[level].count]) ends here\
+	while dataStruct.parent do\
+		dataStruct = dataStruct.parent\
+	end\
+	\
+	-- Convert all tasks to proper task Objects\
+	local list1 = Karm.FilterObject.applyFilterHier(nil,Spore)\
+	if #list1 > 0 then\
+		for i = 1,#list1 do\
+			Karm.TaskObject.MakeTaskObject(list1[i])\
+		end\
+	end        	\
+	\
+	-- Create a SubTasks node for each root node to get link to spore data table\
+	for i = 1,#dataStruct do\
+		if not dataStruct[i].SubTasks then\
+			dataStruct[i].SubTasks = {parent = dataStruct, tasks = 0, [0]=\"SubTasks\"}\
+		end\
+	end\
+	return dataStruct\
+end		-- function Karm.XML2Data(SporeXML) ends here\
 "
 -----------------------------------------------------------------------------
 -- Application: Karm
@@ -6593,10 +6593,10 @@ end		-- function Karm.XML2Data(SporeXML) ends here\r\
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 -- For windows distribution
---package.cpath = ";./?.dll;"
+package.cpath = ";./?.dll;"
 
 -- For linux distribution
-package.cpath = ";./?.so;"
+--package.cpath = ";./?.so;"
 
 require("wx")
 

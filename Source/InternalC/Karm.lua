@@ -7,10 +7,10 @@
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 -- For windows distribution
---package.cpath = ";./?.dll;"
+package.cpath = ";./?.dll;"
 
 -- For linux distribution
-package.cpath = ";./?.so;"
+--package.cpath = ";./?.so;"
 
 require("wx")
 
