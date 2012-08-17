@@ -872,8 +872,13 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 							end
 		)
 	end
+	Karm.TaskObject.MakeTaskObject(nTask)
 	return nTask
 end		-- function Karm.TaskObject.copy(task)ends
+
+function Karm.TaskObject.MakeTaskObject(task)
+	setmetatable(task,Karm.TaskObject)
+end
 
 -- Function to convert a task to a task list with incremental schedules i.e. 1st will be same as task passed (but a copy of it) and last task will have 1st schedule only
 -- The task ID however have additional _n where n is a serial number from 1 
@@ -935,9 +940,6 @@ end		-- function Karm.TaskObject.incSchTasks(task) ends
 
 -- Function to return an Empty task that satisfies the minimum requirements
 function Karm.getEmptyTask(SporeFile)
-	if type(SporeFile) ~= "string" then
-		error("Expected a spore file name for input to Karm.getEmptyTask",2)
-	end
 	local nTask = {}
 	nTask[0] = "Task"
 	nTask.SporeFile = SporeFile
@@ -947,7 +949,7 @@ function Karm.getEmptyTask(SporeFile)
 	nTask.Public = true
 	nTask.Who = {[0] = "Who", count = 1,[1] = "DUMMY"}
 	nTask.Status = "Not Started"
-	
+	Karm.TaskObject.MakeTaskObject(nTask)
 	return nTask
 end
 
@@ -1624,7 +1626,7 @@ function Karm.XML2Data(SporeXML, SporeFile)
 				local necessary = 0
 				dataStruct.tasks = dataStruct.tasks + 1
 				dataStruct[dataStruct.tasks] = {[0] = "Task"}
-				setmetatable(dataStruct[dataStruct.tasks],Karm.TaskObject)
+				
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile
 				-- Set the Previous and next pointers
 				if dataStruct.tasks > 1 then
@@ -1848,6 +1850,15 @@ function Karm.XML2Data(SporeXML, SporeFile)
 	while dataStruct.parent do
 		dataStruct = dataStruct.parent
 	end
+	
+	-- Convert all tasks to proper task Objects
+	local list1 = Karm.FilterObject.applyFilterHier(nil,Spore)
+	if #list1 > 0 then
+		for i = 1,#list1 do
+			Karm.TaskObject.MakeTaskObject(list1[i])
+		end
+	end        	
+	
 	-- Create a SubTasks node for each root node to get link to spore data table
 	for i = 1,#dataStruct do
 		if not dataStruct[i].SubTasks then

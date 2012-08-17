@@ -5588,8 +5588,13 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 							end\
 		)\
 	end\
+	Karm.TaskObject.MakeTaskObject(nTask)\
 	return nTask\
 end		-- function Karm.TaskObject.copy(task)ends\
+\
+function Karm.TaskObject.MakeTaskObject(task)\
+	setmetatable(task,Karm.TaskObject)\
+end\
 \
 -- Function to convert a task to a task list with incremental schedules i.e. 1st will be same as task passed (but a copy of it) and last task will have 1st schedule only\
 -- The task ID however have additional _n where n is a serial number from 1 \
@@ -5651,9 +5656,6 @@ end		-- function Karm.TaskObject.incSchTasks(task) ends\
 \
 -- Function to return an Empty task that satisfies the minimum requirements\
 function Karm.getEmptyTask(SporeFile)\
-	if type(SporeFile) ~= \"string\" then\
-		error(\"Expected a spore file name for input to Karm.getEmptyTask\",2)\
-	end\
 	local nTask = {}\
 	nTask[0] = \"Task\"\
 	nTask.SporeFile = SporeFile\
@@ -5663,7 +5665,7 @@ function Karm.getEmptyTask(SporeFile)\
 	nTask.Public = true\
 	nTask.Who = {[0] = \"Who\", count = 1,[1] = \"DUMMY\"}\
 	nTask.Status = \"Not Started\"\
-	\
+	Karm.TaskObject.MakeTaskObject(nTask)\
 	return nTask\
 end\
 \
@@ -6340,7 +6342,7 @@ function Karm.XML2Data(SporeXML, SporeFile)\
 				local necessary = 0\
 				dataStruct.tasks = dataStruct.tasks + 1\
 				dataStruct[dataStruct.tasks] = {[0] = \"Task\"}\
-				setmetatable(dataStruct[dataStruct.tasks],Karm.TaskObject)\
+				\
 				dataStruct[dataStruct.tasks].SporeFile = SporeFile\
 				-- Set the Previous and next pointers\
 				if dataStruct.tasks > 1 then\
@@ -6564,6 +6566,15 @@ function Karm.XML2Data(SporeXML, SporeFile)\
 	while dataStruct.parent do\
 		dataStruct = dataStruct.parent\
 	end\
+	\
+	-- Convert all tasks to proper task Objects\
+	local list1 = Karm.FilterObject.applyFilterHier(nil,Spore)\
+	if #list1 > 0 then\
+		for i = 1,#list1 do\
+			Karm.TaskObject.MakeTaskObject(list1[i])\
+		end\
+	end        	\
+	\
 	-- Create a SubTasks node for each root node to get link to spore data table\
 	for i = 1,#dataStruct do\
 		if not dataStruct[i].SubTasks then\
@@ -6581,8 +6592,11 @@ end		-- function Karm.XML2Data(SporeXML) ends here\
 -----------------------------------------------------------------------------
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
---package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
-package.cpath = ";?.dll;?.so;"
+-- For windows distribution
+package.cpath = ";?.dll;"
+
+-- For linux distribution
+--package.cpath = ";?.so;"
 
 require("wx")
 
@@ -7615,6 +7629,10 @@ do
 		local oTree = taskTreeINT[taskTree]
 		local node = oTree.Nodes[task.TaskID]
 		
+		if not node then
+			return nil
+		end
+		
 		nodeMeta[node].Task = task
 		nodeMeta[node].Title = task.Title
 		
@@ -8553,6 +8571,27 @@ function Karm.GUI.getNodeColor(node)
 			return Karm.GUI.nodeForeColor, Karm.GUI.nodeBackColor
 		end	
 	end
+end
+
+function Karm.GUI.addTask(task)
+	local parent = task.Parent
+	while parent do
+		if Karm.GUI.taskTree.Nodes[parent.TaskID] then
+			-- Put the task under this node
+			local currNode = Karm.GUI.taskTree:AddNode{Relative=parent.TaskID, Relation="Child", Key=task.TaskID, Text=task.Title, Task=task}
+			currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
+			return true
+		end
+	end
+	-- No hierarchy was found so this has to be the root node in a spore
+	if not Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..task.SporeFile] then
+		-- Spore also does not exist
+		Karm.GUI.addSpore(task.SporeFile, Karm.SporeData[task.SporeFile])
+		return true
+	end
+	local currNode = Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY..task.SporeFile, Relation="Child", Key=task.TaskID, Text=task.Title, Task=task}
+	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
+	return true	
 end
 
 function Karm.GUI.addSpore(key,Spore)
@@ -9641,7 +9680,7 @@ function Karm.loadKarmSpore(file, commands)
 	if #list1 > 0 then
 		for i = 1,#list1 do
 			list1[i].SporeFile = Spore.SporeFile
-			setmetatable(list1[i],Karm.TaskObject)
+			Karm.TaskObject.MakeTaskObject(list1[i])
 		end
 	end        	
 	-- First update the Karm.Globals.ROOTKEY
@@ -9860,6 +9899,9 @@ function Karm.finalizePlanning(task)
 	local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
 	if #taskList == 1 then
 		-- It passes the filter so update the task
+		if not Karm.GUI.taskTree.Nodes[task.TaskID] then
+			Karm.GUI.addTask(task)
+		end
 	    Karm.GUI.taskTree:UpdateNode(task)
 		Karm.GUI.taskClicked(task)
 		-- Update all the parents as well

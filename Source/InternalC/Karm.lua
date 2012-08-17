@@ -6,8 +6,11 @@
 -----------------------------------------------------------------------------
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
---package.cpath = package.cpath..";./?.dll;./?.so;../lib/?.so;../lib/vc_dll/?.dll;../lib/bcc_dll/?.dll;../lib/mingw_dll/?.dll;"
-package.cpath = ";?.dll;?.so;"
+-- For windows distribution
+package.cpath = ";?.dll;"
+
+-- For linux distribution
+--package.cpath = ";?.so;"
 
 require("wx")
 
@@ -1040,6 +1043,10 @@ do
 		local oTree = taskTreeINT[taskTree]
 		local node = oTree.Nodes[task.TaskID]
 		
+		if not node then
+			return nil
+		end
+		
 		nodeMeta[node].Task = task
 		nodeMeta[node].Title = task.Title
 		
@@ -1978,6 +1985,27 @@ function Karm.GUI.getNodeColor(node)
 			return Karm.GUI.nodeForeColor, Karm.GUI.nodeBackColor
 		end	
 	end
+end
+
+function Karm.GUI.addTask(task)
+	local parent = task.Parent
+	while parent do
+		if Karm.GUI.taskTree.Nodes[parent.TaskID] then
+			-- Put the task under this node
+			local currNode = Karm.GUI.taskTree:AddNode{Relative=parent.TaskID, Relation="Child", Key=task.TaskID, Text=task.Title, Task=task}
+			currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
+			return true
+		end
+	end
+	-- No hierarchy was found so this has to be the root node in a spore
+	if not Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..task.SporeFile] then
+		-- Spore also does not exist
+		Karm.GUI.addSpore(task.SporeFile, Karm.SporeData[task.SporeFile])
+		return true
+	end
+	local currNode = Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY..task.SporeFile, Relation="Child", Key=task.TaskID, Text=task.Title, Task=task}
+	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
+	return true	
 end
 
 function Karm.GUI.addSpore(key,Spore)
@@ -3066,7 +3094,7 @@ function Karm.loadKarmSpore(file, commands)
 	if #list1 > 0 then
 		for i = 1,#list1 do
 			list1[i].SporeFile = Spore.SporeFile
-			setmetatable(list1[i],Karm.TaskObject)
+			Karm.TaskObject.MakeTaskObject(list1[i])
 		end
 	end        	
 	-- First update the Karm.Globals.ROOTKEY
@@ -3285,6 +3313,9 @@ function Karm.finalizePlanning(task)
 	local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
 	if #taskList == 1 then
 		-- It passes the filter so update the task
+		if not Karm.GUI.taskTree.Nodes[task.TaskID] then
+			Karm.GUI.addTask(task)
+		end
 	    Karm.GUI.taskTree:UpdateNode(task)
 		Karm.GUI.taskClicked(task)
 		-- Update all the parents as well
