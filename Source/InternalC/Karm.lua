@@ -7,10 +7,10 @@
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 -- For windows distribution
-package.cpath = ";?.dll;"
+--package.cpath = ";./?.dll;"
 
 -- For linux distribution
---package.cpath = ";?.so;"
+package.cpath = ";./?.so;"
 
 require("wx")
 
@@ -3522,7 +3522,8 @@ function Karm.main()
 	
 	local bM
 	Karm.GUI.toolbar = Karm.GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
-	local toolBmpSize = Karm.GUI.toolbar:GetToolBitmapSize()
+	--local toolBmpSize = Karm.GUI.toolbar:GetToolBitmapSize()
+	local toolBmpSize = wx.wxSize(16,16)
 	bM = wx.wxImage("images/load_xml.png",wx.wxBITMAP_TYPE_PNG)
 	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
 	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LOAD_XML, "Load XML", wx.wxBitmap(bM), "Load XML Spore from Disk")
@@ -3772,23 +3773,23 @@ function Karm.Initialize()
 	local splash = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm", wx.wxDefaultPosition, wx.wxSize(400, 300),
                         wx.wxSTAY_ON_TOP + wx.wxFRAME_NO_TASKBAR)
     local sizer = wx.wxBoxSizer(wx.wxVERTICAL)
-    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
-    local dc = wx.wxPaintDC(textBox)
-    local wid,height
-    textBox:SetFont(wx.wxFont(30, wx.wxFONTFAMILY_SWISS, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD))
-    wid,height = dc:GetTextExtent("Karm",wx.wxFont(30, wx.wxFONTFAMILY_ROMAN, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD) )
-    local textAttr = wx.wxTextAttr()
-    textBox:WriteText("Karm")
-    sizer:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    --local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    --local dc = wx.wxPaintDC(textBox)
+    --local wid,height
+    --textBox:SetFont(wx.wxFont(30, wx.wxFONTFAMILY_SWISS, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD))
+    --wid,height = dc:GetTextExtent("Karm",wx.wxFont(30, wx.wxFONTFAMILY_ROMAN, wx.wxFONTSTYLE_NORMAL, wx.wxFONTWEIGHT_BOLD) )
+    --local textAttr = wx.wxTextAttr()
+    --textBox:WriteText("Karm")
+    --sizer:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    local panel = wx.wxPanel(splash, wx.wxID_ANY)
+	local image = wx.wxImage("images/SplashImage.jpg",wx.wxBITMAP_TYPE_JPEG)
+	--image = image:Scale(100,100)
+    sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
     textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
     sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    local panel = wx.wxPanel(splash, wx.wxID_ANY)
-	local image = wx.wxImage("images/SplashImage.bmp",wx.wxBITMAP_TYPE_BMP)
-	image = image:Scale(100,100)
-    sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
     panel:Connect(wx.wxEVT_PAINT,function(event)
 		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))
-		    cdc:DrawBitmap(wx.wxBitmap(image),150,0,false)
+		    cdc:DrawBitmap(wx.wxBitmap(image),11,0,false)
 		    cdc:delete()
 	    end
 	)
