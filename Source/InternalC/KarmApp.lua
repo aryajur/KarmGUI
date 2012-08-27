@@ -6371,7 +6371,6 @@ function Karm.XML2Data(SporeXML, SporeFile)\
 						necessary = necessary + 1\
 					elseif task[count][0] == \"Start\" then\
 						dataStruct[dataStruct.tasks].Start = task[count][1]\
-						necessary = necessary + 1\
 					elseif task[count][0] == \"Fin\" then\
 						dataStruct[dataStruct.tasks].Fin = task[count][1]\
 					elseif task[count][0] == \"Private\" then\
@@ -6550,7 +6549,7 @@ function Karm.XML2Data(SporeXML, SporeFile)\
 					end\
 					count = count + 1\
 				end		-- while(task[count]) do ends\
-				if necessary < 7 then\
+				if necessary < 6 then\
 					-- this is not valid task\
 					dataStruct[dataStruct.tasks] = nil\
 					dataStruct.tasks = dataStruct.tasks - 1\
@@ -6651,7 +6650,7 @@ setmetatable(Karm.GUI,{__index = _G})
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.08.13",
+	KARM_VERSION = "1.12.08.27",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	StatusNodeColor = {
@@ -8717,7 +8716,7 @@ function Karm.GUI.dateRangeChange()
 	Karm.GUI.taskTree:dateRangeChange(startDate,finDate)
 end
 
-function Karm.createNewSpore(title)
+function Karm.createNewSpore(title, relation, relative)
 	local SporeName
 	if title then
 		SporeName = title
@@ -8727,9 +8726,12 @@ function Karm.createNewSpore(title)
 	if SporeName == "" then
 		return
 	end
+	relation = relation or "Child"
+	relative = relative or Karm.Globals.ROOTKEY
 	Karm.SporeData[SporeName] = Karm.XML2Data({[0]="Task_Spore"}, SporeName)
 	Karm.SporeData[SporeName].Modified = "YES"
-	Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY, Relation="Child", Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
+	Karm.SporeData[0] = Karm.SporeData[0] + 1
+	Karm.GUI.taskTree:AddNode{Relative=relative, Relation=relation, Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
 	Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].ForeColor, Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName])
 	Karm.Globals.unsavedSpores[SporeName] = Karm.SporeData[SporeName].Title
 	return Karm.Globals.ROOTKEY..SporeName
@@ -9370,6 +9372,7 @@ function Karm.NewTask(event, title)
 		-- Get the new task task ID
 		local relativeID = taskList[1].Key
 		local task = {}
+		Karm.TaskObject.MakeTaskObject(task)
 		-- There are 4 levels that need to be handled
 		-- 1. Root node on the tree
 		-- 2. Spore Node
@@ -9386,24 +9389,13 @@ function Karm.NewTask(event, title)
 		elseif relativeID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- 2. Spore Node
 			if event:GetId() == Karm.GUI.ID_NEW_PREV_TASK or event:GetId() == Karm.GUI.ID_NEW_NEXT_TASK then
-				local SporeName
-				if title then
-					SporeName = title
-				else
-					SporeName = wx.wxGetTextFromUser("Enter the Spore File name (Blank to cancel):", "New Spore", "")
-				end
-				if SporeName == "" then
-					return
-				end
-				Karm.SporeData[SporeName] = Karm.XML2Data({[0]="Task_Spore"}, SporeName)
-				Karm.SporeData[SporeName].Modified = true
-				Karm.SporeData[0] = Karm.SporeData[0] + 1
+				local rel
 				if event:GetId() == Karm.GUI.ID_NEW_PREV_TASK then
-	            	Karm.GUI.taskTree:AddNode{Relative=relativeID, Relation="PREV SIBLING", Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
-	            else
-	            	Karm.GUI.taskTree:AddNode{Relative=relativeID, Relation="NEXT SIBLING", Key=Karm.Globals.ROOTKEY..SporeName, Text=SporeName, Task = Karm.SporeData[SporeName]}
-	            end
-	            Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].ForeColor, Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..SporeName])	
+					rel = "PREV SIBLING"
+				else
+					rel = "NEXT SIBLING"
+				end
+				Karm.createNewSpore(title, rel, relativeID)
 			else
 				-- This is a Spore so the request is to create a new root task in the spore
 				task.TaskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", "New Task", "")
@@ -9437,6 +9429,18 @@ function Karm.NewTask(event, title)
 				if title then
 					task.Title = title
 					task.Who = {[0]="Who", count = 1, [1] = {ID = Karm.Globals.User, Status = "Active"}}
+					task.Private = false
+					task.Modified = true
+					task.Status = "Not Started"
+					if type(checkTask) == "function" then
+						local err,msg = checkTask(task)
+						if not err then
+							msg = msg or "Error in the task. Please review."
+							wx.wxMessageBox(msg, "Task Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+							Karm.GUI.TaskWindowOpen = nil
+							return nil
+						end
+					end
 					Karm.NewTaskCallBack(task)
 				else
 					Karm.GUI.TaskForm.taskFormActivate(Karm.GUI.frame, Karm.NewTaskCallBack,task)
@@ -9494,6 +9498,18 @@ function Karm.NewTask(event, title)
 			if title then
 				task.Title = title
 				task.Who = {[0]="Who", count = 1, [1] = {ID = Karm.Globals.User, Status = "Active"}}
+				task.Private = false
+				task.Modified = true
+				task.Status = "Not Started"
+				if type(checkTask) == "function" then
+					local err,msg = checkTask(task)
+					if not err then
+						msg = msg or "Error in the task. Please review."
+						wx.wxMessageBox(msg, "Task Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+						Karm.GUI.TaskWindowOpen = nil
+						return nil
+					end
+				end
 				Karm.NewTaskCallBack(task)
 			else
 				Karm.GUI.TaskForm.taskFormActivate(Karm.GUI.frame, Karm.NewTaskCallBack,task)

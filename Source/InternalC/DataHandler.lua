@@ -1655,7 +1655,6 @@ function Karm.XML2Data(SporeXML, SporeFile)
 						necessary = necessary + 1
 					elseif task[count][0] == "Start" then
 						dataStruct[dataStruct.tasks].Start = task[count][1]
-						necessary = necessary + 1
 					elseif task[count][0] == "Fin" then
 						dataStruct[dataStruct.tasks].Fin = task[count][1]
 					elseif task[count][0] == "Private" then
@@ -1834,7 +1833,7 @@ function Karm.XML2Data(SporeXML, SporeFile)
 					end
 					count = count + 1
 				end		-- while(task[count]) do ends
-				if necessary < 7 then
+				if necessary < 6 then
 					-- this is not valid task
 					dataStruct[dataStruct.tasks] = nil
 					dataStruct.tasks = dataStruct.tasks - 1

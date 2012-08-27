@@ -48,7 +48,7 @@ DEL: Offline system requests task to be deleted.</xs:documentation>
           <xs:documentation>Title/Name for the task for identification</xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="Start" type="xs:date">
+      <xs:element minOccurs="0" name="Start" type="xs:date">
         <xs:annotation>
           <xs:documentation>Date the Task is started. XML Date format is YYYY-MM-DD</xs:documentation>
         </xs:annotation>
