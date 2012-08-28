@@ -692,6 +692,9 @@ function Karm.TaskObject.CheckSporeIntegrity(task, Spore)
 					integrityError[#integrityError + 1] = {Task = task.SubTasks[i], Error = "Parent mismatch"}
 				end
 			end
+			if task.SubTasks.parent ~= task.Parent.SubTasks then
+				integrityError[#integrityError + 1] = {Task = task.SubTasks[i], Error = "SubTasks Parent mismatch"}
+			end
 		end
 	end
 	for i = 1,#spore do
@@ -1238,7 +1241,10 @@ function Karm.TaskObject.add2Parent(task, parent, Spore)
 	if parent.SubTasks.tasks > 1 then
 		parent.SubTasks[parent.SubTasks.tasks - 1].Next = parent.SubTasks[parent.SubTasks.tasks]
 		parent.SubTasks[parent.SubTasks.tasks].Previous = parent.SubTasks[parent.SubTasks.tasks-1]
+	else
+		parent.SubTasks[parent.SubTasks.tasks].Previous = nil
 	end
+	parent.SubTasks[parent.SubTasks.tasks].Next = nil
 end
 
 -- Function to get all work done dates for a task and color and type for each date

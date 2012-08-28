@@ -117,14 +117,18 @@ Karm.FilterObject.validateTask = newValidateTask
 Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "&Undo last tasks under (upper menu)\tCtrl-2", HelpText = "Roll back the above menu action and go to last filter", Code = [[
-Karm.FilterObject.validateTask = MyVT[#MyVT]
-MyVT[#MyVT] = nil
-Karm.GUI.fillTaskTree()
+if MyVT then
+	Karm.FilterObject.validateTask = MyVT[#MyVT]
+	MyVT[#MyVT] = nil
+	Karm.GUI.fillTaskTree()
+end
 											]]},
 											{Text = "&Reset tasks under\tCtrl-3", HelpText = "Reset the above menu action and go to original filter", Code = [[
-Karm.FilterObject.validateTask = MyVT[1]
-Karm.GUI.fillTaskTree()
-MyVT = nil
+if MyVT then
+	Karm.FilterObject.validateTask = MyVT[1]
+	Karm.GUI.fillTaskTree()
+	MyVT = nil
+end
 											]]},
 											{Text = "&Scheduled but not done\tCtrl-4", HelpText = "Tasks scheduled before today and not marked done", Code = [[
 local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Scheduled_But_Not_Done.kff")
@@ -133,6 +137,11 @@ Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "&Coming Week not Done\tCtrl-5", HelpText = "Tasks scheduled in the coming week", Code = [[
 local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Coming_Week_Not_Done.kff")
+Karm.Filter = filter
+Karm.GUI.fillTaskTree()
+											]]},
+											{Text = "&All Tasks\tCtrl-6", HelpText = "Show all loaded Tasks", Code = [[
+local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]}

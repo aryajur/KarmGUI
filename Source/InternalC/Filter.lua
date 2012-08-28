@@ -700,7 +700,11 @@ function Karm.FilterObject.validateTask(filter, task)
 		end
 		safeenv.task = task
 		setfenv(func,safeenv)
-		func()
+		local stat,err
+		stat,err = pcall(func)
+		if not stat then
+			wx.wxMessageBox("Error Running Script:\n"..err,"Error",wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
+		end			
 		if not safeenv.result then
 			return false
 		end
