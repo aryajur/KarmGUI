@@ -22,7 +22,7 @@ MainMenu = {
 				-- 2nd Menu
 				{	
 					Text = "&Tools", Menu = {
-											{Text = "&Planning Mode\tCtrl-P", HelpText = "Turn on Planning mode", Code = [[local menuItems = Karm.GUI.menuBar:GetMenu(1):GetMenuItems() 
+											{Text = "&Planning Mode\tCtrl-P", HelpText = "Toggle Planning mode", Code = [[local menuItems = Karm.GUI.menuBar:GetMenu(1):GetMenuItems() 
 if menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
 	-- Enable Planning Mode 
 	Karm.GUI.taskTree:enablePlanningMode() 
@@ -52,22 +52,13 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 											
 											]]},
 											{Text = "&Finalize all Planning Schedules\tCtrl-F", HelpText = "Finalize all Planning schedules in the tasks in the UI", Code = [[
+if Karm.GUI.taskTree.taskList then
 	while #Karm.GUI.taskTree.taskList > 0 do
 		Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1])
 	end
-											
+end
 											]]},
 											{Text = "&Quick Enter Task Under\tCtrl-Q", HelpText = "Quick Entry of task under this task", Code = [[
-	-- Get the selected task
-	local taskList = Karm.GUI.taskTree.Selected
-	if #taskList == 0 then
-        wx.wxMessageBox("Select a task under which to create a task.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-        return
-	end	
-	if #taskList > 1 then
-        wx.wxMessageBox("Just select a single task as the parent of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-        return
-	end		
 	-- Get the task Title
 	local title = wx.wxGetTextFromUser("Please enter the task Title (Blank to Cancel)", "New Task under", "")
 	if title ~= "" then
@@ -97,13 +88,75 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 				},
 				-- 3rd Menu
 				{	
+					Text = "&Filters", Menu = {
+											{Text = "&Not Done Tasks under\tCtrl-1", HelpText = "All not done tasks under this task", Code = [[
+-- Get selected task first
+local taskList = Karm.GUI.taskTree.Selected
+if #taskList == 0 then
+    wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    return
+end			
+if #taskList > 1 then
+    wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    return
+end	
+-- Store the original validateTask
+MyVT = MyVT or {}
+MyVT[#MyVT + 1] = Karm.FilterObject.validateTask
+local myVTindex = #MyVT
+local function newValidateTask(filter,task)
+	-- Check if the task is a under selected task
+	if task:IsUnder(taskList[1].Task) then
+		local filter = {Status="Behind,Not Started,On Track",Tasks={[1]={TaskID=taskList[1].Task.TaskID,Title=taskList[1].Task.Title,Children="true"}}}
+		return MyVT[1](filter,task)
+	else
+		return MyVT[myVTindex](filter,task)
+	end
+end
+Karm.FilterObject.validateTask = newValidateTask
+Karm.GUI.fillTaskTree()
+											]]},
+											{Text = "&Undo last tasks under (upper menu)\tCtrl-2", HelpText = "Roll back the above menu action and go to last filter", Code = [[
+Karm.FilterObject.validateTask = MyVT[#MyVT]
+MyVT[#MyVT] = nil
+Karm.GUI.fillTaskTree()
+											]]},
+											{Text = "&Reset tasks under\tCtrl-3", HelpText = "Reset the above menu action and go to original filter", Code = [[
+Karm.FilterObject.validateTask = MyVT[1]
+Karm.GUI.fillTaskTree()
+MyVT = nil
+											]]},
+											{Text = "&Scheduled but not done\tCtrl-4", HelpText = "Tasks scheduled before today and not marked done", Code = [[
+local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Scheduled_But_Not_Done.kff")
+Karm.Filter = filter
+Karm.GUI.fillTaskTree()
+											]]},
+											{Text = "&Coming Week not Done\tCtrl-5", HelpText = "Tasks scheduled in the coming week", Code = [[
+local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Coming_Week_Not_Done.kff")
+Karm.Filter = filter
+Karm.GUI.fillTaskTree()
+											]]}
+									}
+				},
+				-- 4th Menu
+				{	
 					Text = "&Help", Menu = {
 											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Karm.Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)"}
 									}
 				}
 }
+
 setfenv(1,_G)
 -- print(Spores)
+
+
+function myDebugFunc()
+
+--- PASTE SCRIPT TO DEBUG HERE
+
+--- END CUSTOM SCRIPT
+
+end
 
 Karm.Globals.Categories = {
 	"Design",
@@ -128,12 +181,7 @@ Karm.Globals.UserIDPattern = "%'([%w%.%_%,% ]+)%'"
 
 Karm.Globals.safeenv = {}
 setmetatable(Karm.Globals.safeenv,{__index = _G})
---[[
-function AutoFillTask(task)
-	task.Who[#task.Who + 1] = {ID = "deepshikha.dandora", Status = "Inactive"}
-	task.Who.count = task.Who.count + 1
-end
-]]
+
 
 function checkTask(task)
 	if task.SubCat and not task.Cat then

@@ -16,6 +16,19 @@ require("wx")
 
 -- DO ALL CONFIGURATION
 Karm = {}
+-- Table to store the core functions when they are being overwritten
+Karm.Core = {}
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		if Karm.key and not Karm.Core.key then
+			Karm.Core.key = Karm.key
+		end
+		rawset(Karm,key,val)
+	end
+	setmetatable(Karm,KarmMeta)
+end]]
 -- Table to store all the Spores data 
 Karm.SporeData = {}
 
@@ -59,8 +72,21 @@ Karm.GUI.initFrameH = 0.75*Karm.GUI.initFrameH
 Karm.GUI.initFrameW = Karm.GUI.initFrameW - Karm.GUI.initFrameW%1
 Karm.GUI.initFrameH = Karm.GUI.initFrameH - Karm.GUI.initFrameH%1
 
-
+Karm.Core.GUI = {}
 setmetatable(Karm.GUI,{__index = _G})
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		if Karm.GUI.key and not Karm.Core.GUI.key then
+			Karm.Core.GUI.key = Karm.GUI.key
+		end
+		rawset(Karm.GUI,key,val)
+	end
+	KarmMeta.__index = _G
+	setmetatable(Karm.GUI,KarmMeta)
+end
+]]
 
 -- Global Declarations
 Karm.Globals = {
@@ -259,13 +285,15 @@ do
 	function taskTreeINT.disablePlanningMode(taskTree)
 		local oTree = taskTreeINT[taskTree]
 		oTree.Planning = nil
-		-- Update all the tasks in the planning mode in the UI to remove the planning schedule
-		for i = 1,#oTree.taskList do
-			if oTree.Nodes[oTree.taskList[i].TaskID].Row then
-				dispGantt(taskTree,oTree.Nodes[oTree.taskList[i].TaskID].Row,false,oTree.Nodes[oTree.taskList[i].TaskID])
-			end
-		end 
-		oTree.taskList = nil
+		if oTree.taskList then
+			-- Update all the tasks in the planning mode in the UI to remove the planning schedule
+			for i = 1,#oTree.taskList do
+				if oTree.Nodes[oTree.taskList[i].TaskID].Row then
+					dispGantt(taskTree,oTree.Nodes[oTree.taskList[i].TaskID].Row,false,oTree.Nodes[oTree.taskList[i].TaskID])
+				end
+			end 
+			oTree.taskList = nil
+		end
 	end
 	
 	-- Function to enable the planning mode
@@ -634,7 +662,7 @@ do
 				-- Selected was false and now making it true
 				oNode.Selected = true
 				-- Select the node in the GUI here
-				oTree.Selected = {oNode,Latest = 1}
+				oTree.Selected = {tab,Latest = 1}
 				oTree.treeGrid:SetGridCursor(oNode.Row-1,1)
 			end	
 		elseif key == "ForeColor" or key == "BackColor" then
@@ -1082,11 +1110,11 @@ do
 		end
 		local oTree = taskTreeINT[taskTree]
 		local node = oTree.Nodes[Key]
-		local parent = nodeMeta[node].Parent
 		if not node then
 			-- Already deleted
 			return
 		end
+		local parent = nodeMeta[node].Parent
 		local nodesToDel = {node}
 		local rowsToDel = {nodeMeta[node].Row}
 		-- Make list of nodes and rows to delete
@@ -1310,9 +1338,6 @@ do
 		-- Finally delete the node row
 		oTree.treeGrid:DeleteRows(nodeMeta[node].Row-1)
 		oTree.ganttGrid:DeleteRows(nodeMeta[node].Row-1)
-		oTree.Nodes[nodeMeta[node].Key] = nil
-		nodeMeta[node] = nil
-		oTree.nodeCount = oTree.nodeCount - 1
 		-- Update the - sign on the parent
 		if not nodeMeta[parent].FirstChild then
 			-- Nothing left under the parent
@@ -1352,6 +1377,10 @@ do
 				end
 			end
 		end
+		-- Remove references to the node
+		oTree.Nodes[nodeMeta[node].Key] = nil
+		nodeMeta[node] = nil
+		oTree.nodeCount = oTree.nodeCount - 1		
 	end		-- function taskTreeINT.DeleteSubUpdate(taskTree,task) ends
 	
 	function taskTreeINT.AddNode(taskTree,nodeInfo)
@@ -2434,6 +2463,28 @@ function Karm.GUI.taskClicked(task)
 	end		-- if Karm.GUI.MoveTask then ends here
 end		-- function taskClicked(task) ends here
 
+function Karm.LoadFilter(file)
+	local safeenv = {}
+	setmetatable(safeenv, {__index = Karm.Globals.safeenv})
+	local f,message = loadfile(file)
+	if not f then
+		return nil,message
+	end
+	setfenv(f,safeenv)
+	f()
+	if safeenv.filter and type(safeenv.filter) == "table" then
+		if safeenv.filter.Script then
+			f, message = loadstring(safeenv.filter.Script)
+			if not f then
+				return nil,"Cannot compile custom script in filter. Error: "..message
+			end
+		end
+		return safeenv.filter
+	else
+		return nil,"Cannot find a valid filter in the file."
+	end
+end
+
 function Karm.SetFilterCallBack(filter)
 	Karm.GUI.FilterWindowOpen = false
 	if filter then
@@ -2540,6 +2591,14 @@ function Karm.EditTaskCallBack(task)
 			for i=1,#parentTask.SubTasks do
 				if parentTask.SubTasks[i] == Karm.GUI.TaskWindowOpen.Task then
 					parentTask.SubTasks[i] = task
+					-- The task already has correct links to its neighbors and parent
+					-- We just need to update the neighbor links to the task to completely delink the previous task table.
+					if task.Previous then
+						task.Previous.Next = task
+					end
+					if task.Next then
+						task.Next.Previous = task
+					end
 					break
 				end
 			end
@@ -2973,7 +3032,17 @@ function Karm.SaveAllSpores(event)
 end
 
 function Karm.saveKarmSpore(Spore)
+	-- Check Spore integrity
 	local file,err,path
+	err = Karm.TaskObject.CheckSporeIntegrity(nil,Karm.SporeData[Spore])
+	if #err > 0 then
+		path = "Errors in Spore: "..Spore.."\n"
+		for i = 1,#err do
+			path = path.."Task: "..err[i].Task.Title.." ERROR: "..err[i].Error.."\n"
+		end
+		wx.wxMessageBox(path,"Integrity Error in Spore", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+		return
+	end
 	if Karm.SporeData[Spore].Modified then
 		local notOK = true
 		while notOK do

@@ -1,6 +1,34 @@
 Karm.TaskObject = {}
 Karm.TaskObject.__index = Karm.TaskObject
+-- Table to store the Core values
+Karm.Core.TaskObject = {}
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		if Karm.TaskObject.key and not Karm.Core.TaskObject.key then
+			Karm.Core.TaskObject.key = Karm.TaskObject.key
+		end
+		rawset(Karm.TaskObject,key,val)
+	end
+	setmetatable(Karm.TaskObject,KarmMeta)
+end
+]]
 Karm.Utility = {}
+-- Table to store the Core values
+Karm.Core.Utility = {}
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		if Karm.Utility.key and not Karm.Core.Utility.key then
+			Karm.Core.Utility.key = Karm.Utility.key
+		end
+		rawset(Karm.Utility,key,val)
+	end
+	setmetatable(Karm.Utility,KarmMeta)
+end
+]]
 -- Task structure
 -- Task.
 --	Planning
@@ -614,6 +642,70 @@ function Karm.Utility.addItemToArray(item,array)
 	return newarray
 end
 
+function Karm.TaskObject.CheckSporeIntegrity(task, Spore)
+	if not task and not Spore then
+		error("Need a task or a Spore object to check the spore integrity", 2)
+	end
+	if task and getmetatable(task) ~= Karm.TaskObject then
+		error("Need a valid task object to check Spore integrity.", 2)
+	end
+	local spore 
+	if task then
+		if not task.Parent then
+			spore = task.SubTasks.parent
+		else
+			spore = task.Parent.SubTasks.parent
+			while spore.parent do
+				spore = spore.parent
+			end
+		end
+	else
+		spore = Spore
+	end
+	local integrityError = {}
+	local checkFunc = function(task)
+		if task.Title == "Karm" then
+			local x = 1
+		end
+		local pa = task.Parent
+		local index
+		for i = 1,#pa.SubTasks do
+			if pa.SubTasks[i] == task then
+				index = i
+				break
+			end
+		end
+		if not index then
+			integrityError[#integrityError + 1] = {Task = task, Error = "Parent mismatch"}
+			return
+		end
+		if (index > 1 and pa.SubTasks[index - 1] ~= task.Previous) or (index == 1 and task.Previous) then
+			integrityError[#integrityError + 1] = {Task = task, Error = "Previous mismatch"}
+		end
+		if (index < #pa.SubTasks and pa.SubTasks[index + 1] ~= task.Next) or (index == #pa.SubTasks and task.Next) then
+			integrityError[#integrityError + 1] = {Task = task, Error = "Next mismatch"}
+		end		
+		-- Check parents of all subTasks
+		if task.SubTasks then
+			for i = 1,#task.SubTasks do
+				if task.SubTasks[i].Parent ~= task then
+					integrityError[#integrityError + 1] = {Task = task.SubTasks[i], Error = "Parent mismatch"}
+				end
+			end
+		end
+	end
+	for i = 1,#spore do
+		if (i > 1  and spore[i-1] ~= spore[i].Previous) or (i == 1 and spore[i].Previous) then
+			integrityError[#integrityError + 1] = {Task = spore[i], Error = "Previous mismatch"}
+		end
+		if (i < #spore and spore[i + 1] ~= spore[i].Next) or (i == #spore and spore[i].Next) then
+			integrityError[#integrityError + 1] = {Task = spore[i], Error = "Next mismatch"}
+		end		
+		spore[i]:applyFuncHier(checkFunc, nil, true)
+	end
+	return integrityError
+end
+
 -- Function to apply a function to a task and its hierarchy
 -- The function should have the task as the 1st argument 
 -- and whatever it returns is passed to it it as the 2nd argument in the next call to it with the next task
@@ -650,6 +742,20 @@ function Karm.TaskObject.applyFuncHier(task, func, initialValue, omitTask)
 		end		-- while hierCount[hier] < #hier or hier.parent do ends here
 	end
 	return passedVar
+end
+
+-- To find out if a task is under the sub task tree of ancestor
+function Karm.TaskObject.IsUnder(task,ancestor)
+	if task==ancestor then
+		return true
+	end
+	local t = task
+	while t.Parent do
+		t = t.Parent
+		if t == ancestor then
+			return true
+		end
+	end
 end
 
 -- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil
@@ -790,15 +896,19 @@ end
 
 -- Function to make a copy of a task
 -- Each task has at most 9 tables:
+
 -- Who
 -- Access
 -- Assignee
 -- Schedules
 -- Tags
+
 -- Parent
 -- SubTasks
 -- DBDATA
 -- Planning  
+-- Previous
+-- Next
 
 -- 1st 5 are made a copy of
 -- Parent is the same linked tables
@@ -1112,8 +1222,10 @@ function Karm.TaskObject.add2Parent(task, parent, Spore)
 	if not parent.SubTasks then
 		parent.SubTasks = {tasks = 0, [0]="SubTasks"}
 		if not parent.Parent then
+			---- THIS CONDITION SHOULD NEVER OCCUR SINCE A ROOT TASK ADDED TO A SPORE ALWAYS HAS A SUBTASKS NODE TO LINK TO THE SPORE TABLE
+			---- SEE add2Spore above
 			if not Spore then
-				error("nil parameter cannot be handled at add2Parent in DataHandler.lua.",2)
+				error("Spore cannot be nil in Karm.TaskObject.add2Parent call.",2)
 			end
 			-- This is a Spore root node
 			parent.SubTasks.parent = Spore
@@ -1522,11 +1634,19 @@ function Karm.TaskObject.DeleteFromDB(task)
 	end
 	for i = 1,#taskList do
 		if taskList[i] == task then
-			for j = i, #taskList-1 do
-				taskList[j] = taskList[j+1]
-				if j>1 then
-					taskList[j].Previous = taskList[j-1]
-					taskList[j-1].Next = taskList[j]
+			if i<#taskList then
+				for j = i, #taskList-1 do
+					taskList[j] = taskList[j+1]
+					if j>1 then
+						taskList[j].Previous = taskList[j-1]
+						taskList[j-1].Next = taskList[j]
+					else
+						taskList[j].Previous = nil
+					end
+				end
+			else
+				if #taskList > 1 then
+					taskList[i-1].Next = nil
 				end
 			end
 			taskList[#taskList] = nil
@@ -1851,7 +1971,7 @@ function Karm.XML2Data(SporeXML, SporeFile)
 	end
 	
 	-- Convert all tasks to proper task Objects
-	local list1 = Karm.FilterObject.applyFilterHier(nil,Spore)
+	local list1 = Karm.FilterObject.applyFilterHier(nil,dataStruct)
 	if #list1 > 0 then
 		for i = 1,#list1 do
 			Karm.TaskObject.MakeTaskObject(list1[i])

@@ -1,6 +1,22 @@
 -- Data structure to store the Global Filter Criteria
 Karm.Filter = {}
 Karm.FilterObject = {}
+-- Table to store the Core values
+Karm.Core.FilterObject = {}
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		print("I am here")
+		if Karm.FilterObject.key and not Karm.Core.FilterObject.key then
+			Karm.Core.FilterObject.key = Karm.FilterObject.key
+			print("Set")
+		end
+		rawset(Karm.FilterObject,key,val)
+	end
+	setmetatable(Karm.FilterObject,KarmMeta)
+end
+]]
 
 -- Function to create a text summary of the Filter
 function Karm.FilterObject.getSummary(filter)
