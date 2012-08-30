@@ -693,7 +693,7 @@ function Karm.TaskObject.CheckSporeIntegrity(task, Spore)
 				end
 			end
 			if task.SubTasks.parent ~= task.Parent.SubTasks then
-				integrityError[#integrityError + 1] = {Task = task.SubTasks[i], Error = "SubTasks Parent mismatch"}
+				integrityError[#integrityError + 1] = {Task = task, Error = "SubTasks Parent mismatch"}
 			end
 		end
 	end
@@ -907,17 +907,18 @@ end
 -- Tags
 
 -- Parent
+-- Previous
+-- Next
 -- SubTasks
 -- DBDATA
 -- Planning  
--- Previous
--- Next
 
 -- 1st 5 are made a copy of
--- Parent is the same linked tables
--- If copySubTasks is true then SubTasks are made a copy as well with the same parameters otherwise it is the same linked SubTask table
+-- Parent, Next and Previous are the same linked tables
+-- If copySubTasks is true then SubTasks are made a copy as well with the same parameters (in this case Previous and Next are 
+--         updated for all the SubTasks and so are the parent of the subtasks) otherwise it is the same linked SubTask table
 -- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table
--- Normally the task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the task parents
+-- Normally the sub-task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the sub-task parents
 -- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks
 -- Planning is not copied over
 function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParents)
@@ -952,7 +953,7 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 				nTask[k] = task[k]
 			else
 				if k == "SubTasks" then
-					-- This has to be copied in 2 steps
+					-- This has to be copied task by task
 					local parent
 					if task.Parent then
 						parent = task.Parent.SubTasks
@@ -963,6 +964,19 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]="SubTasks"}
 					for i = 1,#task.SubTasks do
 						nTask.SubTasks[i] = Karm.TaskObject.copy(task.SubTasks[i],true,removeDBDATA,true)
+						if i == 1  then
+							nTask.SubTasks[1].Previous = nil
+						end
+						if i > 1 then
+							nTask.SubTasks[i].Previous = nTask.SubTasks[i-1]
+							nTask.SubTasks[i-1].Next = nTask.SubTasks[i]
+						end
+						if i == #task.SubTasks then
+							nTask.SubTasks[i].Next = nil
+						end
+						if nTask.SubTasks[i].SubTasks then
+							nTask.SubTasks[i].SubTasks.parent = nTask.SubTasks
+						end
 					end
 				else
 					nTask[k] = copyTable(task[k],true)
@@ -1214,7 +1228,7 @@ function Karm.TaskObject.getNewChildTaskID(parent)
 	return taskID
 end
 
--- Function to add a task according to the specified relation
+-- Function to add a task to a parent as a subtask
 function Karm.TaskObject.add2Parent(task, parent, Spore)
 	if not (task and parent) then
 		error("nil parameter cannot be handled at add2Parent in DataHandler.lua.",2)
@@ -1245,6 +1259,9 @@ function Karm.TaskObject.add2Parent(task, parent, Spore)
 		parent.SubTasks[parent.SubTasks.tasks].Previous = nil
 	end
 	parent.SubTasks[parent.SubTasks.tasks].Next = nil
+	if task.SubTasks then 
+		task.SubTasks.parent = parent.SubTasks
+	end
 end
 
 -- Function to get all work done dates for a task and color and type for each date

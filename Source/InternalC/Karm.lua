@@ -439,12 +439,20 @@ do
 		-- Create the scroll event to sync the 2 scroll bars in the wxScrolledWindow
 		local f = onScrollTree(taskTree)
 		--local f = onScTree
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_TOP, f)
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_BOTTOM, f)
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEUP, f)
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEDOWN, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, f)
 	
 		f = onScrollGantt(taskTree)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_TOP, f)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_BOTTOM, f)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEUP, f)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEDOWN, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
@@ -1000,6 +1008,7 @@ do
 					if currNode == node then 
 						break
 					end
+					currNode = nodeMeta[currNode].Next
 				end		-- if nodeMeta[currNode].FirstChild then ends here
 			end		-- while currNode ~= node do ends
 		end		-- if nodeMeta[currNode].FirstChild then ends		
@@ -1782,20 +1791,25 @@ do
 		--event:Skip()
 	end
 
-	local function onScrollTreeFunc(obj)
+	local function postOnScrollTree(obj)
 		return function(event)
 			local oTree = taskTreeINT[obj]
 			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
+		end
+	end
+
+	local function onScrollTreeFunc(obj)
+		return function(event)
+			local ID = wx.wxID_ANY
+			local evt = wx.wxCommandEvent(wx.wxEVT_COMMAND_BUTTON_CLICKED, ID)
+			local oTree = taskTreeINT[obj]
+			oTree.treeGrid:Connect(ID,wx.wxEVT_COMMAND_BUTTON_CLICKED,postOnScrollTree(obj))
+			oTree.treeGrid:AddPendingEvent(evt)
 			event:Skip()
 		end
 	end
+	onScrollTree = onScrollTreeFunc
 	
---		 function onScTree(event)
---		 	oTree = event:GetEventObject()
---			--oTree = taskTreeINT[obj]
---			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
---			event:Skip()
---		end
 	local function onRowResizeGanttFunc(obj)
 		return function(event)
 			local oTree = taskTreeINT[obj]
@@ -1820,9 +1834,8 @@ do
 	
 	onRowResizeTree = onRowResizeTreeFunc
 	
-	local function onScrollGanttFunc(obj)
+	local function postOnScrollGantt(obj)
 		return function(event)
-			event:Skip()
 			local oTree = taskTreeINT[obj]
 			oTree.treeGrid:Scroll(oTree.treeGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.ganttGrid:GetScrollPos(wx.wxVERTICAL))
 
@@ -1834,16 +1847,26 @@ do
 --   			Karm.GUI.frame:SetStatusText(tostring(y:GetTopLeft():GetX())..","..tostring(y:GetTopLeft():GetY())..","..
 --   			  tostring(y1:GetTopLeft():GetX())..","..tostring(y1:GetTopLeft():GetY()), 1)
    			
-    		local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+    		--local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
     		--local y = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
-    		local x = oTree.ganttGrid:IsVisible(0,count)
-			--while x==0 and not currDate:IsLaterThan(finDate) do
+    		local x = oTree.ganttGrid:IsVisible(0,count, false)
 			while not x and not currDate:IsLaterThan(finDate) do
 				count = count + 1
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
-				x = oTree.ganttGrid:IsVisible(0,count)
+				x = oTree.ganttGrid:IsVisible(0,count, false)
 				--x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
 			end
+
+			-- Now currDate has the date that is not fully visible
+			-- Check if the column is more than 60% visible
+    		local p6w = oTree.ganttGrid:GetColSize(count)
+    		p6w = 0.6*p6w
+    		p6w = p6w - p6w%1
+    		x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopRight():GetX()
+    		if x < p6w then
+    			count = count + 1
+    			currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+    		end
 
 			local corner = oTree.ganttGrid:GetGridCornerLabelWindow()
 			corner:DestroyChildren()
@@ -1854,9 +1877,22 @@ do
 			sizer:Add(textLabel, 1, wx.wxLEFT+wx.wxRIGHT+wx.wxALIGN_CENTRE_VERTICAL, 3)
 			corner:SetSizer(sizer)
 			corner:Layout()	
-			oTree.startDate = oTree.startDate:Subtract(wx.wxDateSpan(0,0,0,count))			
+			oTree.startDate = oTree.startDate:Subtract(wx.wxDateSpan(0,0,0,count))					
 		end
 	end
+	
+	local function onScrollGanttFunc(obj)
+		return function(event)
+			local ID = wx.wxID_ANY
+			local evt = wx.wxCommandEvent(wx.wxEVT_COMMAND_BUTTON_CLICKED, ID)
+			local oTree = taskTreeINT[obj]
+			oTree.ganttGrid:Connect(ID,wx.wxEVT_COMMAND_BUTTON_CLICKED,postOnScrollGantt(obj))
+			oTree.ganttGrid:AddPendingEvent(evt)
+			event:Skip()
+		end
+	end
+	onScrollGantt = onScrollGanttFunc
+	
 	
 	local function horSashAdjustFunc(event)
 		--local info = "Sash: "..tostring(Karm.GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(Karm.GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(Karm.GUI.treeGrid:GetColSize(1))
@@ -1981,8 +2017,6 @@ do
 	cellClick = cellClickFunc
 	widgetResize = widgetResizeFunc
 	horSashAdjust = horSashAdjustFunc
-	onScrollGantt = onScrollGanttFunc
-	onScrollTree = onScrollTreeFunc
 	labelClick = labelClickFunc
 	
 end	-- The custom tree and Gantt widget object for Karm ends here
@@ -2297,7 +2331,7 @@ function Karm.moveCopyTask(task)
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
 			if task.SubTasks then
 				-- Update the SubTasks parent
-				task.SubTasks.parent = Karm.SporeData[task.SporeFile]
+				--task.SubTasks.parent = Karm.SporeData[task.SporeFile]  DONE IN ADD2SPORE
 				-- Update the Spore file in all sub tasks
 				local list1 = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[task.SporeFile])
 				if #list1 > 0 then
@@ -2408,7 +2442,7 @@ function Karm.moveCopyTask(task)
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
 			if task.SubTasks then
 				-- update the SubTasks parent
-				task.SubTasks.parent = taskList[1].Task.SubTasks
+				--task.SubTasks.parent = taskList[1].Task.SubTasks  DONE IN ADD2PARENT
 				-- Update the Spore file in all sub tasks
 				local list1 = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[task.SporeFile])
 				if #list1 > 0 then

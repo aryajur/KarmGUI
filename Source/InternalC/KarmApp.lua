@@ -1948,6 +1948,7 @@ end\
 -- Function to create the task\
 -- If task is not nil then the previous schedules from that are copied over by starting with a copy of the task\
 local function makeTask(task)\
+	local x = tostring(task)\
 	if not task then\
 		error(\"Need a task object with at least a task ID\",2)\
 	end\
@@ -2830,6 +2831,22 @@ end	-- function taskFormActivate(parent, callBack)"
 __MANY2ONEFILES['Filter']="-- Data structure to store the Global Filter Criteria\
 Karm.Filter = {}\
 Karm.FilterObject = {}\
+-- Table to store the Core values\
+Karm.Core.FilterObject = {}\
+--[[\
+do\
+	local KarmMeta = {__metatable = \"Hidden, Do not change!\"}\
+	KarmMeta.__newindex = function(tab,key,val)\
+		print(\"I am here\")\
+		if Karm.FilterObject.key and not Karm.Core.FilterObject.key then\
+			Karm.Core.FilterObject.key = Karm.FilterObject.key\
+			print(\"Set\")\
+		end\
+		rawset(Karm.FilterObject,key,val)\
+	end\
+	setmetatable(Karm.FilterObject,KarmMeta)\
+end\
+]]\
 \
 -- Function to create a text summary of the Filter\
 function Karm.FilterObject.getSummary(filter)\
@@ -3513,7 +3530,11 @@ function Karm.FilterObject.validateTask(filter, task)\
 		end\
 		safeenv.task = task\
 		setfenv(func,safeenv)\
-		func()\
+		local stat,err\
+		stat,err = pcall(func)\
+		if not stat then\
+			wx.wxMessageBox(\"Error Running Script:\\n\"..err,\"Error\",wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)\
+		end			\
 		if not safeenv.result then\
 			return false\
 		end\
@@ -4716,7 +4737,35 @@ end\
 "
 __MANY2ONEFILES['DataHandler']="Karm.TaskObject = {}\
 Karm.TaskObject.__index = Karm.TaskObject\
+-- Table to store the Core values\
+Karm.Core.TaskObject = {}\
+--[[\
+do\
+	local KarmMeta = {__metatable = \"Hidden, Do not change!\"}\
+	KarmMeta.__newindex = function(tab,key,val)\
+		if Karm.TaskObject.key and not Karm.Core.TaskObject.key then\
+			Karm.Core.TaskObject.key = Karm.TaskObject.key\
+		end\
+		rawset(Karm.TaskObject,key,val)\
+	end\
+	setmetatable(Karm.TaskObject,KarmMeta)\
+end\
+]]\
 Karm.Utility = {}\
+-- Table to store the Core values\
+Karm.Core.Utility = {}\
+--[[\
+do\
+	local KarmMeta = {__metatable = \"Hidden, Do not change!\"}\
+	KarmMeta.__newindex = function(tab,key,val)\
+		if Karm.Utility.key and not Karm.Core.Utility.key then\
+			Karm.Core.Utility.key = Karm.Utility.key\
+		end\
+		rawset(Karm.Utility,key,val)\
+	end\
+	setmetatable(Karm.Utility,KarmMeta)\
+end\
+]]\
 -- Task structure\
 -- Task.\
 --	Planning\
@@ -5330,6 +5379,73 @@ function Karm.Utility.addItemToArray(item,array)\
 	return newarray\
 end\
 \
+function Karm.TaskObject.CheckSporeIntegrity(task, Spore)\
+	if not task and not Spore then\
+		error(\"Need a task or a Spore object to check the spore integrity\", 2)\
+	end\
+	if task and getmetatable(task) ~= Karm.TaskObject then\
+		error(\"Need a valid task object to check Spore integrity.\", 2)\
+	end\
+	local spore \
+	if task then\
+		if not task.Parent then\
+			spore = task.SubTasks.parent\
+		else\
+			spore = task.Parent.SubTasks.parent\
+			while spore.parent do\
+				spore = spore.parent\
+			end\
+		end\
+	else\
+		spore = Spore\
+	end\
+	local integrityError = {}\
+	local checkFunc = function(task)\
+		if task.Title == \"Karm\" then\
+			local x = 1\
+		end\
+		local pa = task.Parent\
+		local index\
+		for i = 1,#pa.SubTasks do\
+			if pa.SubTasks[i] == task then\
+				index = i\
+				break\
+			end\
+		end\
+		if not index then\
+			integrityError[#integrityError + 1] = {Task = task, Error = \"Parent mismatch\"}\
+			return\
+		end\
+		if (index > 1 and pa.SubTasks[index - 1] ~= task.Previous) or (index == 1 and task.Previous) then\
+			integrityError[#integrityError + 1] = {Task = task, Error = \"Previous mismatch\"}\
+		end\
+		if (index < #pa.SubTasks and pa.SubTasks[index + 1] ~= task.Next) or (index == #pa.SubTasks and task.Next) then\
+			integrityError[#integrityError + 1] = {Task = task, Error = \"Next mismatch\"}\
+		end		\
+		-- Check parents of all subTasks\
+		if task.SubTasks then\
+			for i = 1,#task.SubTasks do\
+				if task.SubTasks[i].Parent ~= task then\
+					integrityError[#integrityError + 1] = {Task = task.SubTasks[i], Error = \"Parent mismatch\"}\
+				end\
+			end\
+			if task.SubTasks.parent ~= task.Parent.SubTasks then\
+				integrityError[#integrityError + 1] = {Task = task, Error = \"SubTasks Parent mismatch\"}\
+			end\
+		end\
+	end\
+	for i = 1,#spore do\
+		if (i > 1  and spore[i-1] ~= spore[i].Previous) or (i == 1 and spore[i].Previous) then\
+			integrityError[#integrityError + 1] = {Task = spore[i], Error = \"Previous mismatch\"}\
+		end\
+		if (i < #spore and spore[i + 1] ~= spore[i].Next) or (i == #spore and spore[i].Next) then\
+			integrityError[#integrityError + 1] = {Task = spore[i], Error = \"Next mismatch\"}\
+		end		\
+		spore[i]:applyFuncHier(checkFunc, nil, true)\
+	end\
+	return integrityError\
+end\
+\
 -- Function to apply a function to a task and its hierarchy\
 -- The function should have the task as the 1st argument \
 -- and whatever it returns is passed to it it as the 2nd argument in the next call to it with the next task\
@@ -5366,6 +5482,20 @@ function Karm.TaskObject.applyFuncHier(task, func, initialValue, omitTask)\
 		end		-- while hierCount[hier] < #hier or hier.parent do ends here\
 	end\
 	return passedVar\
+end\
+\
+-- To find out if a task is under the sub task tree of ancestor\
+function Karm.TaskObject.IsUnder(task,ancestor)\
+	if task==ancestor then\
+		return true\
+	end\
+	local t = task\
+	while t.Parent do\
+		t = t.Parent\
+		if t == ancestor then\
+			return true\
+		end\
+	end\
 end\
 \
 -- Function to get a next task (from the given task) in the task hierarchy. After all tasks for a spore are finished then it will return a nil\
@@ -5506,21 +5636,26 @@ end\
 \
 -- Function to make a copy of a task\
 -- Each task has at most 9 tables:\
+\
 -- Who\
 -- Access\
 -- Assignee\
 -- Schedules\
 -- Tags\
+\
 -- Parent\
+-- Previous\
+-- Next\
 -- SubTasks\
 -- DBDATA\
 -- Planning  \
 \
 -- 1st 5 are made a copy of\
--- Parent is the same linked tables\
--- If copySubTasks is true then SubTasks are made a copy as well with the same parameters otherwise it is the same linked SubTask table\
+-- Parent, Next and Previous are the same linked tables\
+-- If copySubTasks is true then SubTasks are made a copy as well with the same parameters (in this case Previous and Next are \
+--         updated for all the SubTasks and so are the parent of the subtasks) otherwise it is the same linked SubTask table\
 -- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table\
--- Normally the task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the task parents\
+-- Normally the sub-task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the sub-task parents\
 -- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks\
 -- Planning is not copied over\
 function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParents)\
@@ -5555,7 +5690,7 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 				nTask[k] = task[k]\
 			else\
 				if k == \"SubTasks\" then\
-					-- This has to be copied in 2 steps\
+					-- This has to be copied task by task\
 					local parent\
 					if task.Parent then\
 						parent = task.Parent.SubTasks\
@@ -5566,6 +5701,19 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 					nTask.SubTasks = {parent = parent, tasks = #task.SubTasks, [0]=\"SubTasks\"}\
 					for i = 1,#task.SubTasks do\
 						nTask.SubTasks[i] = Karm.TaskObject.copy(task.SubTasks[i],true,removeDBDATA,true)\
+						if i == 1  then\
+							nTask.SubTasks[1].Previous = nil\
+						end\
+						if i > 1 then\
+							nTask.SubTasks[i].Previous = nTask.SubTasks[i-1]\
+							nTask.SubTasks[i-1].Next = nTask.SubTasks[i]\
+						end\
+						if i == #task.SubTasks then\
+							nTask.SubTasks[i].Next = nil\
+						end\
+						if nTask.SubTasks[i].SubTasks then\
+							nTask.SubTasks[i].SubTasks.parent = nTask.SubTasks\
+						end\
 					end\
 				else\
 					nTask[k] = copyTable(task[k],true)\
@@ -5817,7 +5965,7 @@ function Karm.TaskObject.getNewChildTaskID(parent)\
 	return taskID\
 end\
 \
--- Function to add a task according to the specified relation\
+-- Function to add a task to a parent as a subtask\
 function Karm.TaskObject.add2Parent(task, parent, Spore)\
 	if not (task and parent) then\
 		error(\"nil parameter cannot be handled at add2Parent in DataHandler.lua.\",2)\
@@ -5828,8 +5976,10 @@ function Karm.TaskObject.add2Parent(task, parent, Spore)\
 	if not parent.SubTasks then\
 		parent.SubTasks = {tasks = 0, [0]=\"SubTasks\"}\
 		if not parent.Parent then\
+			---- THIS CONDITION SHOULD NEVER OCCUR SINCE A ROOT TASK ADDED TO A SPORE ALWAYS HAS A SUBTASKS NODE TO LINK TO THE SPORE TABLE\
+			---- SEE add2Spore above\
 			if not Spore then\
-				error(\"nil parameter cannot be handled at add2Parent in DataHandler.lua.\",2)\
+				error(\"Spore cannot be nil in Karm.TaskObject.add2Parent call.\",2)\
 			end\
 			-- This is a Spore root node\
 			parent.SubTasks.parent = Spore\
@@ -5842,6 +5992,12 @@ function Karm.TaskObject.add2Parent(task, parent, Spore)\
 	if parent.SubTasks.tasks > 1 then\
 		parent.SubTasks[parent.SubTasks.tasks - 1].Next = parent.SubTasks[parent.SubTasks.tasks]\
 		parent.SubTasks[parent.SubTasks.tasks].Previous = parent.SubTasks[parent.SubTasks.tasks-1]\
+	else\
+		parent.SubTasks[parent.SubTasks.tasks].Previous = nil\
+	end\
+	parent.SubTasks[parent.SubTasks.tasks].Next = nil\
+	if task.SubTasks then \
+		task.SubTasks.parent = parent.SubTasks\
 	end\
 end\
 \
@@ -6238,11 +6394,19 @@ function Karm.TaskObject.DeleteFromDB(task)\
 	end\
 	for i = 1,#taskList do\
 		if taskList[i] == task then\
-			for j = i, #taskList-1 do\
-				taskList[j] = taskList[j+1]\
-				if j>1 then\
-					taskList[j].Previous = taskList[j-1]\
-					taskList[j-1].Next = taskList[j]\
+			if i<#taskList then\
+				for j = i, #taskList-1 do\
+					taskList[j] = taskList[j+1]\
+					if j>1 then\
+						taskList[j].Previous = taskList[j-1]\
+						taskList[j-1].Next = taskList[j]\
+					else\
+						taskList[j].Previous = nil\
+					end\
+				end\
+			else\
+				if #taskList > 1 then\
+					taskList[i-1].Next = nil\
 				end\
 			end\
 			taskList[#taskList] = nil\
@@ -6567,7 +6731,7 @@ function Karm.XML2Data(SporeXML, SporeFile)\
 	end\
 	\
 	-- Convert all tasks to proper task Objects\
-	local list1 = Karm.FilterObject.applyFilterHier(nil,Spore)\
+	local list1 = Karm.FilterObject.applyFilterHier(nil,dataStruct)\
 	if #list1 > 0 then\
 		for i = 1,#list1 do\
 			Karm.TaskObject.MakeTaskObject(list1[i])\
@@ -6592,15 +6756,28 @@ end		-- function Karm.XML2Data(SporeXML) ends here\
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 -- For windows distribution
-package.cpath = ";./?.dll;"
+--package.cpath = ";./?.dll;"
 
 -- For linux distribution
---package.cpath = ";./?.so;"
+package.cpath = ";./?.so;"
 
 require("wx")
 
 -- DO ALL CONFIGURATION
 Karm = {}
+-- Table to store the core functions when they are being overwritten
+Karm.Core = {}
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		if Karm.key and not Karm.Core.key then
+			Karm.Core.key = Karm.key
+		end
+		rawset(Karm,key,val)
+	end
+	setmetatable(Karm,KarmMeta)
+end]]
 -- Table to store all the Spores data 
 Karm.SporeData = {}
 
@@ -6644,8 +6821,21 @@ Karm.GUI.initFrameH = 0.75*Karm.GUI.initFrameH
 Karm.GUI.initFrameW = Karm.GUI.initFrameW - Karm.GUI.initFrameW%1
 Karm.GUI.initFrameH = Karm.GUI.initFrameH - Karm.GUI.initFrameH%1
 
-
+Karm.Core.GUI = {}
 setmetatable(Karm.GUI,{__index = _G})
+--[[
+do
+	local KarmMeta = {__metatable = "Hidden, Do not change!"}
+	KarmMeta.__newindex = function(tab,key,val)
+		if Karm.GUI.key and not Karm.Core.GUI.key then
+			Karm.Core.GUI.key = Karm.GUI.key
+		end
+		rawset(Karm.GUI,key,val)
+	end
+	KarmMeta.__index = _G
+	setmetatable(Karm.GUI,KarmMeta)
+end
+]]
 
 -- Global Declarations
 Karm.Globals = {
@@ -6844,13 +7034,15 @@ do
 	function taskTreeINT.disablePlanningMode(taskTree)
 		local oTree = taskTreeINT[taskTree]
 		oTree.Planning = nil
-		-- Update all the tasks in the planning mode in the UI to remove the planning schedule
-		for i = 1,#oTree.taskList do
-			if oTree.Nodes[oTree.taskList[i].TaskID].Row then
-				dispGantt(taskTree,oTree.Nodes[oTree.taskList[i].TaskID].Row,false,oTree.Nodes[oTree.taskList[i].TaskID])
-			end
-		end 
-		oTree.taskList = nil
+		if oTree.taskList then
+			-- Update all the tasks in the planning mode in the UI to remove the planning schedule
+			for i = 1,#oTree.taskList do
+				if oTree.Nodes[oTree.taskList[i].TaskID].Row then
+					dispGantt(taskTree,oTree.Nodes[oTree.taskList[i].TaskID].Row,false,oTree.Nodes[oTree.taskList[i].TaskID])
+				end
+			end 
+			oTree.taskList = nil
+		end
 	end
 	
 	-- Function to enable the planning mode
@@ -6996,12 +7188,20 @@ do
 		-- Create the scroll event to sync the 2 scroll bars in the wxScrolledWindow
 		local f = onScrollTree(taskTree)
 		--local f = onScTree
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_TOP, f)
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_BOTTOM, f)
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEUP, f)
+		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEDOWN, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
 		oTree.treeGrid:Connect(wx.wxEVT_SCROLLWIN_LINEDOWN, f)
 	
 		f = onScrollGantt(taskTree)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_TOP, f)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_BOTTOM, f)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEUP, f)
+		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_PAGEDOWN, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBTRACK, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_THUMBRELEASE, f)
 		oTree.ganttGrid:Connect(wx.wxEVT_SCROLLWIN_LINEUP, f)
@@ -7219,7 +7419,7 @@ do
 				-- Selected was false and now making it true
 				oNode.Selected = true
 				-- Select the node in the GUI here
-				oTree.Selected = {oNode,Latest = 1}
+				oTree.Selected = {tab,Latest = 1}
 				oTree.treeGrid:SetGridCursor(oNode.Row-1,1)
 			end	
 		elseif key == "ForeColor" or key == "BackColor" then
@@ -7557,6 +7757,7 @@ do
 					if currNode == node then 
 						break
 					end
+					currNode = nodeMeta[currNode].Next
 				end		-- if nodeMeta[currNode].FirstChild then ends here
 			end		-- while currNode ~= node do ends
 		end		-- if nodeMeta[currNode].FirstChild then ends		
@@ -7667,11 +7868,11 @@ do
 		end
 		local oTree = taskTreeINT[taskTree]
 		local node = oTree.Nodes[Key]
-		local parent = nodeMeta[node].Parent
 		if not node then
 			-- Already deleted
 			return
 		end
+		local parent = nodeMeta[node].Parent
 		local nodesToDel = {node}
 		local rowsToDel = {nodeMeta[node].Row}
 		-- Make list of nodes and rows to delete
@@ -7895,9 +8096,6 @@ do
 		-- Finally delete the node row
 		oTree.treeGrid:DeleteRows(nodeMeta[node].Row-1)
 		oTree.ganttGrid:DeleteRows(nodeMeta[node].Row-1)
-		oTree.Nodes[nodeMeta[node].Key] = nil
-		nodeMeta[node] = nil
-		oTree.nodeCount = oTree.nodeCount - 1
 		-- Update the - sign on the parent
 		if not nodeMeta[parent].FirstChild then
 			-- Nothing left under the parent
@@ -7937,6 +8135,10 @@ do
 				end
 			end
 		end
+		-- Remove references to the node
+		oTree.Nodes[nodeMeta[node].Key] = nil
+		nodeMeta[node] = nil
+		oTree.nodeCount = oTree.nodeCount - 1		
 	end		-- function taskTreeINT.DeleteSubUpdate(taskTree,task) ends
 	
 	function taskTreeINT.AddNode(taskTree,nodeInfo)
@@ -8338,20 +8540,25 @@ do
 		--event:Skip()
 	end
 
-	local function onScrollTreeFunc(obj)
+	local function postOnScrollTree(obj)
 		return function(event)
 			local oTree = taskTreeINT[obj]
 			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
+		end
+	end
+
+	local function onScrollTreeFunc(obj)
+		return function(event)
+			local ID = wx.wxID_ANY
+			local evt = wx.wxCommandEvent(wx.wxEVT_COMMAND_BUTTON_CLICKED, ID)
+			local oTree = taskTreeINT[obj]
+			oTree.treeGrid:Connect(ID,wx.wxEVT_COMMAND_BUTTON_CLICKED,postOnScrollTree(obj))
+			oTree.treeGrid:AddPendingEvent(evt)
 			event:Skip()
 		end
 	end
+	onScrollTree = onScrollTreeFunc
 	
---		 function onScTree(event)
---		 	oTree = event:GetEventObject()
---			--oTree = taskTreeINT[obj]
---			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
---			event:Skip()
---		end
 	local function onRowResizeGanttFunc(obj)
 		return function(event)
 			local oTree = taskTreeINT[obj]
@@ -8376,9 +8583,8 @@ do
 	
 	onRowResizeTree = onRowResizeTreeFunc
 	
-	local function onScrollGanttFunc(obj)
+	local function postOnScrollGantt(obj)
 		return function(event)
-			event:Skip()
 			local oTree = taskTreeINT[obj]
 			oTree.treeGrid:Scroll(oTree.treeGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.ganttGrid:GetScrollPos(wx.wxVERTICAL))
 
@@ -8390,16 +8596,26 @@ do
 --   			Karm.GUI.frame:SetStatusText(tostring(y:GetTopLeft():GetX())..","..tostring(y:GetTopLeft():GetY())..","..
 --   			  tostring(y1:GetTopLeft():GetX())..","..tostring(y1:GetTopLeft():GetY()), 1)
    			
-    		local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
+    		--local x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
     		--local y = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
-    		local x = oTree.ganttGrid:IsVisible(0,count)
-			--while x==0 and not currDate:IsLaterThan(finDate) do
+    		local x = oTree.ganttGrid:IsVisible(0,count, false)
 			while not x and not currDate:IsLaterThan(finDate) do
 				count = count + 1
 				currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
-				x = oTree.ganttGrid:IsVisible(0,count)
+				x = oTree.ganttGrid:IsVisible(0,count, false)
 				--x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopLeft():GetX()
 			end
+
+			-- Now currDate has the date that is not fully visible
+			-- Check if the column is more than 60% visible
+    		local p6w = oTree.ganttGrid:GetColSize(count)
+    		p6w = 0.6*p6w
+    		p6w = p6w - p6w%1
+    		x = oTree.ganttGrid:BlockToDeviceRect(wx.wxGridCellCoords(0,count),wx.wxGridCellCoords(0,count)):GetTopRight():GetX()
+    		if x < p6w then
+    			count = count + 1
+    			currDate = currDate:Add(wx.wxDateSpan(0,0,0,1))
+    		end
 
 			local corner = oTree.ganttGrid:GetGridCornerLabelWindow()
 			corner:DestroyChildren()
@@ -8410,9 +8626,22 @@ do
 			sizer:Add(textLabel, 1, wx.wxLEFT+wx.wxRIGHT+wx.wxALIGN_CENTRE_VERTICAL, 3)
 			corner:SetSizer(sizer)
 			corner:Layout()	
-			oTree.startDate = oTree.startDate:Subtract(wx.wxDateSpan(0,0,0,count))			
+			oTree.startDate = oTree.startDate:Subtract(wx.wxDateSpan(0,0,0,count))					
 		end
 	end
+	
+	local function onScrollGanttFunc(obj)
+		return function(event)
+			local ID = wx.wxID_ANY
+			local evt = wx.wxCommandEvent(wx.wxEVT_COMMAND_BUTTON_CLICKED, ID)
+			local oTree = taskTreeINT[obj]
+			oTree.ganttGrid:Connect(ID,wx.wxEVT_COMMAND_BUTTON_CLICKED,postOnScrollGantt(obj))
+			oTree.ganttGrid:AddPendingEvent(evt)
+			event:Skip()
+		end
+	end
+	onScrollGantt = onScrollGanttFunc
+	
 	
 	local function horSashAdjustFunc(event)
 		--local info = "Sash: "..tostring(Karm.GUI.horSplitWin:GetSashPosition()).."\nCol 0: "..tostring(Karm.GUI.treeGrid:GetColSize(0)).."\nCol 1 Before: "..tostring(Karm.GUI.treeGrid:GetColSize(1))
@@ -8537,8 +8766,6 @@ do
 	cellClick = cellClickFunc
 	widgetResize = widgetResizeFunc
 	horSashAdjust = horSashAdjustFunc
-	onScrollGantt = onScrollGanttFunc
-	onScrollTree = onScrollTreeFunc
 	labelClick = labelClickFunc
 	
 end	-- The custom tree and Gantt widget object for Karm ends here
@@ -8853,7 +9080,7 @@ function Karm.moveCopyTask(task)
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
 			if task.SubTasks then
 				-- Update the SubTasks parent
-				task.SubTasks.parent = Karm.SporeData[task.SporeFile]
+				--task.SubTasks.parent = Karm.SporeData[task.SporeFile]  DONE IN ADD2SPORE
 				-- Update the Spore file in all sub tasks
 				local list1 = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[task.SporeFile])
 				if #list1 > 0 then
@@ -8964,7 +9191,7 @@ function Karm.moveCopyTask(task)
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
 			if task.SubTasks then
 				-- update the SubTasks parent
-				task.SubTasks.parent = taskList[1].Task.SubTasks
+				--task.SubTasks.parent = taskList[1].Task.SubTasks  DONE IN ADD2PARENT
 				-- Update the Spore file in all sub tasks
 				local list1 = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[task.SporeFile])
 				if #list1 > 0 then
@@ -9018,6 +9245,28 @@ function Karm.GUI.taskClicked(task)
 		Karm.moveCopyTask(task)
 	end		-- if Karm.GUI.MoveTask then ends here
 end		-- function taskClicked(task) ends here
+
+function Karm.LoadFilter(file)
+	local safeenv = {}
+	setmetatable(safeenv, {__index = Karm.Globals.safeenv})
+	local f,message = loadfile(file)
+	if not f then
+		return nil,message
+	end
+	setfenv(f,safeenv)
+	f()
+	if safeenv.filter and type(safeenv.filter) == "table" then
+		if safeenv.filter.Script then
+			f, message = loadstring(safeenv.filter.Script)
+			if not f then
+				return nil,"Cannot compile custom script in filter. Error: "..message
+			end
+		end
+		return safeenv.filter
+	else
+		return nil,"Cannot find a valid filter in the file."
+	end
+end
 
 function Karm.SetFilterCallBack(filter)
 	Karm.GUI.FilterWindowOpen = false
@@ -9125,6 +9374,14 @@ function Karm.EditTaskCallBack(task)
 			for i=1,#parentTask.SubTasks do
 				if parentTask.SubTasks[i] == Karm.GUI.TaskWindowOpen.Task then
 					parentTask.SubTasks[i] = task
+					-- The task already has correct links to its neighbors and parent
+					-- We just need to update the neighbor links to the task to completely delink the previous task table.
+					if task.Previous then
+						task.Previous.Next = task
+					end
+					if task.Next then
+						task.Next.Previous = task
+					end
 					break
 				end
 			end
@@ -9558,7 +9815,17 @@ function Karm.SaveAllSpores(event)
 end
 
 function Karm.saveKarmSpore(Spore)
+	-- Check Spore integrity
 	local file,err,path
+	err = Karm.TaskObject.CheckSporeIntegrity(nil,Karm.SporeData[Spore])
+	if #err > 0 then
+		path = "Errors in Spore: "..Spore.."\n"
+		for i = 1,#err do
+			path = path.."Task: "..err[i].Task.Title.." ERROR: "..err[i].Error.."\n"
+		end
+		wx.wxMessageBox(path,"Integrity Error in Spore", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+		return
+	end
 	if Karm.SporeData[Spore].Modified then
 		local notOK = true
 		while notOK do

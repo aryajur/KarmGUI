@@ -4,10 +4,9 @@ t0.Title="Karm Tasks"
 t0[1]={}
 t1=t0[1]
 
-t1.TaskID="Karm"
 t1.Modified=true
+t1.TaskID="Karm"
 t1.Status="On Track"
-t1.Start="2012-07-02"
 t1.Title="Karm"
 t1.Who={}
 t2=t1.Who
@@ -32,79 +31,102 @@ t6=t5.Tags
 t6[1]="2012"
 t6.count=1
 t6[0]="Tags"
-t5.Modified=true
 t5.TaskID="Karm_1"
-t5.Private=false
-t5.Status="On Track"
-t5.Title="Version 1"
-t5.Who={}
-t7=t5.Who
+t5.Modified=true
+t5.Next={}
+t7=t5.Next
 
-t7[1]={}
-t8=t7[1]
+t7.Modified=true
+t7.Previous=t5
+t7.Parent=t1
+t7.Start="2012-07-26"
+t7.Status="Not Started"
+t7.Title="Version 2"
+t7.Who={}
+t8=t7.Who
 
-t8.ID="milind.gupta"
-t8.Status="Active"
-t7.count=1
-t7[0]="Who"
-t5.Start="2012-07-02"
-t5.SubTasks={}
-t9=t5.SubTasks
+t8[1]={}
+t9=t8[1]
 
-t9[1]={}
-t10=t9[1]
+t9.ID="milind.gupta"
+t9.Status="Active"
+t8.count=1
+t8[0]="Who"
+t7.Private=false
+t7.SubTasks={}
+t10=t7.SubTasks
 
-t10.Fin="2012-07-02"
-t10.Parent=t5
-t10.Private=false
-t10.Modified=true
-t10.Schedules={}
-t11=t10.Schedules
+t10[1]={}
+t11=t10[1]
 
-t11.Commit={}
-t12=t11.Commit
+t11.Tags={}
+t12=t11.Tags
 
-t12[1]={}
-t13=t12[1]
-
-t13.Updated="2012-07-02"
-t13.Period={}
-t14=t13.Period
-
-t14[1]={}
-t15=t14[1]
-
-t15[0]="DP"
-t15.Date="2012-07-02"
-t14.count=1
-t14[0]="Period"
-t13[0]="Commit"
-t12[0]="Commit"
+t12[1]="Think"
 t12.count=1
-t11.Revs={}
-t16=t11.Revs
+t12[0]="Tags"
+t11.Modified=true
+t11.Parent=t7
+t11.Comments="- Calling enablePlanning mode on the same task steps it 1 more ahead\
+\
+Will have to use a copy of the task for the workdone sheet"
+t11.Next={}
+t13=t11.Next
+
+t13.Next={}
+t14=t13.Next
+
+t14.Next={}
+t15=t14.Next
+
+t15.Modified=true
+t15.Parent=t7
+t15.Comments="- Code documentation\
+- Architecture documentation\
+- Marketing notes to people"
+t15.TaskID="Karm_2_4"
+t15.Status="Not Started"
+t15.Title="Do all code and architecture documentation"
+t15.Who={}
+t16=t15.Who
 
 t16[1]={}
 t17=t16[1]
 
-t17.Updated="2012-07-02"
-t17.Period={}
-t18=t17.Period
+t17.ID="milind.gupta"
+t17.Status="Active"
+t16.count=1
+t16[0]="Who"
+t15.Start="2012-07-02"
+t15.Private=false
+t15.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t15.Previous=t14
+t14.Previous=t13
+t14.TaskID="Karm_2_3"
+t14.Parent=t7
+t14.Private=false
+t14.Title="Add Network Diagram support"
+t14.Who={}
+t18=t14.Who
 
 t18[1]={}
 t19=t18[1]
 
-t19[0]="DP"
-t19.Date="2012-07-02"
+t19.ID="milind.gupta"
+t19.Status="Active"
 t18.count=1
-t18[0]="Period"
-t17[0]="Revs"
-t16[0]="Revs"
-t16.count=1
-t10.Status="Done"
-t10.Title="Unload Spore functionality complete"
-t10.Who={}
-t20=t10.Who
+t18[0]="Who"
+t14.Status="Not Started"
+t14.Start="2012-07-31"
+t14.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t14.Modified=true
+t13.Previous=t11
+t13.Parent=t7
+t13.Modified=true
+t13.Private=false
+t13.Title="Add interdependencies addition"
+t13.Who={}
+t20=t13.Who
 
 t20[1]={}
 t21=t20[1]
@@ -113,26 +135,39 @@ t21.ID="milind.gupta"
 t21.Status="Active"
 t20.count=1
 t20[0]="Who"
-t10.Start="2012-07-02"
-t10.SubTasks={}
-t22=t10.SubTasks
+t13.Status="Not Started"
+t13.Start="2012-07-31"
+t13.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t13.TaskID="Karm_2_2"
+t11.Status="Not Started"
+t11.Title="Think about way to enter estimate hours for a task and show it"
+t11.Who={}
+t22=t11.Who
 
-t22.parent=t9
-t22[0]="SubTasks"
-t22.tasks=0
-t10.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t10.TaskID="Karm_1_1"
-t9[2]={}
-t23=t9[2]
+t22[1]={}
+t23=t22[1]
 
-t23.Fin="2012-07-02"
-t23.TaskID="Karm_1_2"
-t23.Start="2012-07-02"
-t23.Parent=t5
-t23.Status="Done"
-t23.Title="Reminder to save unsaved Spores functionality"
-t23.Who={}
-t24=t23.Who
+t23.ID="milind.gupta"
+t23.Status="Active"
+t22.count=1
+t22[0]="Who"
+t11.Start="2012-07-10"
+t11.Private=false
+t11.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t11.TaskID="Karm_2_1"
+t10[2]=t13
+t10[3]=t14
+t10[4]=t15
+t10[0]="SubTasks"
+t10.tasks=4
+t10.parent=t4
+t7.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t7.TaskID="Karm_2"
+t5.Private=false
+t5.Start="2012-07-02"
+t5.Title="Version 1"
+t5.Who={}
+t24=t5.Who
 
 t24[1]={}
 t25=t24[1]
@@ -141,265 +176,220 @@ t25.ID="milind.gupta"
 t25.Status="Active"
 t24.count=1
 t24[0]="Who"
-t23.Private=false
-t23.Schedules={}
-t26=t23.Schedules
+t5.Status="On Track"
+t5.SubTasks={}
+t26=t5.SubTasks
 
-t26.Commit={}
-t27=t26.Commit
+t26[1]={}
+t27=t26[1]
 
-t27[1]={}
-t28=t27[1]
+t27.Fin="2012-07-02"
+t27.Parent=t5
+t27.Modified=true
+t27.Next={}
+t28=t27.Next
 
-t28.Updated="2012-07-02"
-t28.Period={}
-t29=t28.Period
+t28.Next={}
+t29=t28.Next
 
-t29[1]={}
-t30=t29[1]
+t29.Fin="2012-07-17"
+t29.Parent=t5
+t29.Previous=t28
+t29.Modified=true
+t29.Status="Done"
+t29.Start="2012-07-11"
+t29.Title="Bug in Taskform where on clicking a schedule planning day the type of schedule moves to the next one"
+t29.Who={}
+t30=t29.Who
 
-t30[0]="DP"
-t30.Date="2012-07-02"
-t29[2]={}
-t31=t29[2]
+t30[1]={}
+t31=t30[1]
 
-t31[0]="DP"
-t31.Date="2012-07-03"
-t29[0]="Period"
-t29.count=2
-t28[0]="Commit"
-t27[0]="Commit"
-t27.count=1
-t26.Revs={}
-t32=t26.Revs
+t31.ID="milind.gupta"
+t31.Status="Active"
+t30.count=1
+t30[0]="Who"
+t29.Private=false
+t29.Next={}
+t32=t29.Next
 
-t32[1]={}
-t33=t32[1]
+t32.Modified=true
+t32.Fin="2012-07-17"
+t32.Parent=t5
+t32.TaskID="Karm_1_7"
+t32.Next={}
+t33=t32.Next
 
-t33.Updated="2012-07-02"
-t33.Period={}
-t34=t33.Period
+t33.TaskID="Karm_1_8"
+t33.Fin="2012-07-17"
+t33.Parent=t5
+t33.Next={}
+t34=t33.Next
 
-t34[1]={}
-t35=t34[1]
-
-t35[0]="DP"
-t35.Date="2012-07-02"
-t34[2]={}
-t36=t34[2]
-
-t36[0]="DP"
-t36.Date="2012-07-03"
-t34[0]="Period"
-t34.count=2
-t33[0]="Revs"
-t32[0]="Revs"
-t32.count=1
-t23.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t23.Modified=true
-t9[3]={}
-t37=t9[3]
-
-t37.Fin="2012-07-17"
-t37.Parent=t5
-t37.Start="2012-07-11"
-t37.Status="Done"
-t37.Title="Bug in Taskform where on clicking a schedule planning day the type of schedule moves to the next one"
-t37.Who={}
-t38=t37.Who
-
-t38[1]={}
-t39=t38[1]
-
-t39.ID="milind.gupta"
-t39.Status="Active"
-t38.count=1
-t38[0]="Who"
-t37.Private=false
-t37.TaskID="Karm_1_5"
-t37.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t37.Modified=true
-t9[4]={}
-t40=t9[4]
-
-t40.Fin="2012-07-17"
-t40.Parent=t5
-t40.TaskID="Karm_1_7"
-t40.Comments="Either through macro or through a UI method\
-THis is already being done in the taskForm. So a macro ocan create its own UI and fill it up as it wishes by creating a custom task List."
-t40.Tags={}
-t41=t40.Tags
-
-t41[1]="Think"
-t41.count=1
-t41[0]="Tags"
-t40.Start="2012-07-10"
-t40.Title="Think about having a method to show successive schedules of a task"
-t40.Who={}
-t42=t40.Who
-
-t42[1]={}
-t43=t42[1]
-
-t43.ID="milind.gupta"
-t43.Status="Active"
-t42.count=1
-t42[0]="Who"
-t40.Private=false
-t40.Status="Done"
-t40.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t40.Modified=true
-t9[5]={}
-t44=t9[5]
-
-t44.Fin="2012-07-17"
-t44.Modified=true
-t44.Parent=t5
-t44.Comments="- Comment for each day\
-- Main planning does not allow Actual"
-t44.Start="2012-07-07"
-t44.Status="Done"
-t44.Title="Add Actual entry section to Task Form"
-t44.Who={}
-t45=t44.Who
-
-t45[1]={}
-t46=t45[1]
-
-t46.ID="milind.gupta"
-t46.Status="Active"
-t45.count=1
-t45[0]="Who"
-t44.Private=false
-t44.SubTasks={}
-t47=t44.SubTasks
-
-t47[1]={}
-t48=t47[1]
-
-t48.Fin="2012-07-17"
-t48.Parent=t44
-t48.Comments="- Displaying Actual and turning on planning mode should be separate and distinct functions"
-t48.Modified=true
-t48.Start="2012-07-10"
-t48.Title="Add facility in Karm module to display Actual schedule"
-t48.Who={}
-t49=t48.Who
-
-t49[1]={}
-t50=t49[1]
-
-t50.ID="milind.gupta"
-t50.Status="Active"
-t49.count=1
-t49[0]="Who"
-t48.Status="Done"
-t48.Private=false
-t48.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t48.TaskID="Karm_1_8_1"
-t47[2]={}
-t51=t47[2]
-
-t51.Fin="2012-07-17"
-t51.Parent=t44
-t51.Start="2012-07-10"
-t51.Status="Done"
-t51.Title="Make teh taskform maintain the Task.Planning table"
-t51.Who={}
-t52=t51.Who
-
-t52[1]={}
-t53=t52[1]
-
-t53.ID="milind.gupta"
-t53.Status="Active"
-t52.count=1
-t52[0]="Who"
-t51.Private=false
-t51.TaskID="Karm_1_8_2"
-t51.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t51.Modified=true
-t47.tasks=2
-t47.parent=t9
-t47[0]="SubTasks"
-t44.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t44.TaskID="Karm_1_8"
-t9[6]={}
-t54=t9[6]
-
-t54.Fin="2012-07-09"
-t54.Parent=t5
-t54.Comments="- If the type schedule is different Estimate -> Commit then that goes into record if it is different Commit -> Revision it does not go into record if all dates are same\
+t34.Fin="2012-07-09"
+t34.Parent=t5
+t34.Previous=t33
+t34.Private=false
+t34.Comments="- If the type schedule is different Estimate -> Commit then that goes into record if it is different Commit -> Revision it does not go into record if all dates are same\
 "
-t54.TaskID="Karm_1_9"
-t54.Private=false
-t54.Title="Fix the task editing feature where if the schedule is the same then it does not increase the release number"
-t54.Who={}
-t55=t54.Who
+t34.TaskID="Karm_1_9"
+t34.Start="2012-07-07"
+t34.Title="Fix the task editing feature where if the schedule is the same then it does not increase the release number"
+t34.Who={}
+t35=t34.Who
 
-t55[1]={}
-t56=t55[1]
+t35[1]={}
+t36=t35[1]
 
-t56.ID="milind.gupta"
-t56.Status="Active"
-t55.count=1
-t55[0]="Who"
-t54.Status="Done"
-t54.Modified=true
-t54.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t54.Start="2012-07-07"
-t9[7]={}
-t57=t9[7]
+t36.ID="milind.gupta"
+t36.Status="Active"
+t35.count=1
+t35[0]="Who"
+t34.Status="Done"
+t34.Modified=true
+t34.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t34.Next={}
+t37=t34.Next
 
-t57.Parent=t5
-t57.Modified=true
-t57.Comments="No Point doing this, Schedule methodology should be followed"
-t57.Start="2012-07-10"
-t57.Private=false
-t57.Title="Make updated an XML datetime object an update the spores accordingly"
-t57.Who={}
-t58=t57.Who
+t37.Next={}
+t38=t37.Next
 
-t58[1]={}
-t59=t58[1]
+t38.Fin="2012-07-23"
+t38.TaskID="Karm_1_12"
+t38.Previous=t37
+t38.Modified=true
+t38.Status="Done"
+t38.Private=false
+t38.Title="Finish custom Script entry in filter form"
+t38.Who={}
+t39=t38.Who
 
-t59.ID="milind.gupta"
-t59.Status="Active"
-t58.count=1
-t58[0]="Who"
-t57.Status="Obsolete"
-t57.SubTasks={}
-t60=t57.SubTasks
+t39[1]={}
+t40=t39[1]
 
-t60[1]={}
-t61=t60[1]
+t40.ID="milind.gupta"
+t40.Status="Active"
+t39.count=1
+t39[0]="Who"
+t38.Start="2012-07-23"
+t38.Next={}
+t41=t38.Next
 
-t61.TaskID="Karm_1_10_1"
-t61.Modified=true
-t61.Status="Obsolete"
-t61.Title="Write routines to handle XML date time"
-t61.Who={}
-t62=t61.Who
+t41.Next={}
+t42=t41.Next
 
-t62[1]={}
-t63=t62[1]
+t42.Fin="2012-07-29"
+t42.Modified=true
+t42.Previous=t41
+t42.TaskID="Karm_1_14"
+t42.Status="Done"
+t42.Start="2012-07-02"
+t42.Title="Add copy task routines like move task"
+t42.Who={}
+t43=t42.Who
 
-t63.ID="milind.gupta"
-t63.Status="Active"
-t62.count=1
-t62[0]="Who"
-t61.Private=false
-t61.Start="2012-07-10"
-t61.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t61.Parent=t57
-t60[2]={}
-t64=t60[2]
+t43[1]={}
+t44=t43[1]
 
-t64.Fin="2012-08-01"
+t44.ID="milind.gupta"
+t44.Status="Active"
+t43.count=1
+t43[0]="Who"
+t42.Private=false
+t42.Next={}
+t45=t42.Next
+
+t45.Fin="2012-07-26"
+t45.Parent=t5
+t45.Previous=t42
+t45.TaskID="Karm_1_15"
+t45.Status="Done"
+t45.Private=false
+t45.Title="Update Task Details extraction function"
+t45.Who={}
+t46=t45.Who
+
+t46[1]={}
+t47=t46[1]
+
+t47.ID="milind.gupta"
+t47.Status="Active"
+t46.count=1
+t46[0]="Who"
+t45.Start="2012-07-19"
+t45.Next={}
+t48=t45.Next
+
+t48.Next={}
+t49=t48.Next
+
+t49.Fin="2012-07-24"
+t49.TaskID="Karm_1_17"
+t49.Parent=t5
+t49.Previous=t48
+t49.Next={}
+t50=t49.Next
+
+t50.Parent=t5
+t50.Fin="2012-08-03"
+t50.TaskID="Karm_1_18"
+t50.Next={}
+t51=t50.Next
+
+t51.Next={}
+t52=t51.Next
+
+t52.Next={}
+t53=t52.Next
+
+t53.Fin="2012-07-26"
+t53.Parent=t5
+t53.Previous=t52
+t53.Next={}
+t54=t53.Next
+
+t54.Next={}
+t55=t54.Next
+
+t55.Next={}
+t56=t55.Next
+
+t56.Next={}
+t57=t56.Next
+
+t57.Next={}
+t58=t57.Next
+
+t58.Next={}
+t59=t58.Next
+
+t59.Fin="2012-08-09"
+t59.Modified=true
+t59.Next={}
+t60=t59.Next
+
+t60.Fin="2012-08-14"
+t60.TaskID="Karm_1_31"
+t60.Modified=true
+t60.Previous=t59
+t60.Next={}
+t61=t60.Next
+
+t61.Next={}
+t62=t61.Next
+
+t62.Next={}
+t63=t62.Next
+
+t63.Next={}
+t64=t63.Next
+
+t64.Previous=t63
+t64.Parent=t5
 t64.Modified=true
-t64.TaskID="Karm_1_10_2"
-t64.Private=false
-t64.Title="Add update field in Actual element"
+t64.Status="Not Started"
+t64.Start="2012-07-02"
+t64.Title="Release as Open source Version 1"
 t64.Who={}
 t65=t64.Who
 
@@ -410,44 +400,25 @@ t66.ID="milind.gupta"
 t66.Status="Active"
 t65.count=1
 t65[0]="Who"
-t64.Status="Done"
-t64.Start="2012-07-10"
-t64.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t64.Parent=t57
-t60.tasks=3
-t60[3]={}
-t67=t60[3]
+t64.Private=false
+t64.SubTasks={}
+t67=t64.SubTasks
 
-t67.TaskID="Karm_1_10_3"
-t67.Modified=true
-t67.Status="Obsolete"
-t67.Title="GetLatestSchedule should give the schedule from the updated date"
-t67.Who={}
-t68=t67.Who
+t67[1]={}
+t68=t67[1]
 
-t68[1]={}
-t69=t68[1]
+t68.Next={}
+t69=t68.Next
 
-t69.ID="milind.gupta"
-t69.Status="Active"
-t68.count=1
-t68[0]="Who"
-t67.Private=false
-t67.Start="2012-07-10"
-t67.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t67.Parent=t57
-t60.parent=t9
-t60[0]="SubTasks"
-t57.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t57.TaskID="Karm_1_10"
-t9[8]={}
-t70=t9[8]
+t69.Next={}
+t70=t69.Next
 
-t70.Fin="2012-07-23"
-t70.TaskID="Karm_1_12"
+t70.TaskID="Karm_1_36_3"
+t70.Previous=t69
+t70.Modified=true
+t70.Status="Not Started"
 t70.Private=false
-t70.Status="Done"
-t70.Title="Finish custom Script entry in filter form"
+t70.Title="Marketing Tasks for Karm"
 t70.Who={}
 t71=t70.Who
 
@@ -458,62 +429,32 @@ t72.ID="milind.gupta"
 t72.Status="Active"
 t71.count=1
 t71[0]="Who"
-t70.Start="2012-07-23"
-t70.Parent=t5
-t70.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t70.Modified=true
-t9[9]={}
-t73=t9[9]
+t70.Start="2012-08-27"
+t70.SubTasks={}
+t73=t70.SubTasks
 
-t73.Fin="2012-07-24"
-t73.Parent=t5
-t73.TaskID="Karm_1_13"
-t73.Start="2012-07-19"
-t73.Title="Make Who assignment compulsory for task Form entry"
-t73.Who={}
-t74=t73.Who
+t73[1]={}
+t74=t73[1]
 
-t74[1]={}
-t75=t74[1]
+t74.Next={}
+t75=t74.Next
 
-t75.ID="milind.gupta"
-t75.Status="Active"
-t74.count=1
-t74[0]="Who"
-t73.Status="Done"
-t73.Private=false
-t73.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t73.Modified=true
-t9[10]={}
-t76=t9[10]
+t75.Next={}
+t76=t75.Next
 
-t76.Fin="2012-07-29"
-t76.Modified=true
-t76.Start="2012-07-02"
-t76.Status="Done"
-t76.Title="Add copy task routines like move task"
-t76.Who={}
-t77=t76.Who
+t76.Next={}
+t77=t76.Next
 
-t77[1]={}
-t78=t77[1]
+t77.Next={}
+t78=t77.Next
 
-t78.ID="milind.gupta"
-t78.Status="Active"
-t77.count=1
-t77[0]="Who"
-t76.Private=false
-t76.Parent=t5
-t76.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t76.TaskID="Karm_1_14"
-t9[11]={}
-t79=t9[11]
+t78.Next={}
+t79=t78.Next
 
-t79.Fin="2012-07-26"
-t79.Parent=t5
+t79.Previous=t78
+t79.TaskID="Karm_1_36_3_6"
 t79.Private=false
-t79.Status="Done"
-t79.Title="Update Task Details extraction function"
+t79.Title="Put in Asana forums"
 t79.Who={}
 t80=t79.Who
 
@@ -524,43 +465,52 @@ t81.ID="milind.gupta"
 t81.Status="Active"
 t80.count=1
 t80[0]="Who"
-t79.Start="2012-07-19"
+t79.Status="Not Started"
 t79.Modified=true
-t79.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t79.TaskID="Karm_1_15"
-t9[12]={}
-t82=t9[12]
+t79.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t79.Parent=t70
+t78.Parent=t70
+t78.TaskID="Karm_1_36_3_5"
+t78.Private=false
+t78.Title="Put in project.net forums"
+t78.Who={}
+t82=t78.Who
 
-t82.Fin="2012-07-24"
-t82.Parent=t5
-t82.TaskID="Karm_1_16"
-t82.Start="2012-07-19"
-t82.Title="Update Filter Details extraction function"
-t82.Who={}
-t83=t82.Who
+t82[1]={}
+t83=t82[1]
 
-t83[1]={}
-t84=t83[1]
+t83.ID="milind.gupta"
+t83.Status="Active"
+t82.count=1
+t82[0]="Who"
+t78.Status="Not Started"
+t78.Modified=true
+t78.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t78.Previous=t77
+t77.Parent=t70
+t77.TaskID="Karm_1_36_3_4"
+t77.Private=false
+t77.Title="Put in Microsoft project forums"
+t77.Who={}
+t84=t77.Who
 
-t84.ID="milind.gupta"
-t84.Status="Active"
-t83.count=1
-t83[0]="Who"
-t82.Status="Done"
-t82.Private=false
-t82.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t82.Modified=true
-t9[13]={}
-t85=t9[13]
+t84[1]={}
+t85=t84[1]
 
-t85.Fin="2012-07-24"
-t85.TaskID="Karm_1_17"
-t85.Parent=t5
-t85.Start="2012-07-02"
-t85.Status="Done"
-t85.Title="Planning mode in main form"
-t85.Who={}
-t86=t85.Who
+t85.ID="milind.gupta"
+t85.Status="Active"
+t84.count=1
+t84[0]="Who"
+t77.Status="Not Started"
+t77.Modified=true
+t77.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t77.Previous=t76
+t76.Parent=t70
+t76.TaskID="Karm_1_36_3_3"
+t76.Private=false
+t76.Title="Put up free advertisement on Google if available"
+t76.Who={}
+t86=t76.Who
 
 t86[1]={}
 t87=t86[1]
@@ -569,50 +519,80 @@ t87.ID="milind.gupta"
 t87.Status="Active"
 t86.count=1
 t86[0]="Who"
-t85.Private=false
-t85.SubTasks={}
-t88=t85.SubTasks
+t76.Status="Not Started"
+t76.Modified=true
+t76.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t76.Previous=t75
+t75.Parent=t70
+t75.TaskID="Karm_1_36_3_2"
+t75.Private=false
+t75.Title="Announce on Lua form"
+t75.Who={}
+t88=t75.Who
 
 t88[1]={}
 t89=t88[1]
 
-t89.Tags={}
-t90=t89.Tags
+t89.ID="milind.gupta"
+t89.Status="Active"
+t88.count=1
+t88[0]="Who"
+t75.Status="Not Started"
+t75.Modified=true
+t75.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t75.Previous=t74
+t74.Parent=t70
+t74.TaskID="Karm_1_36_3_1"
+t74.Title="Announce on wxLua mailing list"
+t74.Who={}
+t90=t74.Who
 
-t90[1]="Think"
+t90[1]={}
+t91=t90[1]
+
+t91.ID="milind.gupta"
+t91.Status="Active"
 t90.count=1
-t90[0]="Tags"
-t89.TaskID="Karm_1_17_1"
-t89.Modified=true
-t89.Comments="Only if taskTree.Planning is made true i.e. turn on planning mode for the UI"
-t89.Fin="2012-07-11"
-t89.Status="Done"
-t89.Title="Think about if task.Planning present then task automatically in planning mode?"
-t89.Who={}
-t91=t89.Who
+t90[0]="Who"
+t74.Private=false
+t74.Modified=true
+t74.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t74.Status="Not Started"
+t73[2]=t75
+t73[3]=t76
+t73[4]=t77
+t73[5]=t78
+t73[6]=t79
+t73.parent=t67
+t73[0]="SubTasks"
+t73.tasks=6
+t70.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t70.Parent=t64
+t69.Modified=true
+t69.TaskID="Karm_1_36_2"
+t69.Parent=t64
+t69.Private=false
+t69.Title="Test the executables to work in different computers"
+t69.Who={}
+t92=t69.Who
 
-t91[1]={}
-t92=t91[1]
+t92[1]={}
+t93=t92[1]
 
-t92.ID="milind.gupta"
-t92.Status="Active"
-t91.count=1
-t91[0]="Who"
-t89.Start="2012-07-10"
-t89.Private=false
-t89.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t89.Parent=t85
-t88[2]={}
-t93=t88[2]
-
-t93.Fin="2012-07-11"
-t93.TaskID="Karm_1_17_2"
-t93.Comments="Also all the tasks already having planning should be refreshed"
-t93.Start="2012-07-03"
-t93.Private=false
-t93.Title="Modify EnablePlanning Mode to add tasks rather than take that as the task set"
-t93.Who={}
-t94=t93.Who
+t93.ID="milind.gupta"
+t93.Status="Active"
+t92.count=1
+t92[0]="Who"
+t69.Start="2012-08-29"
+t69.Status="Not Started"
+t69.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t69.Previous=t68
+t68.Modified=true
+t68.TaskID="Karm_1_36_1"
+t68.Private=false
+t68.Title="Create a windows and Linux executables and link the package to the download link"
+t68.Who={}
+t94=t68.Who
 
 t94[1]={}
 t95=t94[1]
@@ -621,155 +601,142 @@ t95.ID="milind.gupta"
 t95.Status="Active"
 t94.count=1
 t94[0]="Who"
-t93.Status="Done"
-t93.Parent=t85
-t93.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t93.Modified=true
-t88[3]={}
-t96=t88[3]
+t68.Status="Not Started"
+t68.Start="2012-08-16"
+t68.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t68.Parent=t64
+t67[2]=t69
+t67.tasks=3
+t67[3]=t70
+t67.parent=t26
+t67[0]="SubTasks"
+t64.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t64.TaskID="Karm_1_36"
+t63.Parent=t5
+t63.Modified=true
+t63.Start="2012-07-02"
+t63.Comments="- Make Spore functions (Data handler) object oriented\
+- Make Filter functions (Filter.lua) object oriented\
+- Make validator functions object oriented\
+- Make Karm functions object oriented"
+t63.Previous=t62
+t63.Status="Done"
+t63.Title="Review all functions in the lua space and cleanup"
+t63.Who={}
+t96=t63.Who
 
-t96.Fin="2012-07-12"
-t96.Modified=true
-t96.Comments="just make taskTreeINT[taskTree].Planning = nil and clear the taskList\
-Also refresh all the tasks already in the taskList"
-t96.TaskID="Karm_1_17_6"
-t96.Status="Done"
-t96.Title="Add function to disable planning mode"
-t96.Who={}
-t97=t96.Who
+t96[1]={}
+t97=t96[1]
 
-t97[1]={}
-t98=t97[1]
+t97.ID="milind.gupta"
+t97.Status="Active"
+t96.count=1
+t96[0]="Who"
+t63.Private=false
+t63.TaskID="Karm_1_34"
+t63.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t63.Fin="2012-08-13"
+t62.Modified=true
+t62.TaskID="Karm_1_33"
+t62.Previous=t61
+t62.Private=false
+t62.Status="On Track"
+t62.Title="Fill up Karm wiki with information"
+t62.Who={}
+t98=t62.Who
 
-t98.ID="milind.gupta"
-t98.Status="Active"
-t97.count=1
-t97[0]="Who"
-t96.Start="2012-07-03"
-t96.Private=false
-t96.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t96.Parent=t85
-t88[4]={}
-t99=t88[4]
+t98[1]={}
+t99=t98[1]
 
-t99.Fin="2012-07-12"
-t99.TaskID="Karm_1_17_7"
-t99.Parent=t85
-t99.Private=false
-t99.Title="Fix the Gantt cell click function to toggle planning date only for the task with the Planning mode enabled"
-t99.Who={}
-t100=t99.Who
+t99.ID="milind.gupta"
+t99.Status="Active"
+t98.count=1
+t98[0]="Who"
+t62.Start="2012-08-06"
+t62.SubTasks={}
+t100=t62.SubTasks
 
 t100[1]={}
 t101=t100[1]
 
-t101.ID="milind.gupta"
-t101.Status="Active"
-t100.count=1
-t100[0]="Who"
-t99.Start="2012-07-03"
-t99.Modified=true
-t99.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t99.Status="Done"
-t88[5]={}
-t102=t88[5]
+t101.Next={}
+t102=t101.Next
 
-t102.Fin="2012-07-09"
+t102.Fin="2012-08-27"
+t102.Parent=t62
+t102.TaskID="Karm_1_33_2"
 t102.Modified=true
-t102.Comments="- If task.Planning exist then the planning starts from there, if it doesn't exist then it starts from the next schedule of the existing schedules\
-- The planning table is saved and loaded with the task structure so everything is fine"
-t102.TaskID="Karm_1_17_8"
-t102.Start="2012-07-03"
-t102.Title="Remove the holdPlanning flag from togglePlanningType and togglePlanningDate functions"
-t102.Who={}
-t103=t102.Who
+t102.Next={}
+t103=t102.Next
 
-t103[1]={}
-t104=t103[1]
+t103.Parent=t62
+t103.TaskID="Karm_1_33_3"
+t103.Modified=true
+t103.Previous=t102
+t103.Private=false
+t103.Title="Describe the Karm interface and basic usage"
+t103.Who={}
+t104=t103.Who
 
-t104.ID="milind.gupta"
-t104.Status="Active"
-t103.count=1
-t103[0]="Who"
-t102.Status="Done"
-t102.Private=false
-t102.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t102.Parent=t85
-t88[6]={}
-t105=t88[6]
+t104[1]={}
+t105=t104[1]
 
-t105.Fin="2012-07-20"
-t105.Parent=t85
-t105.Start="2012-07-03"
-t105.Status="Done"
-t105.Title="Write function to convert planning schedule for a task to actual schedule"
-t105.Who={}
-t106=t105.Who
+t105.ID="milind.gupta"
+t105.Status="Active"
+t104.count=1
+t104[0]="Who"
+t103.Start="2012-08-29"
+t103.Schedules={}
+t106=t103.Schedules
 
-t106[1]={}
-t107=t106[1]
+t106.Estimate={}
+t107=t106.Estimate
 
-t107.ID="milind.gupta"
-t107.Status="Active"
-t106.count=1
-t106[0]="Who"
-t105.Private=false
-t105.TaskID="Karm_1_17_9"
-t105.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t105.Modified=true
-t88[7]={}
-t108=t88[7]
+t107[1]={}
+t108=t107[1]
 
-t108.Fin="2012-07-20"
-t108.Parent=t85
-t108.Start="2012-07-03"
-t108.Status="Done"
-t108.Title="Write function to convert planning schedule for all task to actual schedules"
-t108.Who={}
-t109=t108.Who
+t108.Updated="2012-08-29"
+t108.Period={}
+t109=t108.Period
 
 t109[1]={}
 t110=t109[1]
 
-t110.ID="milind.gupta"
-t110.Status="Active"
+t110[0]="DP"
+t110.Date="2012-08-29"
 t109.count=1
-t109[0]="Who"
-t108.Private=false
-t108.TaskID="Karm_1_17_10"
-t108.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t108.Modified=true
-t88[8]={}
-t111=t88[8]
+t109[0]="Period"
+t108[0]="Estimate"
+t107[0]="Estimate"
+t107.count=1
+t103.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t103.Status="On Track"
+t102.Status="Done"
+t102.Start="2012-08-16"
+t102.Title="Create a developer home page"
+t102.Who={}
+t111=t102.Who
 
-t111.Fin="2012-07-23"
-t111.Modified=true
-t111.Comments="Implemented through Custom Script feature"
-t111.TaskID="Karm_1_17_11"
-t111.Private=false
-t111.Title="Create filter criteria to filter out tasks in Planning mode only"
-t111.Who={}
-t112=t111.Who
+t111[1]={}
+t112=t111[1]
 
-t112[1]={}
-t113=t112[1]
+t112.ID="milind.gupta"
+t112.Status="Active"
+t111.count=1
+t111[0]="Who"
+t102.Private=false
+t102.SubTasks={}
+t113=t102.SubTasks
 
-t113.ID="milind.gupta"
-t113.Status="Active"
-t112.count=1
-t112[0]="Who"
-t111.Status="Done"
-t111.Start="2012-07-03"
-t111.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t111.Parent=t85
-t88[9]={}
-t114=t88[9]
+t113.parent=t100
+t113[1]={}
+t114=t113[1]
 
-t114.Fin="2012-07-19"
+t114.Fin="2012-08-27"
+t114.TaskID="Karm_1_33_2_1"
 t114.Modified=true
-t114.Parent=t85
-t114.Start="2012-07-03"
-t114.Title="Add command to enable and disable planning mode in Main UI (just the mode)"
+t114.Private=false
+t114.Title="Add items in queue to be done"
 t114.Who={}
 t115=t114.Who
 
@@ -781,116 +748,130 @@ t116.Status="Active"
 t115.count=1
 t115[0]="Who"
 t114.Status="Done"
-t114.Private=false
-t114.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t114.TaskID="Karm_1_17_12"
-t88[10]={}
-t117=t88[10]
+t114.Start="2012-08-27"
+t114.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t114.Parent=t102
+t113[0]="SubTasks"
+t113.tasks=1
+t102.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t102.Previous=t101
+t101.Parent=t62
+t101.Modified=true
+t101.TaskID="Karm_1_33_1"
+t101.Start="2012-08-16"
+t101.Title="Describe all Sample Macros"
+t101.Who={}
+t117=t101.Who
 
-t117.Fin="2012-07-19"
-t117.Parent=t85
-t117.Start="2012-07-03"
-t117.Status="Done"
-t117.Title="Add command to switch on planning mode for a task"
-t117.Who={}
-t118=t117.Who
+t117[1]={}
+t118=t117[1]
 
-t118[1]={}
-t119=t118[1]
+t118.ID="milind.gupta"
+t118.Status="Active"
+t117.count=1
+t117[0]="Who"
+t101.Status="On Track"
+t101.Private=false
+t101.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t101.Schedules={}
+t119=t101.Schedules
 
-t119.ID="milind.gupta"
-t119.Status="Active"
-t118.count=1
-t118[0]="Who"
-t117.Private=false
-t117.TaskID="Karm_1_17_13"
-t117.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t117.Modified=true
-t88[11]={}
-t120=t88[11]
+t119.Estimate={}
+t120=t119.Estimate
 
-t120.Fin="2012-07-24"
-t120.Modified=true
-t120.TaskID="Karm_1_17_14"
-t120.Private=false
-t120.Title="After Planning mode is finalized make sure to pass by the filter again"
-t120.Who={}
-t121=t120.Who
+t120[1]={}
+t121=t120[1]
 
-t121[1]={}
-t122=t121[1]
+t121.Updated="2012-08-29"
+t121.Period={}
+t122=t121.Period
 
-t122.ID="milind.gupta"
-t122.Status="Active"
-t121.count=1
-t121[0]="Who"
-t120.Start="2012-07-23"
-t120.Status="Done"
-t120.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t120.Parent=t85
-t88.tasks=11
-t88.parent=t9
-t88[0]="SubTasks"
-t85.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t85.Modified=true
-t9[14]={}
-t123=t9[14]
+t122[1]={}
+t123=t122[1]
 
-t123.Fin="2012-08-03"
-t123.Modified=true
-t123.TaskID="Karm_1_18"
-t123.Comments="- This would bubble the scheduled days of lower tasks to parent tasks right up to the spore and the bubbles will be of a different color than that of normal task schedule.\
-\
-- Add this in the getLatestSchedules where it goes into sub tasks to get all the schedule dates and reports them in this one - need a distinguisher for bubble date and normal date"
-t123.Start="2012-07-19"
-t123.Private=false
-t123.Title="Add functionality for Schedule Bubble"
-t123.Who={}
-t124=t123.Who
+t123[0]="DP"
+t123.Date="2012-08-30"
+t122[2]={}
+t124=t122[2]
 
-t124[1]={}
-t125=t124[1]
+t124[0]="DP"
+t124.Date="2012-08-31"
+t122[0]="Period"
+t122.count=2
+t121[0]="Estimate"
+t120[0]="Estimate"
+t120.count=1
+t100[2]=t102
+t100.tasks=3
+t100[3]=t103
+t100.parent=t26
+t100[0]="SubTasks"
+t62.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t62.Parent=t5
+t61.Parent=t5
+t61.TaskID="Karm_1_32"
+t61.Modified=true
+t61.Fin="2012-08-14"
+t61.Start="2012-08-06"
+t61.Title="Create Karm Wiki"
+t61.Who={}
+t125=t61.Who
 
-t125.ID="milind.gupta"
-t125.Status="Active"
-t124.count=1
-t124[0]="Who"
-t123.Status="Done"
-t123.SubTasks={}
-t126=t123.SubTasks
+t125[1]={}
+t126=t125[1]
 
-t126[1]={}
-t127=t126[1]
+t126.ID="milind.gupta"
+t126.Status="Active"
+t125.count=1
+t125[0]="Who"
+t61.Status="Done"
+t61.Private=false
+t61.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t61.Previous=t60
+t60.Status="Done"
+t60.Title="Create installaton procedure and method for Karm"
+t60.Who={}
+t127=t60.Who
 
-t127.Fin="2012-08-03"
-t127.Parent=t123
-t127.Private=false
-t127.Status="Done"
-t127.Title="Create additional layer function getSchedule to generate colors for the gantt"
-t127.Who={}
-t128=t127.Who
+t127[1]={}
+t128=t127[1]
 
-t128[1]={}
-t129=t128[1]
+t128.ID="milind.gupta"
+t128.Status="Active"
+t127.count=1
+t127[0]="Who"
+t60.Start="2012-08-06"
+t60.Private=false
+t60.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t60.Parent=t5
+t59.Private=false
+t59.Comments="Not used it in applyFuncHier since that needs to stop when we get back to the task the next in sequence will give the next task so it will not be convenient to use it."
+t59.Previous=t58
+t59.Status="Done"
+t59.Title="Create a task iterator function and modify applyFuncHier to use that"
+t59.Who={}
+t129=t59.Who
 
-t129.ID="milind.gupta"
-t129.Status="Active"
-t128.count=1
-t128[0]="Who"
-t127.Start="2012-08-01"
-t127.Modified=true
-t127.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t127.TaskID="Karm_1_18_1"
-t126[2]={}
-t130=t126[2]
+t129[1]={}
+t130=t129[1]
 
-t130.Fin="2012-08-03"
-t130.Modified=true
-t130.Parent=t123
-t130.Start="2012-08-01"
-t130.Title="Add flag in getLatestSchedules function to bubble schedule"
-t130.Who={}
-t131=t130.Who
+t130.ID="milind.gupta"
+t130.Status="Active"
+t129.count=1
+t129[0]="Who"
+t59.Start="2012-08-07"
+t59.TaskID="Karm_1_30"
+t59.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t59.Parent=t5
+t58.Modified=true
+t58.Previous=t57
+t58.TaskID="Karm_1_29"
+t58.Status="Done"
+t58.Start="2012-08-06"
+t58.Private=false
+t58.Title="Link Karm on AmVed page"
+t58.Who={}
+t131=t58.Who
 
 t131[1]={}
 t132=t131[1]
@@ -899,178 +880,121 @@ t132.ID="milind.gupta"
 t132.Status="Active"
 t131.count=1
 t131[0]="Who"
-t130.Private=false
-t130.TaskID="Karm_1_18_2"
-t130.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t130.Status="Done"
-t126.tasks=3
-t126[3]={}
-t133=t126[3]
+t58.Schedules={}
+t133=t58.Schedules
 
-t133.Fin="2012-08-03"
-t133.Parent=t123
-t133.Modified=true
-t133.Start="2012-08-01"
-t133.Title="Modify getLatestSchedules function to give type of date also"
-t133.Who={}
-t134=t133.Who
+t133.Estimate={}
+t134=t133.Estimate
 
 t134[1]={}
 t135=t134[1]
 
-t135.ID="milind.gupta"
-t135.Status="Active"
-t134.count=1
-t134[0]="Who"
-t133.Status="Done"
-t133.TaskID="Karm_1_18_3"
-t133.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t133.Private=false
-t126.parent=t9
-t126[0]="SubTasks"
-t123.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t123.Parent=t5
-t9[15]={}
-t136=t9[15]
+t135.Updated="2012-08-06"
+t135.Period={}
+t136=t135.Period
 
-t136.Fin="2012-08-01"
-t136.TaskID="Karm_1_20"
-t136.Modified=true
-t136.Start="2012-07-29"
-t136.Title="Update Toolbar Icons"
-t136.Who={}
-t137=t136.Who
+t136[1]={}
+t137=t136[1]
 
-t137[1]={}
-t138=t137[1]
+t137[0]="DP"
+t137.Date="2012-08-10"
+t136[2]={}
+t138=t136[2]
 
-t138.ID="milind.gupta"
-t138.Status="Active"
-t137.count=1
-t137[0]="Who"
-t136.Status="Done"
-t136.Parent=t5
-t136.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t136.Private=false
-t9[16]={}
-t139=t9[16]
+t138[0]="DP"
+t138.Date="2012-08-11"
+t136[3]={}
+t139=t136[3]
 
-t139.Fin="2012-07-27"
-t139.TaskID="Karm_1_21"
-t139.Modified=true
-t139.Start="2012-07-19"
-t139.Title="Add functionality for displaying work done without planning mode"
-t139.Who={}
-t140=t139.Who
+t139[0]="DP"
+t139.Date="2012-08-12"
+t136[4]={}
+t140=t136[4]
 
-t140[1]={}
-t141=t140[1]
+t140[0]="DP"
+t140.Date="2012-08-13"
+t136.count=4
+t136[0]="Period"
+t135[0]="Estimate"
+t134[2]={}
+t141=t134[2]
 
-t141.ID="milind.gupta"
-t141.Status="Active"
-t140.count=1
-t140[0]="Who"
-t139.Private=false
-t139.Parent=t5
-t139.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t139.Status="Done"
-t9[17]={}
-t142=t9[17]
+t141.Updated="2012-08-16"
+t141.Period={}
+t142=t141.Period
 
-t142.Fin="2012-07-26"
-t142.Parent=t5
-t142.Comments="Displayed on title Bar"
-t142.TaskID="Karm_1_22"
-t142.Private=false
-t142.Title="Add user ID input and display functionality"
-t142.Who={}
-t143=t142.Who
+t142[1]={}
+t143=t142[1]
 
-t143[1]={}
-t144=t143[1]
+t143[0]="DP"
+t143.Date="2012-08-10"
+t142[2]={}
+t144=t142[2]
 
-t144.ID="milind.gupta"
-t144.Status="Active"
-t143.count=1
-t143[0]="Who"
-t142.Status="Done"
-t142.Start="2012-07-02"
-t142.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t142.Modified=true
-t9[18]={}
-t145=t9[18]
+t144[0]="DP"
+t144.Date="2012-08-11"
+t142[3]={}
+t145=t142[3]
 
-t145.Fin="2012-07-26"
-t145.Modified=true
-t145.TaskID="Karm_1_23"
-t145.Private=false
-t145.Title="Add basic task checking function in validator.lua"
-t145.Who={}
-t146=t145.Who
+t145[0]="DP"
+t145.Date="2012-08-12"
+t142[4]={}
+t146=t142[4]
 
-t146[1]={}
-t147=t146[1]
+t146[0]="DP"
+t146.Date="2012-08-13"
+t142[5]={}
+t147=t142[5]
 
-t147.ID="milind.gupta"
-t147.Status="Active"
-t146.count=1
-t146[0]="Who"
-t145.Start="2012-07-02"
-t145.Parent=t5
-t145.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t145.Status="Done"
-t9[19]={}
-t148=t9[19]
+t147[0]="DP"
+t147.Date="2012-08-16"
+t142[0]="Period"
+t142.count=5
+t141[0]="Estimate"
+t134[3]={}
+t148=t134[3]
 
-t148.Fin="2012-07-26"
-t148.Parent=t5
-t148.TaskID="Karm_1_24"
-t148.Start="2012-07-02"
-t148.Title="Add quick task entry functionality"
-t148.Who={}
-t149=t148.Who
+t148.Updated="2012-08-17"
+t148.Period={}
+t149=t148.Period
 
 t149[1]={}
 t150=t149[1]
 
-t150.ID="milind.gupta"
-t150.Status="Active"
-t149.count=1
-t149[0]="Who"
-t148.Private=false
-t148.Status="Done"
-t148.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t148.Modified=true
-t9[20]={}
-t151=t9[20]
+t150[0]="DP"
+t150.Date="2012-08-10"
+t149[2]={}
+t151=t149[2]
 
-t151.Fin="2012-08-06"
-t151.Modified=true
-t151.Parent=t5
-t151.TaskID="Karm_1_25"
-t151.Private=false
-t151.Title="Register Google code for Karm"
-t151.Who={}
-t152=t151.Who
+t151[0]="DP"
+t151.Date="2012-08-11"
+t149[3]={}
+t152=t149[3]
 
-t152[1]={}
-t153=t152[1]
+t152[0]="DP"
+t152.Date="2012-08-12"
+t149[4]={}
+t153=t149[4]
 
-t153.ID="milind.gupta"
-t153.Status="Active"
-t152.count=1
-t152[0]="Who"
-t151.Status="Done"
-t151.Schedules={}
-t154=t151.Schedules
+t153[0]="DP"
+t153.Date="2012-08-13"
+t149[5]={}
+t154=t149[5]
 
-t154.Commit={}
-t155=t154.Commit
+t154[0]="DP"
+t154.Date="2012-08-16"
+t149[6]={}
+t155=t149[6]
 
-t155[1]={}
-t156=t155[1]
+t155[0]="DP"
+t155.Date="2012-08-17"
+t149[0]="Period"
+t149.count=6
+t148[0]="Estimate"
+t134[4]={}
+t156=t134[4]
 
-t156.Updated="2012-08-06"
+t156.Updated="2012-08-27"
 t156.Period={}
 t157=t156.Period
 
@@ -1078,126 +1002,139 @@ t157[1]={}
 t158=t157[1]
 
 t158[0]="DP"
-t158.Date="2012-08-06"
-t157.count=1
+t158.Date="2012-08-10"
+t157[2]={}
+t159=t157[2]
+
+t159[0]="DP"
+t159.Date="2012-08-11"
+t157[3]={}
+t160=t157[3]
+
+t160[0]="DP"
+t160.Date="2012-08-12"
+t157[4]={}
+t161=t157[4]
+
+t161[0]="DP"
+t161.Date="2012-08-13"
+t157[5]={}
+t162=t157[5]
+
+t162[0]="DP"
+t162.Date="2012-08-16"
+t157[6]={}
+t163=t157[6]
+
+t163[0]="DP"
+t163.Date="2012-08-17"
+t157[7]={}
+t164=t157[7]
+
+t164[0]="DP"
+t164.Date="2012-08-29"
 t157[0]="Period"
-t156[0]="Commit"
-t155[0]="Commit"
-t155.count=1
-t151.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t151.Start="2012-08-06"
-t9[21]={}
-t159=t9[21]
-
-t159.Modified=true
-t159.TaskID="Karm_1_27"
-t159.Parent=t5
-t159.Status="On Track"
-t159.Title="Put Karm code on Google code"
-t159.Who={}
-t160=t159.Who
-
-t160[1]={}
-t161=t160[1]
-
-t161.ID="milind.gupta"
-t161.Status="Active"
-t160.count=1
-t160[0]="Who"
-t159.Private=false
-t159.Start="2012-08-06"
-t159.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t159.Schedules={}
-t162=t159.Schedules
-
-t162.Commit={}
-t163=t162.Commit
-
-t163[1]={}
-t164=t163[1]
-
-t164.Updated="2012-08-06"
-t164.Period={}
-t165=t164.Period
+t157.count=7
+t156[0]="Estimate"
+t134[0]="Estimate"
+t134.count=4
+t58.Fin="2012-08-28"
+t58.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t58.Parent=t5
+t57.Previous=t56
+t57.TaskID="Karm_1_27"
+t57.Modified=true
+t57.Fin="2012-08-06"
+t57.Status="Done"
+t57.Private=false
+t57.Title="Put Karm code on Google code"
+t57.Who={}
+t165=t57.Who
 
 t165[1]={}
 t166=t165[1]
 
-t166[0]="DP"
-t166.Date="2012-08-07"
+t166.ID="milind.gupta"
+t166.Status="Active"
 t165.count=1
-t165[0]="Period"
-t164[0]="Commit"
-t163[0]="Commit"
-t163.count=1
-t9[22]={}
-t167=t9[22]
+t165[0]="Who"
+t57.Schedules={}
+t167=t57.Schedules
 
-t167.Modified=true
-t167.TaskID="Karm_1_29"
-t167.Parent=t5
-t167.Status="On Track"
-t167.Title="Link Karm on AmVed page"
-t167.Who={}
-t168=t167.Who
+t167.Commit={}
+t168=t167.Commit
 
 t168[1]={}
 t169=t168[1]
 
-t169.ID="milind.gupta"
-t169.Status="Active"
+t169.Updated="2012-08-06"
+t169.Period={}
+t170=t169.Period
+
+t170[1]={}
+t171=t170[1]
+
+t171[0]="DP"
+t171.Date="2012-08-07"
+t170.count=1
+t170[0]="Period"
+t169[0]="Commit"
+t168[0]="Commit"
 t168.count=1
-t168[0]="Who"
-t167.Private=false
-t167.Start="2012-08-06"
-t167.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t167.Schedules={}
-t170=t167.Schedules
+t57.Start="2012-08-06"
+t57.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t57.Parent=t5
+t56.Previous=t55
+t56.Modified=true
+t56.TaskID="Karm_1_25"
+t56.Start="2012-08-06"
+t56.Private=false
+t56.Status="Done"
+t56.Title="Register Google code for Karm"
+t56.Who={}
+t172=t56.Who
 
-t170.Estimate={}
-t171=t170.Estimate
+t172[1]={}
+t173=t172[1]
 
-t171[1]={}
-t172=t171[1]
+t173.ID="milind.gupta"
+t173.Status="Active"
+t172.count=1
+t172[0]="Who"
+t56.Schedules={}
+t174=t56.Schedules
 
-t172.Updated="2012-08-06"
-t172.Period={}
-t173=t172.Period
+t174.Commit={}
+t175=t174.Commit
 
-t173[1]={}
-t174=t173[1]
+t175[1]={}
+t176=t175[1]
 
-t174[0]="DP"
-t174.Date="2012-08-10"
-t173[2]={}
-t175=t173[2]
+t176.Updated="2012-08-06"
+t176.Period={}
+t177=t176.Period
 
-t175[0]="DP"
-t175.Date="2012-08-11"
-t173[3]={}
-t176=t173[3]
+t177[1]={}
+t178=t177[1]
 
-t176[0]="DP"
-t176.Date="2012-08-12"
-t173[4]={}
-t177=t173[4]
-
-t177[0]="DP"
-t177.Date="2012-08-13"
-t173.count=4
-t173[0]="Period"
-t172[0]="Estimate"
-t171[0]="Estimate"
-t171.count=1
-t9[23]={}
-t178=t9[23]
-
-t178.TaskID="Karm_1_30"
-t178.Parent=t5
-t178.Private=false
-t178.Title="Create installation procedure and method for Karm"
-t178.Who={}
-t179=t178.Who
+t178[0]="DP"
+t178.Date="2012-08-06"
+t177.count=1
+t177[0]="Period"
+t176[0]="Commit"
+t175[0]="Commit"
+t175.count=1
+t56.Fin="2012-08-06"
+t56.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t56.Parent=t5
+t55.Previous=t54
+t55.TaskID="Karm_1_24"
+t55.Modified=true
+t55.Fin="2012-07-26"
+t55.Start="2012-07-02"
+t55.Title="Add quick task entry functionality"
+t55.Who={}
+t179=t55.Who
 
 t179[1]={}
 t180=t179[1]
@@ -1206,40 +1143,56 @@ t180.ID="milind.gupta"
 t180.Status="Active"
 t179.count=1
 t179[0]="Who"
-t178.Status="Not Started"
-t178.Start="2012-08-06"
-t178.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t178.Modified=true
-t9[24]={}
-t181=t9[24]
+t55.Status="Done"
+t55.Private=false
+t55.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t55.Parent=t5
+t54.Previous=t53
+t54.TaskID="Karm_1_23"
+t54.Parent=t5
+t54.Fin="2012-07-26"
+t54.Private=false
+t54.Title="Add basic task checking function in validator.lua"
+t54.Who={}
+t181=t54.Who
 
-t181.TaskID="Karm_1_31"
-t181.Parent=t5
-t181.Private=false
-t181.Title="Create Karm Wiki"
-t181.Who={}
-t182=t181.Who
+t181[1]={}
+t182=t181[1]
 
-t182[1]={}
-t183=t182[1]
+t182.ID="milind.gupta"
+t182.Status="Active"
+t181.count=1
+t181[0]="Who"
+t54.Status="Done"
+t54.Start="2012-07-02"
+t54.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t54.Modified=true
+t53.Comments="Displayed on title Bar"
+t53.TaskID="Karm_1_22"
+t53.Private=false
+t53.Title="Add user ID input and display functionality"
+t53.Who={}
+t183=t53.Who
 
-t183.ID="milind.gupta"
-t183.Status="Active"
-t182.count=1
-t182[0]="Who"
-t181.Status="Not Started"
-t181.Start="2012-08-06"
-t181.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t181.Modified=true
-t9[25]={}
-t184=t9[25]
+t183[1]={}
+t184=t183[1]
 
-t184.TaskID="Karm_1_32"
-t184.Parent=t5
-t184.Private=false
-t184.Title="Fill up Karm wiki with information"
-t184.Who={}
-t185=t184.Who
+t184.ID="milind.gupta"
+t184.Status="Active"
+t183.count=1
+t183[0]="Who"
+t53.Status="Done"
+t53.Start="2012-07-02"
+t53.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t53.Modified=true
+t52.Previous=t51
+t52.Modified=true
+t52.Parent=t5
+t52.Fin="2012-07-27"
+t52.Start="2012-07-19"
+t52.Title="Add functionality for displaying work done without planning mode"
+t52.Who={}
+t185=t52.Who
 
 t185[1]={}
 t186=t185[1]
@@ -1248,95 +1201,88 @@ t186.ID="milind.gupta"
 t186.Status="Active"
 t185.count=1
 t185[0]="Who"
-t184.Status="Not Started"
-t184.Start="2012-08-06"
-t184.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t184.Modified=true
-t9[26]={}
-t187=t9[26]
+t52.Status="Done"
+t52.Private=false
+t52.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t52.TaskID="Karm_1_21"
+t51.Previous=t50
+t51.Modified=true
+t51.Parent=t5
+t51.Fin="2012-08-01"
+t51.Start="2012-07-29"
+t51.Title="Update Toolbar Icons"
+t51.Who={}
+t187=t51.Who
 
-t187.TaskID="Karm_1_33"
-t187.Comments="- Make Spore functions (Data handler) object oriented\
-- Make Filter functions (Filter.lua) object oriented\
-- Make validator functions object oriented\
-- Make Karm functions object oriented"
-t187.Modified=true
-t187.Status="Not Started"
-t187.Title="Review all functions in the lua space and cleanup"
-t187.Who={}
-t188=t187.Who
+t187[1]={}
+t188=t187[1]
 
-t188[1]={}
-t189=t188[1]
+t188.ID="milind.gupta"
+t188.Status="Active"
+t187.count=1
+t187[0]="Who"
+t51.Private=false
+t51.Status="Done"
+t51.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t51.TaskID="Karm_1_20"
+t50.Modified=true
+t50.Comments="- This would bubble the scheduled days of lower tasks to parent tasks right up to the spore and the bubbles will be of a different color than that of normal task schedule.\
+\
+- Add this in the getLatestSchedules where it goes into sub tasks to get all the schedule dates and reports them in this one - need a distinguisher for bubble date and normal date"
+t50.Private=false
+t50.Status="Done"
+t50.Title="Add functionality for Schedule Bubble"
+t50.Who={}
+t189=t50.Who
 
-t189.ID="milind.gupta"
-t189.Status="Active"
-t188.count=1
-t188[0]="Who"
-t187.Start="2012-07-02"
-t187.Private=false
-t187.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t187.Parent=t5
-t9[27]={}
-t190=t9[27]
+t189[1]={}
+t190=t189[1]
 
-t190.TaskID="Karm_1_34"
-t190.Comments="- Code documentation\
-- Architecture documentation\
-- Marketing notes to people"
-t190.Modified=true
-t190.Status="Not Started"
-t190.Title="Do all code and architecture documentation"
-t190.Who={}
-t191=t190.Who
+t190.ID="milind.gupta"
+t190.Status="Active"
+t189.count=1
+t189[0]="Who"
+t50.Start="2012-07-19"
+t50.SubTasks={}
+t191=t50.SubTasks
 
 t191[1]={}
 t192=t191[1]
 
-t192.ID="milind.gupta"
-t192.Status="Active"
-t191.count=1
-t191[0]="Who"
-t190.Start="2012-07-02"
-t190.Private=false
-t190.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t190.Parent=t5
-t9[28]={}
-t193=t9[28]
+t192.Next={}
+t193=t192.Next
 
-t193.Modified=true
-t193.Parent=t5
-t193.Status="Not Started"
-t193.Title="Release as Open source Version 1"
+t193.Next={}
+t194=t193.Next
+
+t194.Fin="2012-08-03"
+t194.Previous=t193
+t194.Parent=t50
+t194.TaskID="Karm_1_18_3"
+t194.Start="2012-08-01"
+t194.Title="Modify getLatestSchedules function to give type of date also"
+t194.Who={}
+t195=t194.Who
+
+t195[1]={}
+t196=t195[1]
+
+t196.ID="milind.gupta"
+t196.Status="Active"
+t195.count=1
+t195[0]="Who"
+t194.Status="Done"
+t194.Private=false
+t194.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t194.Modified=true
+t193.Previous=t192
+t193.Parent=t50
+t193.TaskID="Karm_1_18_2"
+t193.Fin="2012-08-03"
+t193.Start="2012-08-01"
+t193.Title="Add flag in getLatestSchedules function to bubble schedule"
 t193.Who={}
-t194=t193.Who
-
-t194[1]={}
-t195=t194[1]
-
-t195.ID="milind.gupta"
-t195.Status="Active"
-t194.count=1
-t194[0]="Who"
-t193.Start="2012-07-02"
-t193.Private=false
-t193.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t193.TaskID="Karm_1_35"
-t9[0]="SubTasks"
-t9.tasks=28
-t9.parent=t4
-t5.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t5.Parent=t1
-t4[2]={}
-t196=t4[2]
-
-t196.Modified=true
-t196.Parent=t1
-t196.Private=false
-t196.TaskID="Karm_2"
-t196.Title="Version 2"
-t196.Who={}
-t197=t196.Who
+t197=t193.Who
 
 t197[1]={}
 t198=t197[1]
@@ -1345,92 +1291,748 @@ t198.ID="milind.gupta"
 t198.Status="Active"
 t197.count=1
 t197[0]="Who"
-t196.Status="Not Started"
-t196.SubTasks={}
-t199=t196.SubTasks
+t193.Status="Done"
+t193.Private=false
+t193.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t193.Modified=true
+t192.TaskID="Karm_1_18_1"
+t192.Parent=t50
+t192.Fin="2012-08-03"
+t192.Private=false
+t192.Title="Create additional layer function getSchedule to generate colors for the gantt"
+t192.Who={}
+t199=t192.Who
 
 t199[1]={}
 t200=t199[1]
 
-t200.Tags={}
-t201=t200.Tags
+t200.ID="milind.gupta"
+t200.Status="Active"
+t199.count=1
+t199[0]="Who"
+t192.Start="2012-08-01"
+t192.Status="Done"
+t192.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t192.Modified=true
+t191[2]=t193
+t191.tasks=3
+t191[3]=t194
+t191.parent=t26
+t191[0]="SubTasks"
+t50.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t50.Previous=t49
+t49.Private=false
+t49.Start="2012-07-02"
+t49.Title="Planning mode in main form"
+t49.Who={}
+t201=t49.Who
 
-t201[1]="Think"
+t201[1]={}
+t202=t201[1]
+
+t202.ID="milind.gupta"
+t202.Status="Active"
 t201.count=1
-t201[0]="Tags"
-t200.Parent=t196
-t200.Comments="- Calling enablePlanning mode on the same task steps it 1 more ahead\
-\
-Will have to use a copy of the task for the workdone sheet"
-t200.Modified=true
-t200.Status="Not Started"
-t200.Title="Think about way to enter estimate hours for a task and show it"
-t200.Who={}
-t202=t200.Who
+t201[0]="Who"
+t49.Status="Done"
+t49.SubTasks={}
+t203=t49.SubTasks
 
-t202[1]={}
-t203=t202[1]
+t203[1]={}
+t204=t203[1]
 
-t203.ID="milind.gupta"
-t203.Status="Active"
-t202.count=1
-t202[0]="Who"
-t200.Start="2012-07-10"
-t200.Private=false
-t200.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t200.TaskID="Karm_2_1"
-t199[2]={}
-t204=t199[2]
+t204.Tags={}
+t205=t204.Tags
 
-t204.TaskID="Karm_2_2"
-t204.Modified=true
-t204.Parent=t196
-t204.Title="Add interdependencies addition"
-t204.Who={}
-t205=t204.Who
-
-t205[1]={}
-t206=t205[1]
-
-t206.ID="milind.gupta"
-t206.Status="Active"
+t205[1]="Think"
 t205.count=1
-t205[0]="Who"
-t204.Private=false
-t204.Start="2012-07-31"
-t204.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t204.Status="Not Started"
-t199.tasks=3
-t199[3]={}
-t207=t199[3]
+t205[0]="Tags"
+t204.TaskID="Karm_1_17_1"
+t204.Modified=true
+t204.Next={}
+t206=t204.Next
 
-t207.TaskID="Karm_2_3"
+t206.Fin="2012-07-11"
+t206.TaskID="Karm_1_17_2"
+t206.Previous=t204
+t206.Next={}
+t207=t206.Next
+
+t207.Fin="2012-07-12"
 t207.Modified=true
-t207.Parent=t196
-t207.Title="Add Network Diagram support"
+t207.Previous=t206
+t207.Next={}
+t208=t207.Next
+
+t208.Next={}
+t209=t208.Next
+
+t209.Fin="2012-07-09"
+t209.Modified=true
+t209.Previous=t208
+t209.Next={}
+t210=t209.Next
+
+t210.Fin="2012-07-20"
+t210.Parent=t49
+t210.Previous=t209
+t210.Modified=true
+t210.Status="Done"
+t210.Start="2012-07-03"
+t210.Title="Write function to convert planning schedule for a task to actual schedule"
+t210.Who={}
+t211=t210.Who
+
+t211[1]={}
+t212=t211[1]
+
+t212.ID="milind.gupta"
+t212.Status="Active"
+t211.count=1
+t211[0]="Who"
+t210.Private=false
+t210.Next={}
+t213=t210.Next
+
+t213.Fin="2012-07-20"
+t213.Parent=t49
+t213.Previous=t210
+t213.Modified=true
+t213.Status="Done"
+t213.Start="2012-07-03"
+t213.Title="Write function to convert planning schedule for all task to actual schedules"
+t213.Who={}
+t214=t213.Who
+
+t214[1]={}
+t215=t214[1]
+
+t215.ID="milind.gupta"
+t215.Status="Active"
+t214.count=1
+t214[0]="Who"
+t213.Private=false
+t213.Next={}
+t216=t213.Next
+
+t216.Fin="2012-07-23"
+t216.Modified=true
+t216.Previous=t213
+t216.Next={}
+t217=t216.Next
+
+t217.Next={}
+t218=t217.Next
+
+t218.Fin="2012-07-19"
+t218.Parent=t49
+t218.Previous=t217
+t218.Modified=true
+t218.Status="Done"
+t218.Start="2012-07-03"
+t218.Title="Add command to switch on planning mode for a task"
+t218.Who={}
+t219=t218.Who
+
+t219[1]={}
+t220=t219[1]
+
+t220.ID="milind.gupta"
+t220.Status="Active"
+t219.count=1
+t219[0]="Who"
+t218.Private=false
+t218.Next={}
+t221=t218.Next
+
+t221.Fin="2012-07-24"
+t221.Previous=t218
+t221.Modified=true
+t221.Parent=t49
+t221.Private=false
+t221.Title="After Planning mode is finalized make sure to pass by the filter again"
+t221.Who={}
+t222=t221.Who
+
+t222[1]={}
+t223=t222[1]
+
+t223.ID="milind.gupta"
+t223.Status="Active"
+t222.count=1
+t222[0]="Who"
+t221.Start="2012-07-23"
+t221.Status="Done"
+t221.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t221.TaskID="Karm_1_17_14"
+t218.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t218.TaskID="Karm_1_17_13"
+t217.Previous=t216
+t217.Parent=t49
+t217.TaskID="Karm_1_17_12"
+t217.Fin="2012-07-19"
+t217.Start="2012-07-03"
+t217.Title="Add command to enable and disable planning mode in Main UI (just the mode)"
+t217.Who={}
+t224=t217.Who
+
+t224[1]={}
+t225=t224[1]
+
+t225.ID="milind.gupta"
+t225.Status="Active"
+t224.count=1
+t224[0]="Who"
+t217.Private=false
+t217.Status="Done"
+t217.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t217.Modified=true
+t216.Comments="Implemented through Custom Script feature"
+t216.TaskID="Karm_1_17_11"
+t216.Private=false
+t216.Title="Create filter criteria to filter out tasks in Planning mode only"
+t216.Who={}
+t226=t216.Who
+
+t226[1]={}
+t227=t226[1]
+
+t227.ID="milind.gupta"
+t227.Status="Active"
+t226.count=1
+t226[0]="Who"
+t216.Status="Done"
+t216.Start="2012-07-03"
+t216.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t216.Parent=t49
+t213.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t213.TaskID="Karm_1_17_10"
+t210.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t210.TaskID="Karm_1_17_9"
+t209.Comments="- If task.Planning exist then the planning starts from there, if it doesn't exist then it starts from the next schedule of the existing schedules\
+- The planning table is saved and loaded with the task structure so everything is fine"
+t209.TaskID="Karm_1_17_8"
+t209.Start="2012-07-03"
+t209.Title="Remove the holdPlanning flag from togglePlanningType and togglePlanningDate functions"
+t209.Who={}
+t228=t209.Who
+
+t228[1]={}
+t229=t228[1]
+
+t229.ID="milind.gupta"
+t229.Status="Active"
+t228.count=1
+t228[0]="Who"
+t209.Status="Done"
+t209.Private=false
+t209.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t209.Parent=t49
+t208.Previous=t207
+t208.Parent=t49
+t208.Modified=true
+t208.Fin="2012-07-12"
+t208.Private=false
+t208.Title="Fix the Gantt cell click function to toggle planning date only for the task with the Planning mode enabled"
+t208.Who={}
+t230=t208.Who
+
+t230[1]={}
+t231=t230[1]
+
+t231.ID="milind.gupta"
+t231.Status="Active"
+t230.count=1
+t230[0]="Who"
+t208.Status="Done"
+t208.Start="2012-07-03"
+t208.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t208.TaskID="Karm_1_17_7"
+t207.Comments="just make taskTreeINT[taskTree].Planning = nil and clear the taskList\
+Also refresh all the tasks already in the taskList"
+t207.TaskID="Karm_1_17_6"
+t207.Status="Done"
+t207.Title="Add function to disable planning mode"
 t207.Who={}
-t208=t207.Who
+t232=t207.Who
 
-t208[1]={}
-t209=t208[1]
+t232[1]={}
+t233=t232[1]
 
-t209.ID="milind.gupta"
-t209.Status="Active"
-t208.count=1
-t208[0]="Who"
+t233.ID="milind.gupta"
+t233.Status="Active"
+t232.count=1
+t232[0]="Who"
+t207.Start="2012-07-03"
 t207.Private=false
-t207.Start="2012-07-31"
-t207.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t207.Status="Not Started"
-t199.parent=t4
-t199[0]="SubTasks"
-t196.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t196.Start="2012-07-26"
+t207.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t207.Parent=t49
+t206.Comments="Also all the tasks already having planning should be refreshed"
+t206.Start="2012-07-03"
+t206.Private=false
+t206.Title="Modify EnablePlanning Mode to add tasks rather than take that as the task set"
+t206.Who={}
+t234=t206.Who
+
+t234[1]={}
+t235=t234[1]
+
+t235.ID="milind.gupta"
+t235.Status="Active"
+t234.count=1
+t234[0]="Who"
+t206.Status="Done"
+t206.Parent=t49
+t206.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t206.Modified=true
+t204.Comments="Only if taskTree.Planning is made true i.e. turn on planning mode for the UI"
+t204.Fin="2012-07-11"
+t204.Private=false
+t204.Title="Think about if task.Planning present then task automatically in planning mode?"
+t204.Who={}
+t236=t204.Who
+
+t236[1]={}
+t237=t236[1]
+
+t237.ID="milind.gupta"
+t237.Status="Active"
+t236.count=1
+t236[0]="Who"
+t204.Status="Done"
+t204.Start="2012-07-10"
+t204.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t204.Parent=t49
+t203[2]=t206
+t203[3]=t207
+t203[4]=t208
+t203[5]=t209
+t203[6]=t210
+t203[7]=t213
+t203[8]=t216
+t203[9]=t217
+t203[10]=t218
+t203[11]=t221
+t203.tasks=11
+t203.parent=t26
+t203[0]="SubTasks"
+t49.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t49.Modified=true
+t48.Previous=t45
+t48.TaskID="Karm_1_16"
+t48.Modified=true
+t48.Fin="2012-07-24"
+t48.Start="2012-07-19"
+t48.Title="Update Filter Details extraction function"
+t48.Who={}
+t238=t48.Who
+
+t238[1]={}
+t239=t238[1]
+
+t239.ID="milind.gupta"
+t239.Status="Active"
+t238.count=1
+t238[0]="Who"
+t48.Private=false
+t48.Status="Done"
+t48.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t48.Parent=t5
+t45.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t45.Modified=true
+t42.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t42.Parent=t5
+t41.Previous=t38
+t41.TaskID="Karm_1_13"
+t41.Modified=true
+t41.Fin="2012-07-24"
+t41.Start="2012-07-19"
+t41.Title="Make Who assignment compulsory for task Form entry"
+t41.Who={}
+t240=t41.Who
+
+t240[1]={}
+t241=t240[1]
+
+t241.ID="milind.gupta"
+t241.Status="Active"
+t240.count=1
+t240[0]="Who"
+t41.Private=false
+t41.Status="Done"
+t41.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t41.Parent=t5
+t38.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t38.Parent=t5
+t37.Modified=true
+t37.Previous=t34
+t37.TaskID="Karm_1_10"
+t37.Comments="No Point doing this, Schedule methodology should be followed"
+t37.Private=false
+t37.Status="Obsolete"
+t37.Title="Make updated an XML datetime object an update the spores accordingly"
+t37.Who={}
+t242=t37.Who
+
+t242[1]={}
+t243=t242[1]
+
+t243.ID="milind.gupta"
+t243.Status="Active"
+t242.count=1
+t242[0]="Who"
+t37.Start="2012-07-10"
+t37.SubTasks={}
+t244=t37.SubTasks
+
+t244[1]={}
+t245=t244[1]
+
+t245.Next={}
+t246=t245.Next
+
+t246.Next={}
+t247=t246.Next
+
+t247.Parent=t37
+t247.Previous=t246
+t247.Modified=true
+t247.TaskID="Karm_1_10_3"
+t247.Title="GetLatestSchedule should give the schedule from the updated date"
+t247.Who={}
+t248=t247.Who
+
+t248[1]={}
+t249=t248[1]
+
+t249.ID="milind.gupta"
+t249.Status="Active"
+t248.count=1
+t248[0]="Who"
+t247.Start="2012-07-10"
+t247.Private=false
+t247.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t247.Status="Obsolete"
+t246.Previous=t245
+t246.TaskID="Karm_1_10_2"
+t246.Parent=t37
+t246.Fin="2012-08-01"
+t246.Private=false
+t246.Title="Add update field in Actual element"
+t246.Who={}
+t250=t246.Who
+
+t250[1]={}
+t251=t250[1]
+
+t251.ID="milind.gupta"
+t251.Status="Active"
+t250.count=1
+t250[0]="Who"
+t246.Start="2012-07-10"
+t246.Status="Done"
+t246.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t246.Modified=true
+t245.Modified=true
+t245.Parent=t37
+t245.Private=false
+t245.Title="Write routines to handle XML date time"
+t245.Who={}
+t252=t245.Who
+
+t252[1]={}
+t253=t252[1]
+
+t253.ID="milind.gupta"
+t253.Status="Active"
+t252.count=1
+t252[0]="Who"
+t245.Status="Obsolete"
+t245.Start="2012-07-10"
+t245.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t245.TaskID="Karm_1_10_1"
+t244[2]=t246
+t244.tasks=3
+t244[3]=t247
+t244.parent=t26
+t244[0]="SubTasks"
+t37.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t37.Parent=t5
+t33.Modified=true
+t33.Comments="- Comment for each day\
+- Main planning does not allow Actual"
+t33.Status="Done"
+t33.Private=false
+t33.Title="Add Actual entry section to Task Form"
+t33.Who={}
+t254=t33.Who
+
+t254[1]={}
+t255=t254[1]
+
+t255.ID="milind.gupta"
+t255.Status="Active"
+t254.count=1
+t254[0]="Who"
+t33.Start="2012-07-07"
+t33.SubTasks={}
+t256=t33.SubTasks
+
+t256[1]={}
+t257=t256[1]
+
+t257.Fin="2012-07-17"
+t257.Modified=true
+t257.Parent=t33
+t257.Comments="- Displaying Actual and turning on planning mode should be separate and distinct functions"
+t257.Next={}
+t258=t257.Next
+
+t258.Fin="2012-07-17"
+t258.Previous=t257
+t258.TaskID="Karm_1_8_2"
+t258.Modified=true
+t258.Status="Done"
+t258.Title="Make teh taskform maintain the Task.Planning table"
+t258.Who={}
+t259=t258.Who
+
+t259[1]={}
+t260=t259[1]
+
+t260.ID="milind.gupta"
+t260.Status="Active"
+t259.count=1
+t259[0]="Who"
+t258.Private=false
+t258.Start="2012-07-10"
+t258.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t258.Parent=t33
+t257.Start="2012-07-10"
+t257.Title="Add facility in Karm module to display Actual schedule"
+t257.Who={}
+t261=t257.Who
+
+t261[1]={}
+t262=t261[1]
+
+t262.ID="milind.gupta"
+t262.Status="Active"
+t261.count=1
+t261[0]="Who"
+t257.Status="Done"
+t257.Private=false
+t257.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t257.TaskID="Karm_1_8_1"
+t256[2]=t258
+t256.tasks=2
+t256.parent=t26
+t256[0]="SubTasks"
+t33.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t33.Previous=t32
+t32.Comments="Either through macro or through a UI method\
+THis is already being done in the taskForm. So a macro ocan create its own UI and fill it up as it wishes by creating a custom task List."
+t32.Status="Done"
+t32.Tags={}
+t263=t32.Tags
+
+t263[1]="Think"
+t263.count=1
+t263[0]="Tags"
+t32.Title="Think about having a method to show successive schedules of a task"
+t32.Who={}
+t264=t32.Who
+
+t264[1]={}
+t265=t264[1]
+
+t265.ID="milind.gupta"
+t265.Status="Active"
+t264.count=1
+t264[0]="Who"
+t32.Private=false
+t32.Start="2012-07-10"
+t32.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t32.Previous=t29
+t29.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t29.TaskID="Karm_1_5"
+t28.Previous=t27
+t28.Parent=t5
+t28.Modified=true
+t28.Fin="2012-07-02"
+t28.Private=false
+t28.Schedules={}
+t266=t28.Schedules
+
+t266.Commit={}
+t267=t266.Commit
+
+t267[1]={}
+t268=t267[1]
+
+t268.Updated="2012-07-02"
+t268.Period={}
+t269=t268.Period
+
+t269[1]={}
+t270=t269[1]
+
+t270[0]="DP"
+t270.Date="2012-07-02"
+t269[2]={}
+t271=t269[2]
+
+t271[0]="DP"
+t271.Date="2012-07-03"
+t269[0]="Period"
+t269.count=2
+t268[0]="Commit"
+t267[0]="Commit"
+t267.count=1
+t266.Revs={}
+t272=t266.Revs
+
+t272[1]={}
+t273=t272[1]
+
+t273.Updated="2012-07-02"
+t273.Period={}
+t274=t273.Period
+
+t274[1]={}
+t275=t274[1]
+
+t275[0]="DP"
+t275.Date="2012-07-02"
+t274[2]={}
+t276=t274[2]
+
+t276[0]="DP"
+t276.Date="2012-07-03"
+t274[0]="Period"
+t274.count=2
+t273[0]="Revs"
+t272[0]="Revs"
+t272.count=1
+t28.Title="Reminder to save unsaved Spores functionality"
+t28.Who={}
+t277=t28.Who
+
+t277[1]={}
+t278=t277[1]
+
+t278.ID="milind.gupta"
+t278.Status="Active"
+t277.count=1
+t277[0]="Who"
+t28.Start="2012-07-02"
+t28.Status="Done"
+t28.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t28.TaskID="Karm_1_2"
+t27.Private=false
+t27.Status="Done"
+t27.Schedules={}
+t279=t27.Schedules
+
+t279.Commit={}
+t280=t279.Commit
+
+t280[1]={}
+t281=t280[1]
+
+t281.Updated="2012-07-02"
+t281.Period={}
+t282=t281.Period
+
+t282[1]={}
+t283=t282[1]
+
+t283[0]="DP"
+t283.Date="2012-07-02"
+t282.count=1
+t282[0]="Period"
+t281[0]="Commit"
+t280[0]="Commit"
+t280.count=1
+t279.Revs={}
+t284=t279.Revs
+
+t284[1]={}
+t285=t284[1]
+
+t285.Updated="2012-07-02"
+t285.Period={}
+t286=t285.Period
+
+t286[1]={}
+t287=t286[1]
+
+t287[0]="DP"
+t287.Date="2012-07-02"
+t286.count=1
+t286[0]="Period"
+t285[0]="Revs"
+t284[0]="Revs"
+t284.count=1
+t27.Title="Unload Spore functionality complete"
+t27.Who={}
+t288=t27.Who
+
+t288[1]={}
+t289=t288[1]
+
+t289.ID="milind.gupta"
+t289.Status="Active"
+t288.count=1
+t288[0]="Who"
+t27.Start="2012-07-02"
+t27.SubTasks={}
+t290=t27.SubTasks
+
+t290.parent=t26
+t290[0]="SubTasks"
+t290.tasks=0
+t27.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t27.TaskID="Karm_1_1"
+t26[2]=t28
+t26[3]=t29
+t26[4]=t32
+t26[5]=t33
+t26[6]=t34
+t26[7]=t37
+t26[8]=t38
+t26[9]=t41
+t26[10]=t42
+t26[11]=t45
+t26[12]=t48
+t26[13]=t49
+t26[14]=t50
+t26[15]=t51
+t26[16]=t52
+t26[17]=t53
+t26[18]=t54
+t26[19]=t55
+t26[20]=t56
+t26[21]=t57
+t26[22]=t58
+t26[23]=t59
+t26[24]=t60
+t26[25]=t61
+t26[26]=t62
+t26[27]=t63
+t26[28]=t64
+t26[0]="SubTasks"
+t26.tasks=28
+t26.parent=t4
+t5.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t5.Parent=t1
+t4[2]=t7
 t4.tasks=2
 t4.parent=t0
 t4[0]="SubTasks"
-t1.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
+t1.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t1.Start="2012-07-02"
 t0.tasks=1
 t0.Modified=false
-t0.SporeFile="C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
-t0.TaskID="T0C:\\Users\\milind.gupta\\Documents\\KarmGoog\\trunk\\src\\Tasks\\Karm Tasks.ksf"
+t0.SporeFile="C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"
+t0.TaskID="T0C:\\Users\\milind.gupta\\Documents\\LDTwork\\Karm\\src\\Deploy\\Tasks\\Karm Tasks.ksf"

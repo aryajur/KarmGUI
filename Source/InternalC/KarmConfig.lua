@@ -16,6 +16,13 @@ MainMenu = {
 				-- 1st Menu
 				{	
 					Text = "&File", Menu = {
+											{Text = "Change &ID\tCtrl-I", HelpText = "Change the User ID", Code = [[
+local user = wx.wxGetTextFromUser("Enter the user ID (Blank to cancel)", "User ID", "")
+if user ~= "" then
+	Karm.Globals.User = user
+	Karm.GUI.frame:SetTitle("Karm ("..Karm.Globals.User..")")
+end											
+											]]},
 											{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "Karm.GUI.frame:Close(true)"}
 									}
 				},
@@ -90,6 +97,8 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 				{	
 					Text = "&Filters", Menu = {
 											{Text = "&Not Done Tasks under\tCtrl-1", HelpText = "All not done tasks under this task", Code = [[
+local menuItems = Karm.GUI.menuBar:GetMenu(2):GetMenuItems() 
+menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(true)
 -- Get selected task first
 local taskList = Karm.GUI.taskTree.Selected
 if #taskList == 0 then
@@ -115,12 +124,17 @@ local function newValidateTask(filter,task)
 end
 Karm.FilterObject.validateTask = newValidateTask
 Karm.GUI.fillTaskTree()
-											]]},
+											]], ItemKind = wx.wxITEM_CHECK},
 											{Text = "&Undo last tasks under (upper menu)\tCtrl-2", HelpText = "Roll back the above menu action and go to last filter", Code = [[
 if MyVT then
 	Karm.FilterObject.validateTask = MyVT[#MyVT]
 	MyVT[#MyVT] = nil
 	Karm.GUI.fillTaskTree()
+	if #MyVT == 0 then
+		MyVT = nil
+		local menuItems = Karm.GUI.menuBar:GetMenu(2):GetMenuItems() 
+		menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(false)
+	end	
 end
 											]]},
 											{Text = "&Reset tasks under\tCtrl-3", HelpText = "Reset the above menu action and go to original filter", Code = [[
