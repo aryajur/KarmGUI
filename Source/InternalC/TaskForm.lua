@@ -41,8 +41,13 @@ local SData = function()
 
 local CW = require("CustomWidgets")
 
-
-module(modname)
+----------------------------------------------------------
+--module(modname)
+-- NOT USING THE module KEYWORD SINCE IT DOES THIS ALSO _G[modname] = M
+local M = {}
+package.loaded[modname] = M
+setfenv(1,M)
+----------------------------------------------------------
 
 local taskData	-- To store the task data locally
 local filterData = {}

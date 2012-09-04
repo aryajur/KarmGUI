@@ -578,12 +578,12 @@ function Karm.FilterObject.validateTask(filter, task)
 						index = string.match(typeSchedule,"%((%d-)%)")
 					else  
 						-- Get the latest schedule index
-						if ranges[0] == Karm.Globals.NoDateStr then
-							result = true
-							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
-						elseif task.Schedules.Estimate then
+						if task.Schedules.Estimate then
 							index = #task.Schedules.Estimate
 						else
+							if ranges[0] == Karm.Globals.NoDateStr then
+								result = true
+							end
 							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						end			
 					end
@@ -597,12 +597,12 @@ function Karm.FilterObject.validateTask(filter, task)
 						index = string.match(typeSchedule,"%((%d-)%)")
 					else  
 						-- Get the latest schedule index
-						if ranges[0] == Karm.Globals.NoDateStr then
-							result = true
-							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
-						elseif task.Schedules.Revs then
+						if task.Schedules.Revs then
 							index = #task.Schedules.Revs
 						else
+							if ranges[0] == Karm.Globals.NoDateStr then
+								result = true
+							end
 							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 						end			
 					end
@@ -652,36 +652,45 @@ function Karm.FilterObject.validateTask(filter, task)
 					result = true
 				end
 				-- First check if range is Karm.Globals.NoDateStr then this schedule should not exist for filter to pass
-				if ranges[0] == Karm.Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
-					result = true
-				elseif task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
-					for i = 1,#task.Schedules[typeSchedule][index].Period do
-						-- Is the date in range?
-						local inrange = false
-						for j = 1,#ranges do
-							local strt,stp = string.match(ranges[j],"(.-)%-(.*)")
-							if not strt then
-								-- its not a range
-								strt = ranges[j]
-								stp = ranges[j]
+				if ranges[0] == Karm.Globals.NoDateStr then
+					if task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
+						result = true
+					else
+						result = false
+					end
+				else
+					if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
+						for i = 1,#task.Schedules[typeSchedule][index].Period do
+							-- Is the date in range?
+							local inrange = false
+							for j = 1,#ranges do
+								local strt,stp = string.match(ranges[j],"(.-)%-(.*)")
+								if not strt then
+									-- its not a range
+									strt = ranges[j]
+									stp = ranges[j]
+								end
+								strt = Karm.Utility.toXMLDate(strt)
+								stp = Karm.Utility.toXMLDate(stp)
+								if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then
+									inrange = true
+								end
+							end		-- for j = 1,#ranges do ends
+							if inrange and string.upper(typeMatch) == "OVERLAP" then
+								-- This date overlaps
+								result = true
+								break
+							elseif not inrange and string.upper(typeMatch) == "FULL" then
+								-- This portion is not contained in filter
+								result = false
+								break
 							end
-							strt = Karm.Utility.toXMLDate(strt)
-							stp = Karm.Utility.toXMLDate(stp)
-							if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then
-								inrange = true
-							end
-						end		-- for j = 1,#ranges do ends
-						if inrange and string.upper(typeMatch) == "OVERLAP" then
-							-- This date overlaps
-							result = true
-							break
-						elseif not inrange and string.upper(typeMatch) == "FULL" then
-							-- This portion is not contained in filter
-							result = false
-							break
-						end
-					end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
-				end	-- if task.Schedules[typeSchedule][index] then ends
+						end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
+					else
+						-- Task Schedule for the particular index does not exist and noDateStr was not specified so this is not a match
+						result = false
+					end		-- if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then ends
+				end	-- if ranges[0] == Karm.Globals.NoDateStr then ends
 				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 			end		-- if index then ends
 		end		-- for sch in string.gmatch(filter.Schedules,"%'(.-)%'") do ends

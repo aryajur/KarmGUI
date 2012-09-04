@@ -10,7 +10,7 @@
 package.cpath = ";./?.dll;"
 
 -- For linux distribution
---package.cpath = ";./?.so;"
+--package.cpath = ";./?.so;/usr/lib/?.so;/usr/local/lib/?.so;"
 
 require("wx")
 
@@ -54,6 +54,13 @@ Karm.GUI = {
 					-- 1st Menu
 					{	
 						Text = "&File", Menu = {
+											{Text = "Change &ID\tCtrl-I", HelpText = "Change the User ID", Code = [[
+local user = wx.wxGetTextFromUser("Enter the user ID (Blank to cancel)", "User ID", "")
+if user ~= "" then
+	Karm.Globals.User = user
+	Karm.GUI.frame:SetTitle("Karm ("..Karm.Globals.User..")")
+end											
+											]]},
 												{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "Karm.GUI.frame:Close(true)"}
 										}
 					},
@@ -91,7 +98,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.08.27",
+	KARM_VERSION = "1.12.09.04",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	StatusNodeColor = {
@@ -715,18 +722,27 @@ do
 			elseif not oTree.update and val then
 				oTree.update = true
 				-- Now do the actionQ
-				local env = getfenv()
+				local env = getfenv(1)
 				-- Write the up Values
-				env.taskTreeINT = taskTreeINT
-				env.tab = tab
-				env.nodeMeta = nodeMeta
-				env.dispTask = dispTask
-				env.dispGantt = dispGantt
+				-- These values need to be passed to the environment since they are up values and the loadstring function does not have them
+				-- So we just pass the values tot he environment and then remove them after executing the string
+				local passToEnv = {["taskTreeINT"]=taskTreeINT,["tab"]=tab,["nodeMeta"]=nodeMeta,["dispTask"]=dispTask,["dispGantt"]=dispGantt}
+				for k,v in pairs(passToEnv) do
+					if env[k] then
+						passToEnv[k] = nil
+					else
+						env[k] = v
+					end
+				end
 				--print(taskTreeINT)
 				for i = 1,#oTree.actionQ do
 					local f = loadstring(oTree.actionQ[i])
 					setfenv(f,env)
 					f()
+				end
+				-- Remove from env
+				for k,v in pairs(passToEnv) do
+					env[k] = nil
 				end
 				-- Clear all pending actions
 				oTree.actionQ = {}
@@ -3905,7 +3921,7 @@ function Karm.Initialize()
 	local image = wx.wxImage("images/SplashImage.jpg",wx.wxBITMAP_TYPE_JPEG)
 	--image = image:Scale(100,100)
     sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
     sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
     panel:Connect(wx.wxEVT_PAINT,function(event)
 		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))

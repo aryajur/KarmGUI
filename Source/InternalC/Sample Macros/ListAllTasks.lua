@@ -1,5 +1,5 @@
 -- Macros always run in global environment. 
--- Always be careful not to pollute it the global environment
+-- Always be careful not to pollute the global environment
 
 -- Macro to list all tasks of the 1st loaded spore
 local Spore
@@ -11,11 +11,14 @@ for k,v in pairs(Karm.SporeData) do
 		break
 	end
 end
+
+-- str is a string variable where we make the list of titles of the tasks
 local str = "" 
-str = str..Spore[1].Title.."\n"
+str = str..Spore[1].Title.."\n"	-- Spore[1] is the 1st task in the Spore
 local nextTask = Karm.TaskObject.NextInSequence(Spore[1])
 while nextTask do
 	str = str..nextTask.Title.."\n"
 	nextTask = Karm.TaskObject.NextInSequence(nextTask)
 end
-print(str)
+-- Display the list
+wx.wxMessageBox(str)

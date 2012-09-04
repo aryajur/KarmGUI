@@ -30,7 +30,6 @@ local string = string\
 local tostring = tostring\
 local tonumber = tonumber\
 local pairs = pairs\
-local getfenv = getfenv\
 local setfenv = setfenv\
 local compareDateRanges = Karm.Utility.compareDateRanges\
 local combineDateRanges = Karm.Utility.combineDateRanges\
@@ -39,7 +38,13 @@ local combineDateRanges = Karm.Utility.combineDateRanges\
 local NewID = Karm.NewID    -- This is a function to generate a unique wxID for the application this module is used in\
 \
 local modname = ...\
-module(modname)\
+----------------------------------------------------------\
+--module(modname)\
+-- NOT USING THE module KEYWORD SINCE IT DOES THIS ALSO _G[modname] = M\
+local M = {}\
+package.loaded[modname] = M\
+setfenv(1,M)\
+----------------------------------------------------------\
 \
 if not NewID then\
 	local ID_IDCOUNTER = wx.wxID_HIGHEST + 1\
@@ -1923,8 +1928,13 @@ local SData = function()\
 \
 local CW = requireLuaString('CustomWidgets')\
 \
-\
-module(modname)\
+----------------------------------------------------------\
+--module(modname)\
+-- NOT USING THE module KEYWORD SINCE IT DOES THIS ALSO _G[modname] = M\
+local M = {}\
+package.loaded[modname] = M\
+setfenv(1,M)\
+----------------------------------------------------------\
 \
 local taskData	-- To store the task data locally\
 local filterData = {}\
@@ -3408,12 +3418,12 @@ function Karm.FilterObject.validateTask(filter, task)\
 						index = string.match(typeSchedule,\"%((%d-)%)\")\
 					else  \
 						-- Get the latest schedule index\
-						if ranges[0] == Karm.Globals.NoDateStr then\
-							result = true\
-							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
-						elseif task.Schedules.Estimate then\
+						if task.Schedules.Estimate then\
 							index = #task.Schedules.Estimate\
 						else\
+							if ranges[0] == Karm.Globals.NoDateStr then\
+								result = true\
+							end\
 							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
 						end			\
 					end\
@@ -3427,12 +3437,12 @@ function Karm.FilterObject.validateTask(filter, task)\
 						index = string.match(typeSchedule,\"%((%d-)%)\")\
 					else  \
 						-- Get the latest schedule index\
-						if ranges[0] == Karm.Globals.NoDateStr then\
-							result = true\
-							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
-						elseif task.Schedules.Revs then\
+						if task.Schedules.Revs then\
 							index = #task.Schedules.Revs\
 						else\
+							if ranges[0] == Karm.Globals.NoDateStr then\
+								result = true\
+							end\
 							schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
 						end			\
 					end\
@@ -3482,36 +3492,45 @@ function Karm.FilterObject.validateTask(filter, task)\
 					result = true\
 				end\
 				-- First check if range is Karm.Globals.NoDateStr then this schedule should not exist for filter to pass\
-				if ranges[0] == Karm.Globals.NoDateStr and task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then\
-					result = true\
-				elseif task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then\
-					for i = 1,#task.Schedules[typeSchedule][index].Period do\
-						-- Is the date in range?\
-						local inrange = false\
-						for j = 1,#ranges do\
-							local strt,stp = string.match(ranges[j],\"(.-)%-(.*)\")\
-							if not strt then\
-								-- its not a range\
-								strt = ranges[j]\
-								stp = ranges[j]\
+				if ranges[0] == Karm.Globals.NoDateStr then\
+					if task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then\
+						result = true\
+					else\
+						result = false\
+					end\
+				else\
+					if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then\
+						for i = 1,#task.Schedules[typeSchedule][index].Period do\
+							-- Is the date in range?\
+							local inrange = false\
+							for j = 1,#ranges do\
+								local strt,stp = string.match(ranges[j],\"(.-)%-(.*)\")\
+								if not strt then\
+									-- its not a range\
+									strt = ranges[j]\
+									stp = ranges[j]\
+								end\
+								strt = Karm.Utility.toXMLDate(strt)\
+								stp = Karm.Utility.toXMLDate(stp)\
+								if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then\
+									inrange = true\
+								end\
+							end		-- for j = 1,#ranges do ends\
+							if inrange and string.upper(typeMatch) == \"OVERLAP\" then\
+								-- This date overlaps\
+								result = true\
+								break\
+							elseif not inrange and string.upper(typeMatch) == \"FULL\" then\
+								-- This portion is not contained in filter\
+								result = false\
+								break\
 							end\
-							strt = Karm.Utility.toXMLDate(strt)\
-							stp = Karm.Utility.toXMLDate(stp)\
-							if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then\
-								inrange = true\
-							end\
-						end		-- for j = 1,#ranges do ends\
-						if inrange and string.upper(typeMatch) == \"OVERLAP\" then\
-							-- This date overlaps\
-							result = true\
-							break\
-						elseif not inrange and string.upper(typeMatch) == \"FULL\" then\
-							-- This portion is not contained in filter\
-							result = false\
-							break\
-						end\
-					end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\
-				end	-- if task.Schedules[typeSchedule][index] then ends\
+						end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends\
+					else\
+						-- Task Schedule for the particular index does not exist and noDateStr was not specified so this is not a match\
+						result = false\
+					end		-- if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then ends\
+				end	-- if ranges[0] == Karm.Globals.NoDateStr then ends\
 				schStr = string.gsub(schStr,string.gsub(\"'\"..sch..\"'\",\"(%W)\",\"%%%1\"),tostring(result))\
 			end		-- if index then ends\
 		end		-- for sch in string.gmatch(filter.Schedules,\"%'(.-)%'\") do ends\
@@ -3590,14 +3609,13 @@ local SData = function()\
 local MainFilter\
 local SporeData\
 \
-module(modname)\
-\
---local modname = ...\
-\
---M = {}\
---package.loaded[modname] = M\
---setmetatable(M,{[\"__index\"]=_G})\
---setfenv(1,M)\
+----------------------------------------------------------\
+--module(modname)\
+-- NOT USING THE module KEYWORD SINCE IT DOES THIS ALSO _G[modname] = M\
+local M = {}\
+package.loaded[modname] = M\
+setfenv(1,M)\
+----------------------------------------------------------\
 \
 -- Local filter table to store the filter criteria\
 local filter = {}\
@@ -6759,7 +6777,7 @@ end		-- function Karm.XML2Data(SporeXML) ends here\
 --package.cpath = ";./?.dll;"
 
 -- For linux distribution
-package.cpath = ";./?.so;"
+package.cpath = ";./?.so;/usr/lib/?.so;/usr/local/lib/?.so;"
 
 require("wx")
 
@@ -6803,6 +6821,13 @@ Karm.GUI = {
 					-- 1st Menu
 					{	
 						Text = "&File", Menu = {
+											{Text = "Change &ID\tCtrl-I", HelpText = "Change the User ID", Code = [[
+local user = wx.wxGetTextFromUser("Enter the user ID (Blank to cancel)", "User ID", "")
+if user ~= "" then
+	Karm.Globals.User = user
+	Karm.GUI.frame:SetTitle("Karm ("..Karm.Globals.User..")")
+end											
+											]]},
 												{Text = "E&xit\tCtrl-x", HelpText = "Quit the program", Code = "Karm.GUI.frame:Close(true)"}
 										}
 					},
@@ -6840,7 +6865,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.08.27",
+	KARM_VERSION = "1.12.09.04",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	StatusNodeColor = {
@@ -7464,18 +7489,27 @@ do
 			elseif not oTree.update and val then
 				oTree.update = true
 				-- Now do the actionQ
-				local env = getfenv()
+				local env = getfenv(1)
 				-- Write the up Values
-				env.taskTreeINT = taskTreeINT
-				env.tab = tab
-				env.nodeMeta = nodeMeta
-				env.dispTask = dispTask
-				env.dispGantt = dispGantt
+				-- These values need to be passed to the environment since they are up values and the loadstring function does not have them
+				-- So we just pass the values tot he environment and then remove them after executing the string
+				local passToEnv = {["taskTreeINT"]=taskTreeINT,["tab"]=tab,["nodeMeta"]=nodeMeta,["dispTask"]=dispTask,["dispGantt"]=dispGantt}
+				for k,v in pairs(passToEnv) do
+					if env[k] then
+						passToEnv[k] = nil
+					else
+						env[k] = v
+					end
+				end
 				--print(taskTreeINT)
 				for i = 1,#oTree.actionQ do
 					local f = loadstring(oTree.actionQ[i])
 					setfenv(f,env)
 					f()
+				end
+				-- Remove from env
+				for k,v in pairs(passToEnv) do
+					env[k] = nil
 				end
 				-- Clear all pending actions
 				oTree.actionQ = {}
@@ -10654,7 +10688,7 @@ function Karm.Initialize()
 	local image = wx.wxImage("images/SplashImage.jpg",wx.wxBITMAP_TYPE_JPEG)
 	--image = image:Scale(100,100)
     sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
     sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
     panel:Connect(wx.wxEVT_PAINT,function(event)
 		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))

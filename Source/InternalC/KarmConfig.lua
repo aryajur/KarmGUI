@@ -142,6 +142,8 @@ if MyVT then
 	Karm.FilterObject.validateTask = MyVT[1]
 	Karm.GUI.fillTaskTree()
 	MyVT = nil
+	local menuItems = Karm.GUI.menuBar:GetMenu(2):GetMenuItems() 
+	menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(false)	
 end
 											]]},
 											{Text = "&Scheduled but not done\tCtrl-4", HelpText = "Tasks scheduled before today and not marked done", Code = [[
@@ -154,7 +156,12 @@ local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filte
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]},
-											{Text = "&All Tasks\tCtrl-6", HelpText = "Show all loaded Tasks", Code = [[
+											{Text = "&Today Not Done\tCtrl-6", HelpText = "Tasks scheduled for today", Code = [[
+local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Today_Not_Done.kff")
+Karm.Filter = filter
+Karm.GUI.fillTaskTree()
+											]]},
+											{Text = "&All Tasks\tCtrl-7", HelpText = "Show all loaded Tasks", Code = [[
 local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
@@ -180,6 +187,8 @@ function myDebugFunc()
 --- END CUSTOM SCRIPT
 
 end
+
+
 
 Karm.Globals.Categories = {
 	"Design",

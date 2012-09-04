@@ -1,3 +1,0 @@
-filter={Script="if task.Planning then\
-     result = true\
-end"}

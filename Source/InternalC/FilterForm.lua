@@ -44,14 +44,13 @@ local SData = function()
 local MainFilter
 local SporeData
 
-module(modname)
-
---local modname = ...
-
---M = {}
---package.loaded[modname] = M
---setmetatable(M,{["__index"]=_G})
---setfenv(1,M)
+----------------------------------------------------------
+--module(modname)
+-- NOT USING THE module KEYWORD SINCE IT DOES THIS ALSO _G[modname] = M
+local M = {}
+package.loaded[modname] = M
+setfenv(1,M)
+----------------------------------------------------------
 
 -- Local filter table to store the filter criteria
 local filter = {}

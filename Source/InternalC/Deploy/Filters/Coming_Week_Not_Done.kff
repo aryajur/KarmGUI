@@ -1,7 +1,0 @@
--- Coming week
-local year = os.date("%Y")
-local month = os.date("%m")
-local day = os.date("%d")
-local finDay = os.time{year=year,month=month,day=day+7}
-local week = os.date("%m").."/"..os.date("%d").."/"..os.date("%Y").."-"..os.date("%m",finDay).."/"..os.date("%d",finDay).."/"..os.date("%Y",finDay)
-filter={Status="Behind,Not Started,Obsolete,On Track",Schedules="('Overlap,Revisions(L),"..week.."' or 'Overlap,Committed,"..week.."' or 'Overlap,Estimate(L),"..week.."')"}
