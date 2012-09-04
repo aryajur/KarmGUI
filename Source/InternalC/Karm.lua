@@ -2633,6 +2633,14 @@ function Karm.EditTaskCallBack(task)
 			for i=1,#Spore do
 				if Spore[i] == Karm.GUI.TaskWindowOpen.Task then
 					Spore[i] = task
+					-- The task already has correct links to its neighbors and parent
+					-- We just need to update the neighbor links to the task to completely delink the previous task table.
+					if task.Previous then
+						task.Previous.Next = task
+					end
+					if task.Next then
+						task.Next.Previous = task
+					end
 					break
 				end
 			end

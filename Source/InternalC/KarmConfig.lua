@@ -161,7 +161,12 @@ local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filte
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]},
-											{Text = "&All Tasks\tCtrl-7", HelpText = "Show all loaded Tasks", Code = [[
+											{Text = "All &Not Done, Non Obsolete\tCtrl-7", HelpText = "Tasks scheduled for today", Code = [[
+local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Not_Done_Non_Obsolete.kff")
+Karm.Filter = filter
+Karm.GUI.fillTaskTree()
+											]]},
+											{Text = "&All Tasks\tCtrl-8", HelpText = "Show all loaded Tasks", Code = [[
 local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
