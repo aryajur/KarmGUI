@@ -98,7 +98,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.09.04",
+	KARM_VERSION = "1.12.09.05",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
 	StatusNodeColor = {
@@ -295,8 +295,8 @@ do
 		if oTree.taskList then
 			-- Update all the tasks in the planning mode in the UI to remove the planning schedule
 			for i = 1,#oTree.taskList do
-				if oTree.Nodes[oTree.taskList[i].TaskID].Row then
-					dispGantt(taskTree,oTree.Nodes[oTree.taskList[i].TaskID].Row,false,oTree.Nodes[oTree.taskList[i].TaskID])
+				if oTree.taskList[i].Row then
+					dispGantt(taskTree,oTree.taskList[i].Row,false,oTree.taskList[i])
 				end
 			end 
 			oTree.taskList = nil
@@ -319,47 +319,50 @@ do
 			-- Check if there are tasks with Planning
 			for i,v in taskTreeINT.tpairs(taskTree) do
 				if v.Task and v.Task.Planning then
-					oTree.taskList[#oTree.taskList + 1] = v.Task
+					oTree.taskList[#oTree.taskList + 1] = v
 				end
 			end		-- Looping through all the nodes ends
 		end
 		-- Refresh the existing tasks in the taskList
 		for j = 1,#oTree.taskList do
-			if oTree.Nodes[oTree.taskList[j].TaskID]:MakeVisible() then
-				dispGantt(taskTree,oTree.Nodes[oTree.taskList[j].TaskID].Row,false,oTree.Nodes[oTree.taskList[j].TaskID])
+			if oTree.taskList[j].Row then
+				dispGantt(taskTree,oTree.taskList[j].Row,false,oTree.taskList[j])
 			end
 		end
 		for i = 1,#taskList do
-			-- Check whether the task already exist in the taskList
-			local found = false
-			for j = 1,#oTree.taskList do
-				if oTree.taskList[j] == taskList[i] then
-					found = true
-					break
-				end
-			end
-			if not found then
-				oTree.taskList[#oTree.taskList + 1] = taskList[i] 
-				local dateList
-				if type == "NORMAL" then
-					-- Copy over the latest schedule to the planning period
-					dateList = Karm.TaskObject.getLatestScheduleDates(taskList[i])
-				else
-					-- Copy over the work done dates to the planning period
-					dateList = Karm.TaskObject.getWorkDoneDates(taskList[i])
-				end		-- if type == "NORMAL" then ends
-				if dateList then
-					Karm.TaskObject.togglePlanningType(taskList[i],oTree.Planning)
-					taskList[i].Planning.Period = {[0]="Period",count=0}
-					for j=1,#dateList do
-						taskList[i].Planning.Period[j] = {[0]="DP",Date=dateList[j]}
-						taskList[i].Planning.Period.count = taskList[i].Planning.Period.count + 1
+			-- Check if the task is in the GUI
+			if oTree.Nodes[taskList[i].TaskID] then
+				-- Check whether the task already exist in the taskList
+				local found = false
+				for j = 1,#oTree.taskList do
+					if oTree.taskList[j].Task == taskList[i] then
+						found = true
+						break
 					end
 				end
-			end		-- if not found then ends
-			if oTree.Nodes[taskList[i].TaskID]:MakeVisible() then
-				dispGantt(taskTree,oTree.Nodes[taskList[i].TaskID].Row,false,oTree.Nodes[taskList[i].TaskID])
-			end
+				if not found then
+					oTree.taskList[#oTree.taskList + 1] = oTree.Nodes[taskList[i].TaskID]
+					local dateList
+					if type == "NORMAL" then
+						-- Copy over the latest schedule to the planning period
+						dateList = Karm.TaskObject.getLatestScheduleDates(taskList[i])
+					else
+						-- Copy over the work done dates to the planning period
+						dateList = Karm.TaskObject.getWorkDoneDates(taskList[i])
+					end		-- if type == "NORMAL" then ends
+					if dateList then
+						Karm.TaskObject.togglePlanningType(taskList[i],oTree.Planning)
+						taskList[i].Planning.Period = {[0]="Period",count=0}
+						for j=1,#dateList do
+							taskList[i].Planning.Period[j] = {[0]="DP",Date=dateList[j]}
+							taskList[i].Planning.Period.count = taskList[i].Planning.Period.count + 1
+						end
+					end
+				end		-- if not found then ends
+				if oTree.Nodes[taskList[i].TaskID]:MakeVisible() then
+					dispGantt(taskTree,oTree.Nodes[taskList[i].TaskID].Row,false,oTree.Nodes[taskList[i].TaskID])
+				end
+			end		-- if oTree.Nodes[taskList[i].TaskID] then ends
 		end		-- for i = 1,#taskList do ends
 	end		-- local function enablePlanningMode(taskTree, taskList, type)ends
 	
@@ -368,7 +371,11 @@ do
 		if not oTree.Planning then
 			return nil
 		else
-			return oTree.taskList
+			local list = {}
+			for i = 1,#oTree.taskList do
+				list[#list + 1] = oTree.taskList[i].Task
+			end
+			return list
 		end
 	end
 	
@@ -877,7 +884,7 @@ do
 			local planning = nil
 			if taskTreeINT[taskTree].Planning then
 				for i = 1,#taskTreeINT[taskTree].taskList do
-					if taskTreeINT[taskTree].taskList[i] == taskNode.Task then
+					if taskTreeINT[taskTree].taskList[i] == taskNode then
 						-- This is a planning mode task
 						planning = true
 						break
@@ -1230,6 +1237,7 @@ do
 							oTree.Selected[k-1] = oTree.Selected[k]
 						end
 						oTree.Selected[#oTree.Selected] = nil
+						i = i - 1 		-- Since new node at i now
 						break
 					end
 				end
@@ -1247,9 +1255,31 @@ do
 					oTree.Selected.Lates = #oTree.Selected
 				end
 			end
+		end		-- if #oTree.Selected > 0 then ends
+		-- Remove from planning taskList 
+		if oTree.taskList then
+			local i = 1
+			while i <= #oTree.taskList do
+				for j = 1,#nodesToDel do
+					if oTree.Selected[i] == nodesToDel[j] then
+						for k = i + 1, #oTree.taskList - 1 do
+							oTree.taskList[k-1] = oTree.taskList[k]
+						end
+						oTree.taskList[#oTree.taskList] = nil
+						i = i - 1		-- Since new node at i now
+						break
+					end
+				end
+				i = i + 1
+			end
+			if oTree.taskList == 0 then
+				oTree.taskList = nil
+			end
 		end
 	end		-- function taskTreeINT.DeleteTree(taskTree,Key) ends
 	
+	-- Function to just delete a node
+	-- It also adjusts the children if any to move up in the hierarchy 1 level so that the GUI remains a valid tree
 	function taskTreeINT.DeleteSubUpdate(taskTree,Key)
 		if Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			error("DeleteSubUpdate: Function cannot be used to delete a spore or Root node.",2)
@@ -1402,6 +1432,18 @@ do
 				end
 			end
 		end
+		-- Remove the node from the taskList if present
+		if oTree.taskList then
+			for i=1,#oTree.taskList do
+				if oTree.taskList[i] == node then
+					for k = i + 1, #oTree.taskList - 1 do
+						oTree.taskList[k-1] = oTree.taskList[k]
+					end
+					oTree.taskList[#oTree.taskList] = nil
+					break
+				end
+			end
+		end		-- if oTree.taskList then ends
 		-- Remove references to the node
 		oTree.Nodes[nodeMeta[node].Key] = nil
 		nodeMeta[node] = nil
@@ -1784,10 +1826,10 @@ do
 			local oTree = taskTreeINT[obj]
 			if row > -1 then
 				for i = 1,#oTree.taskList do
-					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
+					if oTree.taskList[i].Row == row+1 then
 						-- This is the task modify/add the planning schedule
-						Karm.TaskObject.togglePlanningType(oTree.taskList[i],oTree.Planning)
-						dispGanttFunc(obj,row+1,false,oTree.Nodes[oTree.taskList[i].TaskID])
+						Karm.TaskObject.togglePlanningType(oTree.taskList[i].Task,oTree.Planning)
+						dispGanttFunc(obj,row+1,false,oTree.taskList[i])
 						break
 					end
 				end
@@ -1947,6 +1989,7 @@ do
 					v.Selected = false	-- Make everything else unselected
 					if v.Row == row+1 then
 						taskNode = v
+						break
 					end
 				end		-- Looping through all the nodes ends
 				-- print("Clicked row "..tostring(row))
@@ -2003,10 +2046,10 @@ do
 		if taskTreeINT[obj].Planning then
 			if row > -1 then
 				for i = 1,#oTree.taskList do
-					if oTree.Nodes[oTree.taskList[i].TaskID].Row == row+1 then
+					if oTree.taskList[i].Row == row+1 then
 						-- This is the task modify/add the planning schedule
-						Karm.TaskObject.togglePlanningDate(oTree.taskList[i],Karm.Utility.toXMLDate(stepDate:Format("%m/%d/%Y")),oTree.Planning)
-						dispGanttFunc(obj,row+1,false,oTree.Nodes[oTree.taskList[i].TaskID])
+						Karm.TaskObject.togglePlanningDate(oTree.taskList[i].Task,Karm.Utility.toXMLDate(stepDate:Format("%m/%d/%Y")),oTree.Planning)
+						dispGanttFunc(obj,row+1,false,oTree.taskList[i])
 						break
 					end
 				end
@@ -2624,7 +2667,7 @@ function Karm.NewTaskCallBack(task)
 	Karm.GUI.TaskWindowOpen = false
 end
 
-function Karm.EditTaskCallBack(task)
+function Karm.EditTaskCallBack(task, noGUI)
 	if task then
 		-- Replace task into Karm.GUI.TaskWindowOpen.Task
 		if not Karm.GUI.TaskWindowOpen.Task.Parent then
@@ -2661,18 +2704,33 @@ function Karm.EditTaskCallBack(task)
 				end
 			end
 		end
-		-- Update the task in the Karm.GUI here
-		-- Check if the task passes the filter now
-		local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
-		if #taskList == 1 then
-			-- It passes the filter so update the task
-		    Karm.GUI.taskTree:UpdateNode(task)
-			Karm.GUI.taskTree.Nodes[task.TaskID].ForeColor, Karm.GUI.taskTree.Nodes[task.TaskID].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[task.TaskID])
-			Karm.GUI.taskClicked(task)
-	    else
-	    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
-	    	Karm.GUI.taskTree:DeleteSubUpdate(task.TaskID)
-	    end
+		if not noGUI then
+			-- Update the task in the Karm.GUI here
+			-- Check if the task passes the filter now
+			local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
+			if #taskList == 1 then
+				-- Check if planning mode if present is still on
+				if not task.Planning and Karm.GUI.taskTree.taskList then
+					for i = 1,#Karm.GUI.taskTree.taskList do
+						if Karm.GUI.taskTree.Nodes[task.TaskID] == Karm.GUI.taskTree.taskList[i] then
+							-- The node is in the planning mode so remove it
+							for k = i + 1, #Karm.GUI.taskTree.taskList - 1 do
+								Karm.GUI.taskTree.taskList[k-1] = Karm.GUI.taskTree.taskList[k]
+							end
+							Karm.GUI.taskTree.taskList[#Karm.GUI.taskTree.taskList] = nil
+							break
+						end							
+					end
+				end
+				-- It passes the filter so update the task
+			    Karm.GUI.taskTree:UpdateNode(task)
+				Karm.GUI.taskTree.Nodes[task.TaskID].ForeColor, Karm.GUI.taskTree.Nodes[task.TaskID].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[task.TaskID])
+				Karm.GUI.taskClicked(task)
+		    else
+		    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
+		    	Karm.GUI.taskTree:DeleteSubUpdate(task.TaskID)
+		    end
+		end
 		Karm.Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
 	end
 	Karm.GUI.TaskWindowOpen = false
@@ -3443,7 +3501,7 @@ function Karm.finalizePlanning(task)
 	task.Planning = nil	
 	if Karm.GUI.taskTree.taskList then
 		for i = 1,#Karm.GUI.taskTree.taskList do
-			if Karm.GUI.taskTree.taskList[i] == task then
+			if Karm.GUI.taskTree.taskList[i].Task == task then
 				-- Remove this one
 				for j = i,#Karm.GUI.taskTree.taskList - 1 do
 					Karm.GUI.taskTree.taskList[j] = Karm.GUI.taskTree.taskList[j + 1]

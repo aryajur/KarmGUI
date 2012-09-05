@@ -189,9 +189,9 @@ local function makeTask(task)
 	end		
 	-- Normal Schedule
 	if HoldPlanning:GetValue() then
-		newTask.Planning = taskTree.taskList[1].Planning
+		newTask.Planning = taskTree.taskList[1].Task.Planning
 	else
-		list = getLatestScheduleDates(taskTree.taskList[1],true)
+		list = getLatestScheduleDates(taskTree.taskList[1].Task,true)
 		if list then
 			local list1 = getLatestScheduleDates(newTask)
 			-- Compare the schedules
@@ -240,7 +240,7 @@ local function makeTask(task)
 		newTask.Planning = nil
 	end		-- if HoldPlanning.GetValue() then ends
 	-- Work done Schedule
-	list = getLatestScheduleDates(wdTaskTree.taskList[1],true)
+	list = getLatestScheduleDates(wdTaskTree.taskList[1].Task,true)
 	if list then
 		local list1 = getWorkDoneDates(newTask)
 		-- Compare the schedules
@@ -270,7 +270,7 @@ local function makeTask(task)
 			-- Update the period
 			newSched.Period = {[0] = "Period", count = #list}
 			for i = 1,#list do
-				newSched.Period[i] = wdTaskTree.taskList[1].Planning.Period[i]
+				newSched.Period[i] = wdTaskTree.taskList[1].Task.Planning.Period[i]
 			end
 			newTask.Schedules[list.typeSchedule][list.index] = newSched
 			newTask.Schedules[list.typeSchedule].count = list.index
@@ -606,6 +606,10 @@ function taskFormActivate(parent, callBack, task)
 				else
 					localTask1 = copyTask(task)
 					localTask2 = copyTask(task)
+					-- Since Planning is never copied over by copyTask we do it here
+					if task.Planning then
+						localTask2.Planning = task.Planning
+					end
 				end
 				-- Create the 1st row for the task
 				localTask1.Planning = nil	-- Since we will use this task for Work Done Entry and Work done never maintains the Planning
@@ -635,7 +639,11 @@ function taskFormActivate(parent, callBack, task)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
 				sizer4:Add(textLabel, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 				HoldPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, "Hold Planning", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-				HoldPlanning:SetValue(false)
+				if task.Planning then
+					HoldPlanning:SetValue(true)
+				else
+					HoldPlanning:SetValue(false)
+				end
 				sizer4:Add(HoldPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				sizer3:Add(sizer4, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				schCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)

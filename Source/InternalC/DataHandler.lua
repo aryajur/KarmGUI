@@ -664,7 +664,7 @@ function Karm.TaskObject.CheckSporeIntegrity(task, Spore)
 	end
 	local integrityError = {}
 	local checkFunc = function(task)
-		if task.Title == "Karm" then
+		if task.TaskID == "SFT" then
 			local x = 1
 		end
 		local pa = task.Parent
@@ -703,7 +703,17 @@ function Karm.TaskObject.CheckSporeIntegrity(task, Spore)
 		end
 		if (i < #spore and spore[i + 1] ~= spore[i].Next) or (i == #spore and spore[i].Next) then
 			integrityError[#integrityError + 1] = {Task = spore[i], Error = "Next mismatch"}
-		end		
+		end	
+		if spore[i].SubTasks then
+			for j = 1,#spore[i].SubTasks do
+				if spore[i].SubTasks[j].Parent ~= spore[i] then
+					integrityError[#integrityError + 1] = {Task = spore[i].SubTasks[j], Error = "Parent mismatch"}
+				end
+			end
+			if spore[i].SubTasks.parent ~= spore then	
+				integrityError[#integrityError + 1] = {Task = spore[i], Error = "SubTasks Parent mismatch"}
+			end
+		end	
 		spore[i]:applyFuncHier(checkFunc, nil, true)
 	end
 	return integrityError

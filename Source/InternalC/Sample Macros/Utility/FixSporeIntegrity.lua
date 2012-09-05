@@ -29,6 +29,9 @@ function FixSporeIntegrity(Spore)
 						task.SubTasks[i].Parent = task
 					end
 				end
+				if task.SubTasks.parent ~= task.Parent.SubTasks then
+					task.SubTasks.parent = task.Parent.SubTasks
+				end
 			end
 		end
 	end
@@ -43,6 +46,16 @@ function FixSporeIntegrity(Spore)
 		elseif (i == #spore and spore[i].Next) then
 			spore[i].Next = nil
 		end		
+		if spore[i].SubTasks then
+			for j = 1,#spore[i].SubTasks do
+				if spore[i].SubTasks[j].Parent ~= spore[i] then
+					spore[i].SubTasks[j].Parent = spore[i]
+				end
+			end
+			if spore[i].SubTasks.parent ~= spore then	
+				spore[i].SubTasks.parent = spore
+			end
+		end	
 		spore[i]:applyFuncHier(fixFunc, nil, true)
 	end
 end
