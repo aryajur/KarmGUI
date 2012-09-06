@@ -664,9 +664,6 @@ function Karm.TaskObject.CheckSporeIntegrity(task, Spore)
 	end
 	local integrityError = {}
 	local checkFunc = function(task)
-		if task.TaskID == "SFT" then
-			local x = 1
-		end
 		local pa = task.Parent
 		local index
 		for i = 1,#pa.SubTasks do

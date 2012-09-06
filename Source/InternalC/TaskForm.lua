@@ -71,7 +71,6 @@ end
 -- Function to create the task
 -- If task is not nil then the previous schedules from that are copied over by starting with a copy of the task
 local function makeTask(task)
-	local x = tostring(task)
 	if not task then
 		error("Need a task object with at least a task ID",2)
 	end
