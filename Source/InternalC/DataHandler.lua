@@ -171,23 +171,52 @@ function Karm.validateSpore(Spore)
 	return true
 end
 
+function Karm.TaskObject.IsValidTask(task)
+	if not type(task) == "table" then
+		return nil
+	elseif not task.TaskID then
+		return nil
+	elseif not task.Title then
+		return nil
+	elseif not task.Who then
+		return nil
+	elseif getmetatable(task) ~= Karm.TaskObject then
+		return nil
+	end
+	return true
+end
 
-function Karm.TaskObject.getWorkDoneDates(task)
-	if task.Schedules then
-		if task.Schedules.Actual then
+
+function Karm.TaskObject.getWorkDoneDates(task, planning)
+	if planning then
+		if task.PlanWorkDone and task.PlanWorkDone.Period then
 			local dateList = {}
-			for i = 1,#task.Schedules["Actual"][1].Period do
-				dateList[#dateList + 1] = task.Schedules["Actual"][1].Period[i].Date
-			end		-- for i = 1,#task.Schedules["Actual"][1].Period do ends
-			dateList.typeSchedule = "Actual"
-			dateList.index = 1
+			for i = 1,#task.PlanWorkDone.Period do
+				dateList[#dateList + 1] = task.PlanWorkDone.Period[i].Date
+			end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
+			dateList.typeSchedule = task.PlanWorkDone.Type
+			dateList.index = task.PlanWorkDone.index
 			return dateList
-		else 
+		else
 			return nil
 		end
-	else 
-		return nil		
-	end		-- if task.Schedules then ends
+	else
+		if task.Schedules then
+			if task.Schedules.Actual then
+				local dateList = {}
+				for i = 1,#task.Schedules["Actual"][1].Period do
+					dateList[#dateList + 1] = task.Schedules["Actual"][1].Period[i].Date
+				end		-- for i = 1,#task.Schedules["Actual"][1].Period do ends
+				dateList.typeSchedule = "Actual"
+				dateList.index = 1
+				return dateList
+			else 
+				return nil
+			end
+		else 
+			return nil		
+		end		-- if task.Schedules then ends
+	end		-- if planning then ends
 end
 -- Function to get the list of dates in the latest schedule of the task.
 -- if planning == true then the planning schedule dates are returned
@@ -208,10 +237,7 @@ function Karm.TaskObject.getLatestScheduleDates(task,planning)
 	else
 		if task.Schedules then
 			-- Find the latest schedule in the task here
-			if string.upper(task.Status) == "DONE" and task.Schedules.Actual then
-				typeSchedule = "Actual"
-				index = 1
-			elseif task.Schedules.Revs then
+			if task.Schedules.Revs then
 				-- Actual is not the latest one but Revision is 
 				typeSchedule = "Revs"
 				index = task.Schedules.Revs.count
@@ -224,7 +250,7 @@ function Karm.TaskObject.getLatestScheduleDates(task,planning)
 				typeSchedule = "Estimate"
 				index = task.Schedules.Estimate.count
 			else
-				-- task.Schedules can exist if only Actual exists  but task is not DONE yet
+				-- task.Schedules can exist if only Actual exists
 				return nil
 			end
 			-- Now we have the latest schedule type in typeSchedule and the index of it in index
@@ -1096,10 +1122,10 @@ end
 -- Revs->Actual
 -- Actual->Back to Estimate
 function Karm.TaskObject.togglePlanningType(task,type)
-	if not task.Planning then
-		task.Planning = {}
-	end
 	if type == "NORMAL" then
+		if not task.Planning then
+			task.Planning = {}
+		end
 		local dateList = Karm.TaskObject.getLatestScheduleDates(task)
 		if not dateList then
 			dateList = {}
@@ -1114,12 +1140,9 @@ function Karm.TaskObject.togglePlanningType(task,type)
 			elseif dateList.typeSchedule == "Commit" then
 				task.Planning.Type = "Revs"
 				task.Planning.index = 1
-			elseif dateList.typeSchedule == "Revs" then
+			else
 				task.Planning.Type = "Revs"
 				task.Planning.index = dateList.index + 1
-			else
-				task.Planning.Type = "Actual"
-				task.Planning.index = 1		
 			end
 		elseif task.Planning.Type == "Estimate" then
 			task.Planning.Type = "Commit"
@@ -1141,8 +1164,11 @@ function Karm.TaskObject.togglePlanningType(task,type)
 			end
 		end		-- if not task.Planning.Type then ends
 	else
-		task.Planning.Type = "Actual"
-		task.Planning.index = 1
+		if not task.PlanWorkDone then
+			task.PlanWorkDone = {}
+		end
+		task.PlanWorkDone.Type = "Actual"
+		task.PlanWorkDone.index = 1
 	end		-- if type == "NORMAL" then ends
 end
 
@@ -1150,9 +1176,22 @@ end
 -- Function to toggle a planning date in the given task. If the planning schedule table is not present it creates it with the schedule type Estimate
 -- returns 1 if added, 2 if removed, 3 if removed and no more planning schedule left
 function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)
-	if not task.Planning then
+	local planTable
+	if type == "NORMAL" then
+		planTable = task.Planning
+	else
+		planTable = task.PlanWorkDone
+	end
+	if not planTable then
 		Karm.TaskObject.togglePlanningType(task,type)
-		task.Planning.Period = {
+		if type == "NORMAL" then
+			planTable = task.Planning
+		else
+			planTable = task.PlanWorkDone
+		end
+	end
+	if not planTable.Period then
+		planTable.Period = {
 									[0]="Period",
 									count=1,
 									[1]={
@@ -1163,47 +1202,35 @@ function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)
 		
 		return 1
 	end
-	if not task.Planning.Period then
-		task.Planning.Period = {
-									[0]="Period",
-									count=1,
-									[1]={
-											[0]="DP",
-											Date = xmlDate
-										}
-								}
-		
-		return 1
-	end
-	for i=1,task.Planning.Period.count do
-		if task.Planning.Period[i].Date == xmlDate then
+	for i=1,planTable.Period.count do
+		if planTable.Period[i].Date == xmlDate then
 			-- Remove this date
-			for j=i+1,task.Planning.Period.count do
-				task.Planning.Period[j-1] = task.Planning.Period[j]
+			for j=i+1,planTable.Period.count do
+				planTable.Period[j-1] = planTable.Period[j]
 			end
-			task.Planning.Period[task.Planning.Period.count] = nil
-			task.Planning.Period.count = task.Planning.Period.count - 1
-			if task.Planning.Period.count>0 then
+			planTable.Period[planTable.Period.count] = nil
+			planTable.Period.count = planTable.Period.count - 1
+			if planTable.Period.count>0 then
 				return 2
 			else
-				task.Planning = nil
+				planTable = nil
 				return 3
 			end
-		elseif task.Planning.Period[i].Date > xmlDate then
+		elseif planTable.Period[i].Date > xmlDate then
 			-- Insert Date here
-			task.Planning.Period.count = task.Planning.Period.count + 1
-			for j = task.Planning.Period.count,i+1,-1 do
-				task.Planning.Period[j] = task.Planning.Period[j-1]
+			planTable.Period.count = planTable.Period.count + 1
+			for j = planTable.Period.count,i+1,-1 do
+				planTable.Period[j] = planTable.Period[j-1]
 			end
-			task.Planning.Period[i] = {[0]="DP",Date=xmlDate}
+			planTable.Period[i] = {[0]="DP",Date=xmlDate}
 			return 1
 		end
 	end
 	-- Date must be added in the end
-	task.Planning.Period.count = task.Planning.Period.count + 1
-	task.Planning.Period[task.Planning.Period.count] = {[0]="DP",Date = xmlDate	}
+	planTable.Period.count = planTable.Period.count + 1
+	planTable.Period[planTable.Period.count] = {[0]="DP",Date = xmlDate	}
 	return 1
-end
+end		-- function togglePlanningDate ends
 
 function Karm.TaskObject.add2Spore(task,dataStruct)
 	if not task.SubTasks then
@@ -1287,9 +1314,9 @@ end
 	-- BackColor - Background Color (Red, Green, Blue) table for setting the background color in the Gantt Chart
 	-- ForeColor - Foreground Color (Red, Green, Blue) table for setting the test color in the Gantt Chart date
 	-- Text - Text to be written in the Gantt cell for the date
-function Karm.TaskObject.getWorkDates(task,bubble)
+function Karm.TaskObject.getWorkDates(task,bubble,planning)
 	local updateDateTable = function(task,dateTable)
-		local dateList = Karm.TaskObject.getWorkDoneDates(task)
+		local dateList = Karm.TaskObject.getWorkDoneDates(task,planning)
 		if dateList then
 			if not dateTable then
 				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
@@ -1329,7 +1356,7 @@ function Karm.TaskObject.getWorkDates(task,bubble)
 		return dateTable
 	else 
 		-- Just get the latest dates for this task
-		local dateList = Karm.TaskObject.getWorkDoneDates(task)
+		local dateList = Karm.TaskObject.getWorkDoneDates(task,planning)
 		if dateList then
 			-- Convert the dateList to modified return table
 			local dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}

@@ -239,7 +239,7 @@ local function makeTask(task)
 		newTask.Planning = nil
 	end		-- if HoldPlanning.GetValue() then ends
 	-- Work done Schedule
-	list = getLatestScheduleDates(wdTaskTree.taskList[1].Task,true)
+	list = getWorkDoneDates(wdTaskTree.taskList[1].Task,true)
 	if list then
 		local list1 = getWorkDoneDates(newTask)
 		-- Compare the schedules
@@ -269,7 +269,7 @@ local function makeTask(task)
 			-- Update the period
 			newSched.Period = {[0] = "Period", count = #list}
 			for i = 1,#list do
-				newSched.Period[i] = wdTaskTree.taskList[1].Task.Planning.Period[i]
+				newSched.Period[i] = wdTaskTree.taskList[1].Task.PlanWorkDone.Period[i]
 			end
 			newTask.Schedules[list.typeSchedule][list.index] = newSched
 			newTask.Schedules[list.typeSchedule].count = list.index
@@ -612,6 +612,7 @@ function taskFormActivate(parent, callBack, task)
 				end
 				-- Create the 1st row for the task
 				localTask1.Planning = nil	-- Since we will use this task for Work Done Entry and Work done never maintains the Planning
+				localTask1.PlanWorkDone = nil
 			    wdTaskTree:Clear()
 			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}
 			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor
@@ -633,6 +634,7 @@ function taskFormActivate(parent, callBack, task)
 				-- Enable planning mode for the task
 				taskTree:enablePlanningMode({localTask2},"NORMAL")
 				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE")
+				wdTaskTree.ShowActual = true
 				-- Add the comment box
 				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
@@ -669,11 +671,11 @@ function taskFormActivate(parent, callBack, task)
 		-- First check whether the date is in the schedule
 		local exist = false
 		local prevHours, prevComment
-		if localTask1.Planning then
-			for i = 1,#localTask1.Planning.Period do
-				if date == localTask1.Planning.Period[i].Date then
-					prevHours = localTask1.Planning.Period[i].Hours or ""
-					prevComment = localTask1.Planning.Period[i].Comment or ""
+		if localTask1.PlanWorkDone then
+			for i = 1,#localTask1.PlanWorkDone.Period do
+				if date == localTask1.PlanWorkDone.Period[i].Date then
+					prevHours = localTask1.PlanWorkDone.Period[i].Hours or ""
+					prevComment = localTask1.PlanWorkDone.Period[i].Comment or ""
 					exist = true
 					break
 				end
@@ -728,13 +730,13 @@ function taskFormActivate(parent, callBack, task)
 					end
 					if hours ~= "" or comment ~= "" then
 						-- Add the hours and Comment information to the task here
-						for i = 1,#localTask1.Planning.Period do
-							if localTask1.Planning.Period[i].Date == date then
+						for i = 1,#localTask1.PlanWorkDone.Period do
+							if localTask1.PlanWorkDone.Period[i].Date == date then
 								if hours ~= "" then
-									localTask1.Planning.Period[i].Hours = hours
+									localTask1.PlanWorkDone.Period[i].Hours = hours
 								end
 								if comment ~= "" then
-									localTask1.Planning.Period[i].Comment = comment
+									localTask1.PlanWorkDone.Period[i].Comment = comment
 								end
 								break
 							end

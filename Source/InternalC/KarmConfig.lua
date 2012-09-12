@@ -59,9 +59,9 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 											
 											]]},
 											{Text = "&Finalize all Planning Schedules\tCtrl-F", HelpText = "Finalize all Planning schedules in the tasks in the UI", Code = [[
-if Karm.GUI.taskTree.taskList then
+if Karm.GUI.taskTree.taskList then 
 	while #Karm.GUI.taskTree.taskList > 0 do
-		Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1].Task)
+		Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1].Task, Karm.GUI.taskTree.Planning)
 	end
 end
 											]]},
@@ -184,7 +184,6 @@ Karm.GUI.fillTaskTree()
 setfenv(1,_G)
 -- print(Spores)
 
-
 function myDebugFunc()
 
 --- PASTE SCRIPT TO DEBUG HERE
@@ -192,8 +191,6 @@ function myDebugFunc()
 --- END CUSTOM SCRIPT
 
 end
-
-
 
 Karm.Globals.Categories = {
 	"Design",
@@ -218,7 +215,12 @@ Karm.Globals.UserIDPattern = "%'([%w%.%_%,% ]+)%'"
 
 Karm.Globals.safeenv = {}
 setmetatable(Karm.Globals.safeenv,{__index = _G})
-
+--[[
+function AutoFillTask(task)
+	task.Who[#task.Who + 1] = {ID = "deepshikha.dandora", Status = "Inactive"}
+	task.Who.count = task.Who.count + 1
+end
+]]
 
 function checkTask(task)
 	if task.SubCat and not task.Cat then

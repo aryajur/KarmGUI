@@ -98,9 +98,9 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.09.05",
+	KARM_VERSION = "1.12.09.12",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
-	StatusList = {'Not Started','On Track','Behind','Done','Obsolete'},
+	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {
 				{	ForeColor = {Red=100,Green=100,Blue=0},
 					BackColor = {Red=255,Green=255,Blue=255}
@@ -115,6 +115,9 @@ Karm.Globals = {
 					BackColor = {Red=255,Green=255,Blue=255}
 				},
 				{	ForeColor = {Red=200,Green=200,Blue=200},
+					BackColor = {Red=255,Green=255,Blue=255}
+				},
+				{	ForeColor = {Red=230,Green=50,Blue=200},
 					BackColor = {Red=255,Green=255,Blue=255}
 				}
 	},
@@ -309,7 +312,11 @@ do
 	function taskTreeINT.enablePlanningMode(taskTree, taskList, type)
 		local oTree = taskTreeINT[taskTree]
 		taskList = taskList or {}
-		type = type or "NORMAL"
+		if oTree.ShowActual then
+			type = type or "WORKDONE"
+		else
+			type = type or "NORMAL"
+		end
 		if type ~= "NORMAL" and type ~= "WORKDONE" then
 			error("enablePlanningMode: Planning type should either be 'NORMAL' or 'WORKDONE'.",2)
 		end
@@ -318,8 +325,14 @@ do
 			oTree.taskList = {}
 			-- Check if there are tasks with Planning
 			for i,v in taskTreeINT.tpairs(taskTree) do
-				if v.Task and v.Task.Planning then
-					oTree.taskList[#oTree.taskList + 1] = v
+				if oTree.Planning == "NORMAL" then
+					if v.Task and v.Task.Planning then
+						oTree.taskList[#oTree.taskList + 1] = v
+					end
+				else
+					if v.Task and v.Task.PlanWorkDone then
+						oTree.taskList[#oTree.taskList + 1] = v
+					end
 				end
 			end		-- Looping through all the nodes ends
 		end
@@ -352,14 +365,14 @@ do
 					end		-- if type == "NORMAL" then ends
 					if dateList then
 						Karm.TaskObject.togglePlanningType(taskList[i],oTree.Planning)
-						taskList[i].Planning.Period = {[0]="Period",count=0}
 						for j=1,#dateList do
-							taskList[i].Planning.Period[j] = {[0]="DP",Date=dateList[j]}
-							taskList[i].Planning.Period.count = taskList[i].Planning.Period.count + 1
+							Karm.TaskObject.togglePlanningDate(taskList[i],dateList[j],oTree.Planning)
 						end
 					end
 				end		-- if not found then ends
-				if oTree.Nodes[taskList[i].TaskID]:MakeVisible() then
+				oTree.Nodes[taskList[i].TaskID]:MakeVisible()
+				if oTree.Nodes[taskList[i].TaskID].Row then
+					-- Task Node is visible so refresh the gantt row
 					dispGantt(taskTree,oTree.Nodes[taskList[i].TaskID].Row,false,oTree.Nodes[taskList[i].TaskID])
 				end
 			end		-- if oTree.Nodes[taskList[i].TaskID] then ends
@@ -764,6 +777,15 @@ do
 			-- do nothing user cannot modify this
 		elseif key == "SwapUpdateKeys" then
 			-- do nothing user cannot modify this
+		elseif key == "ShowActual" then
+			if oTree.Planning then
+				if val then
+					oTree.Planning = "WORKDONE"
+				else
+					oTree.Planning = "NORMAL"
+				end
+			end
+			oTree[key] = val
 		else
 			oTree[key] = val
 		end
@@ -777,6 +799,13 @@ do
 		taskTreeINT[tab].treeGrid:DeleteRows(0,taskTreeINT[tab].treeGrid:GetNumberRows())
 		taskTreeINT[tab].ganttGrid:DeleteRows(0,taskTreeINT[tab].ganttGrid:GetNumberRows())
 	end
+
+	local function postOnScrollTree(obj)
+		return function(event)
+			local oTree = taskTreeINT[obj]
+			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
+		end
+	end	
 		
 	local function refreshGanttFunc(taskTree)
 		-- Erase the previous data
@@ -787,6 +816,8 @@ do
 			dispGantt(taskTree,rowPtr+1,true,v)
 			rowPtr = rowPtr + 1
 		end		-- Looping through all the nodes ends	
+		-- Sync the Scroll bars
+		postOnScrollTree(taskTree)()
 	end
 	
 	refreshGantt = refreshGanttFunc
@@ -893,7 +924,7 @@ do
 			end
 			local dateList
 			if taskTreeINT[taskTree].ShowActual then
-				dateList = Karm.TaskObject.getWorkDates(taskNode.Task,taskTreeINT[taskTree].Bubble)
+				dateList = Karm.TaskObject.getWorkDates(taskNode.Task,taskTreeINT[taskTree].Bubble, planning)
 			else
 				dateList = Karm.TaskObject.getDates(taskNode.Task,taskTreeINT[taskTree].Bubble, planning)
 			end
@@ -1849,13 +1880,6 @@ do
 		--event:Skip()
 	end
 
-	local function postOnScrollTree(obj)
-		return function(event)
-			local oTree = taskTreeINT[obj]
-			oTree.ganttGrid:Scroll(oTree.ganttGrid:GetScrollPos(wx.wxHORIZONTAL), oTree.treeGrid:GetScrollPos(wx.wxVERTICAL))
-		end
-	end
-
 	local function onScrollTreeFunc(obj)
 		return function(event)
 			local ID = wx.wxID_ANY
@@ -2170,6 +2194,7 @@ function Karm.GUI.fillTaskTree()
 
 	local prevSelect, restorePrev
 	local expandedStatus = {}
+	local planningTasks = {}		-- To carry over the planning mode tasks after the tree is refreshed
 	Karm.GUI.taskTree.update = false		-- stop GUI updates for the time being    
     if Karm.GUI.taskTree.nodeCount > 0 then
 -- Check if the task Tree has elements then get the current selected nodekey this will be selected again after the tree view is refreshed
@@ -2182,6 +2207,12 @@ function Karm.GUI.fillTaskTree()
                 prevSelect = i
             end
         end
+        if Karm.GUI.taskTree.taskList then
+			for i = 1,#Karm.GUI.taskTree.taskList do
+				planningTasks[#planningTasks + 1] = Karm.GUI.taskTree.taskList[i].Task
+			end        
+        end
+        Karm.GUI.taskTree:disablePlanningMode()
         restorePrev = true
     end
     
@@ -2215,6 +2246,7 @@ function Karm.GUI.fillTaskTree()
                 selected = currNode.Task
             end
         end
+        Karm.GUI.taskTree:enablePlanningMode(planningTasks)
     else
  		Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY].Expanded = true
     end
@@ -2710,10 +2742,10 @@ function Karm.EditTaskCallBack(task, noGUI)
 			local taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{[1]=task})
 			if #taskList == 1 then
 				-- Check if planning mode if present is still on
-				if not task.Planning and Karm.GUI.taskTree.taskList then
+				if not task.Planning and not task.PlanWorkDone and Karm.GUI.taskTree.taskList then
 					for i = 1,#Karm.GUI.taskTree.taskList do
 						if Karm.GUI.taskTree.Nodes[task.TaskID] == Karm.GUI.taskTree.taskList[i] then
-							-- The node is in the planning mode so remove it
+							-- The node is in the planning mode so remove it from the list of planning mode tasks
 							for k = i + 1, #Karm.GUI.taskTree.taskList - 1 do
 								Karm.GUI.taskTree.taskList[k-1] = Karm.GUI.taskTree.taskList[k]
 							end
@@ -3441,27 +3473,39 @@ function Karm.GUI.menuEventHandlerFunction(ID, code, file)
 	return handler
 end
 
-function Karm.finalizePlanningAll(taskList)
+function Karm.finalizePlanningAll(taskList, type)
 	for i = 1,#taskList do
-		Karm.finalizePlanning(taskList[i])
+		Karm.finalizePlanning(taskList[i], type)
 	end
 end
 
 -- To finalize the planning of a task and convert it to a normal schedule
-function Karm.finalizePlanning(task)
-	if not task.Planning then
-		return
+function Karm.finalizePlanning(task, type)
+	if not Karm.TaskObject.IsValidTask(task) then
+		error("Invalid Task Object passed to finalizePlanning", 2)
 	end
-	local list = Karm.TaskObject.getLatestScheduleDates(task,true)
+	type = type or "NORMAL"
+	local list
+	if type == "NORMAL" then
+		list = Karm.TaskObject.getLatestScheduleDates(task,true)
+	else
+		list = Karm.TaskObject.getWorkDoneDates(task,true)
+	end
 	if list then
 		local todayDate = wx.wxDateTime()
 		todayDate:SetToCurrent()
 		todayDate = Karm.Utility.toXMLDate(todayDate:Format("%m/%d/%Y"))	
-		local list1 = Karm.TaskObject.getLatestScheduleDates(task)
+		local list1
+		if type =="NORMAL" then
+			list1 = Karm.TaskObject.getLatestScheduleDates(task)
+		else
+			list1 = Karm.TaskObject.getWorkDoneDates(task)
+		end
 		-- Compare the schedules
 		local same = true
 		if not list1 or #list1 ~= #list or (list1.typeSchedule ~= list.typeSchedule and 
 		  not(list1.typeSchedule=="Commit" and list.typeSchedule == "Revs")) then
+		  	-- If latest was Commit and Planning was Revs then if the dates are the same the schedules are the same
 			same = false
 		else
 			for i = 1,#list do
@@ -3484,11 +3528,9 @@ function Karm.finalizePlanning(task)
 			local newSched = {[0]=list.typeSchedule}
 			local str = "WD"
 			if list.typeSchedule ~= "Actual" then
-				newSched.Updated = todayDate
 				str = "DP"
-			else
-				error("Got Actual schedule type while processing schedule.")
 			end
+			newSched.Updated = todayDate
 			-- Update the period
 			newSched.Period = {[0] = "Period", count = #list}
 			for i = 1,#list do
@@ -3498,7 +3540,11 @@ function Karm.finalizePlanning(task)
 			task.Schedules[list.typeSchedule].count = list.index
 		end
 	end		-- if list ends here
-	task.Planning = nil	
+	if type =="NORMAL" then
+		task.Planning = nil
+	else
+		task.PlanWorkDone = nil
+	end	
 	if Karm.GUI.taskTree.taskList then
 		for i = 1,#Karm.GUI.taskTree.taskList do
 			if Karm.GUI.taskTree.taskList[i].Task == task then
