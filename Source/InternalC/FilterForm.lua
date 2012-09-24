@@ -927,7 +927,7 @@ function filterFormActivate(parent, callBack)
 			duSizer:Add(TypeSch,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 			TypeSch:SetSelection(2)
 						
-			local SchRevLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Revision", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			local SchRevLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Revision (Latest, Planning or number)", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 			duSizer:Add(SchRevLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
 			SchRev = wx.wxComboBox(SchPanel, wx.wxID_ANY,"Latest",wx.wxDefaultPosition, wx.wxDefaultSize,{"Latest"})
@@ -957,8 +957,10 @@ function filterFormActivate(parent, callBack)
 				-- Get the full schedule boolean unit
 				local unit = TypeMatch:GetString(TypeMatch:GetSelection())..","..TypeSch:GetString(TypeSch:GetSelection())
 				if SchRev:IsEnabled() then
-					if SchRev:GetValue() == "Latest" then
+					if string.upper(SchRev:GetValue()) == "LATEST" or string.upper(SchRev:GetValue()) == "L" then
 						unit = unit.."(L)"
+					elseif string.upper(SchRev:GetValue()) == "PLANNING" or string.upper(SchRev:GetValue()) == "P" then
+						unit = unit.."(P)"
 					else
 						unit = unit.."("..tostring(SchRev:GetValue())..")"
 					end

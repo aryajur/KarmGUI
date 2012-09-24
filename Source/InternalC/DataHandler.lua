@@ -1213,7 +1213,11 @@ function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)
 			if planTable.Period.count>0 then
 				return 2
 			else
-				planTable = nil
+				if type == "NORMAL" then
+					task.Planning = nil
+				else
+					task.PlanWorkDone = nil
+				end				
 				return 3
 			end
 		elseif planTable.Period[i].Date > xmlDate then

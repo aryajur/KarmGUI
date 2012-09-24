@@ -172,7 +172,7 @@ end
 10. Sub-Category - Member of given list of Sub-Categories - List of sub-categories separated by commas, Karm.Globals.NoSubCatStr means tasks without any sub-category also pass
 11. Tags - Boolean expression of Tags - "'Technical' or 'Electronics'" - Tags allow alphanumeric characters spaces and underscores - For no TAG the tag would be Karm.Globals.NoDateStr
 12. Schedules - Type of matching - Fully Contained or any overlap with the given ranges
-		Type of Schedule - Estimate, Committed, Revisions (L=Latest or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
+		Type of Schedule - Estimate, Committed, Revisions (L=Latest, P=Planning or the number of revision) or Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
 		Boolean expression different schedule criterias together 
 		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Karm.Globals.NoDateStr"
 		Karm.Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
@@ -563,85 +563,105 @@ function Karm.FilterObject.validateTask(filter, task)
 				ranges.count = ranges.count + 1
 				ranges[ranges.count] = range
 			end
-			-- CHeck if the task has a Schedule item
-			if not task.Schedules then
-				if ranges[0] == Karm.Globals.NoDateStr then
-					result = true
-				end			
-				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
-			else
-				-- Type of Schedule - Estimate, Committed, Revision(X) (L=Latest or the number of revision), Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
-				index = nil
-				if string.upper(string.sub(typeSchedule,1,#"ESTIMATE")) == "ESTIMATE" then
-					if string.match(typeSchedule,"%(%d-%)") then
-						-- Get the index number
-						index = string.match(typeSchedule,"%((%d-)%)")
-					else  
-						-- Get the latest schedule index
-						if task.Schedules.Estimate then
-							index = #task.Schedules.Estimate
-						else
-							if ranges[0] == Karm.Globals.NoDateStr then
-								result = true
-							end
-							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
-						end			
-					end
-					typeSchedule = "Estimate"
-				elseif string.upper(typeSchedule) == "COMMITTED" then
-					typeSchedule = "Commit"
-					index = 1
-				elseif string.upper(string.sub(typeSchedule,1,#"REVISION")) == "REVISION" then
-					if string.match(typeSchedule,"%(%d-%)") then
-						-- Get the index number
-						index = string.match(typeSchedule,"%((%d-)%)")
-					else  
-						-- Get the latest schedule index
-						if task.Schedules.Revs then
-							index = #task.Schedules.Revs
-						else
-							if ranges[0] == Karm.Globals.NoDateStr then
-								result = true
-							end
-							schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
-						end			
-					end
-					typeSchedule = "Revs"
-				elseif string.upper(typeSchedule) == "ACTUAL" then
-					typeSchedule = "Actual"
-					index = 1
-				elseif string.upper(typeSchedule) == "LATEST" then
-					-- Find the latest schedule in the task here
-					if string.upper(task.Status) == "DONE" and task.Schedules.Actual then
-						typeSchedule = "Actual"
-						index = 1
-					elseif task.Schedules.Revs then
-						-- Actual is not the latest one but Revision is 
-						typeSchedule = "Revs"
-						index = task.Schedules.Revs.count
-					elseif task.Schedules.Commit then
-						-- Actual and Revisions don't exist but Commit does
-						typeSchedule = "Commit"
-						index = 1
-					elseif task.Schedules.Estimate then
-						-- The latest is Estimate
-						typeSchedule = "Estimate"
-						index = task.Schedules.Estimate.count
+			-- Type of Schedule - Estimate, Committed, Revision(X) (L=Latest or the number of revision), Actual or Latest (means the latest schedule, note Actual is only latest if task is marked DONE)
+			index = nil
+			if string.upper(string.sub(typeSchedule,1,#"ESTIMATE")) == "ESTIMATE" then
+				if string.match(typeSchedule,"%(%d-%)") then
+					-- Get the index number
+					index = string.match(typeSchedule,"%((%d-)%)")
+				elseif string.upper(string.match(typeSchedule,"%((%a-)%)")) == "L" then
+					-- Get the latest schedule index
+					if task.Schedules and task.Schedules.Estimate then
+						index = #task.Schedules.Estimate
 					else
-						-- typeSchedule is latest but non of the schedule types exist
-						-- Check if the range is Karm.Globals.NoDateStr, if not this sch is false
-						local result = false
 						if ranges[0] == Karm.Globals.NoDateStr then
 							result = true
 						end
 						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+					end		
+				else
+					-- This is the planning schedule
+					if task.Planning and task.Planning.Type == "Estimate" then
+						index = "Planning"
+					else
+						if ranges[0] == Karm.Globals.NoDateStr then
+							result = true
+						end	
+						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+					end
+				end
+				typeSchedule = "Estimate"
+			elseif string.upper(string.sub(typeSchedule,1,#"COMMITTED")) == "COMMITTED" then
+				typeSchedule = "Commit"
+				if string.match(typeSchedule,"%((%a-)%)") then
+					if string.upper(string.match(typeSchedule,"%((%a-)%)")) == "P" then
+						index = "Planning"
+					else
+						index = 1
 					end
 				else
-					wx.wxMessageBox("Invalid Type Schedule ("..typeSchdule..") specified in filter: "..sch,"Filter Error",
-	                            wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
-					return false
-				end		-- if string.upper(string.sub(typeSchedule,1,#"ESTIMATE") == "ESTIMATE" then ends  (SETTING of typeSchdule and index)
-			end		-- if not task.Schedules then
+					index = 1
+				end
+			elseif string.upper(string.sub(typeSchedule,1,#"REVISION")) == "REVISION" then
+				if string.match(typeSchedule,"%(%d-%)") then
+					-- Get the index number
+					index = string.match(typeSchedule,"%((%d-)%)")
+				elseif string.upper(string.match(typeSchedule,"%((%a-)%)")) == "L" then  
+					-- Get the latest schedule index
+					if task.Schedules and task.Schedules.Revs then
+						index = #task.Schedules.Revs
+					else
+						if ranges[0] == Karm.Globals.NoDateStr then
+							result = true
+						end
+						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+					end			
+				else
+					-- This is the planning schedule
+					if task.Planning and task.Planning.Type == "Revs" then
+						index = "Planning"
+					else
+						if ranges[0] == Karm.Globals.NoDateStr then
+							result = true
+						end	
+						schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+					end
+				end
+				typeSchedule = "Revs"
+			elseif string.upper(typeSchedule) == "ACTUAL" then
+				typeSchedule = "Actual"
+				index = 1
+			elseif string.upper(typeSchedule) == "LATEST" then
+				-- Find the latest schedule in the task here
+				if string.upper(task.Status) == "DONE" and task.Schedules and task.Schedules.Actual then
+					typeSchedule = "Actual"
+					index = 1
+				elseif task.Schedules and task.Schedules.Revs then
+					-- Actual is not the latest one but Revision is 
+					typeSchedule = "Revs"
+					index = task.Schedules.Revs.count
+				elseif task.Schedules and task.Schedules.Commit then
+					-- Actual and Revisions don't exist but Commit does
+					typeSchedule = "Commit"
+					index = 1
+				elseif task.Schedules and task.Schedules.Estimate then
+					-- The latest is Estimate
+					typeSchedule = "Estimate"
+					index = task.Schedules.Estimate.count
+				else
+					-- typeSchedule is latest but non of the schedule types exist
+					-- Check if the range is Karm.Globals.NoDateStr, if not this sch is false
+					local result = false
+					if ranges[0] == Karm.Globals.NoDateStr then
+						result = true
+					end
+					schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
+				end
+			else
+				wx.wxMessageBox("Invalid Type Schedule ("..typeScehdule..") specified in filter: "..sch,"Filter Error",
+                            wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
+				return false
+			end		-- if string.upper(string.sub(typeSchedule,1,#"ESTIMATE") == "ESTIMATE" then ends  (SETTING of typeSchdule and index)
 			if index then
 				-- We have a typeSchedule and index
 				-- Now loop through the schedule of typeSchedule and index
@@ -653,43 +673,84 @@ function Karm.FilterObject.validateTask(filter, task)
 				end
 				-- First check if range is Karm.Globals.NoDateStr then this schedule should not exist for filter to pass
 				if ranges[0] == Karm.Globals.NoDateStr then
-					if task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index] then
-						result = true
+					if index == "Planning" then
+						if task.Planning then
+							result = false
+						else
+							result = true
+						end
 					else
-						result = false
+						if task.Schedules[typeSchedule] and not task.Schedules[typeSchedule][index]  or not task.Schedules[typeSchedule] then
+							result = true
+						else
+							result = false
+						end
 					end
 				else
-					if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
-						for i = 1,#task.Schedules[typeSchedule][index].Period do
-							-- Is the date in range?
-							local inrange = false
-							for j = 1,#ranges do
-								local strt,stp = string.match(ranges[j],"(.-)%-(.*)")
-								if not strt then
-									-- its not a range
-									strt = ranges[j]
-									stp = ranges[j]
+					if index == "Planning" then
+						if task.Planning then
+							for i = 1,#task.Planning.Period do
+								-- Is the date in range?
+								local inrange = false
+								for j = 1,#ranges do
+									local strt,stp = string.match(ranges[j],"(.-)%-(.*)")
+									if not strt then
+										-- its not a range
+										strt = ranges[j]
+										stp = ranges[j]
+									end
+									strt = Karm.Utility.toXMLDate(strt)
+									stp = Karm.Utility.toXMLDate(stp)
+									if strt <= task.Planning.Period[i].Date and task.Planning.Period[i].Date <=stp then
+										inrange = true
+									end
+								end		-- for j = 1,#ranges do ends
+								if inrange and string.upper(typeMatch) == "OVERLAP" then
+									-- This date overlaps
+									result = true
+									break
+								elseif not inrange and string.upper(typeMatch) == "FULL" then
+									-- This portion is not contained in filter
+									result = false
+									break
 								end
-								strt = Karm.Utility.toXMLDate(strt)
-								stp = Karm.Utility.toXMLDate(stp)
-								if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then
-									inrange = true
-								end
-							end		-- for j = 1,#ranges do ends
-							if inrange and string.upper(typeMatch) == "OVERLAP" then
-								-- This date overlaps
-								result = true
-								break
-							elseif not inrange and string.upper(typeMatch) == "FULL" then
-								-- This portion is not contained in filter
-								result = false
-								break
 							end
-						end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
+						else
+							result = false
+						end
 					else
-						-- Task Schedule for the particular index does not exist and noDateStr was not specified so this is not a match
-						result = false
-					end		-- if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then ends
+						if task.Schedules and task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then
+							for i = 1,#task.Schedules[typeSchedule][index].Period do
+								-- Is the date in range?
+								local inrange = false
+								for j = 1,#ranges do
+									local strt,stp = string.match(ranges[j],"(.-)%-(.*)")
+									if not strt then
+										-- its not a range
+										strt = ranges[j]
+										stp = ranges[j]
+									end
+									strt = Karm.Utility.toXMLDate(strt)
+									stp = Karm.Utility.toXMLDate(stp)
+									if strt <= task.Schedules[typeSchedule][index].Period[i].Date and task.Schedules[typeSchedule][index].Period[i].Date <=stp then
+										inrange = true
+									end
+								end		-- for j = 1,#ranges do ends
+								if inrange and string.upper(typeMatch) == "OVERLAP" then
+									-- This date overlaps
+									result = true
+									break
+								elseif not inrange and string.upper(typeMatch) == "FULL" then
+									-- This portion is not contained in filter
+									result = false
+									break
+								end
+							end		-- for i = 1,#task.Schedules[typeSchedule][index].Period do ends
+						else
+							-- Task Schedule for the particular index does not exist and noDateStr was not specified so this is not a match
+							result = false
+						end		-- if task.Schedules[typeSchedule] and task.Schedules[typeSchedule][index] then ends
+					end		-- if index == "Planning" then ends
 				end	-- if ranges[0] == Karm.Globals.NoDateStr then ends
 				schStr = string.gsub(schStr,string.gsub("'"..sch.."'","(%W)","%%%1"),tostring(result))
 			end		-- if index then ends

@@ -98,7 +98,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.09.12",
+	KARM_VERSION = "1.12.09.24",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {
@@ -687,14 +687,12 @@ do
 				end		-- if oTree.update then ends
 			end		-- if oNode.Expanded and not val then ends
 		elseif key == "Selected" then
-			if oNode.Selected and not val then
-				-- Selected was true and now making it false
+			if not val then
 				oNode.Selected = nil
 				-- Unselect this node in the GUI
 				oTree.Selected = {}
 				oTree.treeGrid:SetGridCursor(0,0)
-			elseif not oNode.Selected and val then
-				-- Selected was false and now making it true
+			else
 				oNode.Selected = true
 				-- Select the node in the GUI here
 				oTree.Selected = {tab,Latest = 1}
@@ -2006,6 +2004,7 @@ do
 		local row = event:GetRow()
 		local col = event:GetCol()
 		if row>-1 then
+			taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
 			if col == 1 then
 				local taskNode
 				-- Find the task associated with the row
@@ -2025,7 +2024,6 @@ do
 			else
 				taskTreeINT[obj].Selected = {}
 			end
-			taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
 		end		
 		--taskTreeINT[obj].treeGrid:SelectBlock(row,col,row,col)
 		--event:Skip()
@@ -2154,25 +2152,20 @@ function Karm.GUI.addTask(task)
 	return true	
 end
 
-function Karm.GUI.addSpore(key,Spore)
-	-- Add the spore node
-	Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY, Relation="Child", Key=Karm.Globals.ROOTKEY..key, Text=Spore.Title, Task = Spore}
-	Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key].ForeColor,Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key])
-	local taskList = Karm.FilterObject.applyFilterHier(Karm.Filter, Spore)
-	-- Now add the tasks under the spore in the TaskTree
+function Karm.GUI.addTaskListToParent(taskList,parentID)
 	if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
 	    -- Add the 1st element under the spore
-	    local currNode = Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY..key, Relation="Child", Key=taskList[1].TaskID, 
+	    local currNode = Karm.GUI.taskTree:AddNode{Relative=parentID, Relation="Child", Key=taskList[1].TaskID, 
 	    		Text=taskList[1].Title, Task=taskList[1]}
 		currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
 	    for intVar = 2,taskList.count do
-	    	local cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..key
+	    	local cond1 = currNode.Key ~= parentID
 	    	local cond2 = #taskList[intVar].TaskID > #currNode.Key
 	    	local cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
 	    	while cond1 and not (cond2 and cond3) do
 	        	-- Go up the hierarchy
 	        	currNode = currNode.Parent
-	        	cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..key
+	        	cond1 = currNode.Key ~= parentID
 	        	cond2 = #taskList[intVar].TaskID > #currNode.Key
 	        	cond3 = string.sub(taskList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
 	        end
@@ -2182,6 +2175,15 @@ function Karm.GUI.addSpore(key,Spore)
 	    	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
 	    end
 	end  -- if taskList.count > 0 then ends
+end
+
+function Karm.GUI.addSpore(key,Spore)
+	-- Add the spore node
+	Karm.GUI.taskTree:AddNode{Relative=Karm.Globals.ROOTKEY, Relation="Child", Key=Karm.Globals.ROOTKEY..key, Text=Spore.Title, Task = Spore}
+	Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key].ForeColor,Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key].BackColor = Karm.GUI.getNodeColor(Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY..key])
+	local taskList = Karm.FilterObject.applyFilterHier(Karm.Filter, Spore)
+	-- Now add the tasks under the spore in the TaskTree
+	Karm.GUI.addTaskListToParent(taskList,Karm.Globals.ROOTKEY..key)
 end
 
 --****f* Karm/Karm.GUI.fillTaskTree
@@ -2421,8 +2423,6 @@ function Karm.moveCopyTask(task)
 			Karm.GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = "Child"}
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
 			if task.SubTasks then
-				-- Update the SubTasks parent
-				--task.SubTasks.parent = Karm.SporeData[task.SporeFile]  DONE IN ADD2SPORE
 				-- Update the Spore file in all sub tasks
 				local list1 = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[task.SporeFile])
 				if #list1 > 0 then
@@ -2432,6 +2432,8 @@ function Karm.moveCopyTask(task)
 				end					
 				-- Now add all the Child hierarchy of the moved task to the GUI
 				local addList = Karm.FilterObject.applyFilterHier(Karm.Filter, task.SubTasks)
+				Karm.GUI.addTaskListToParent(addList,task.TaskID)
+				--[[
 				-- Now add the tasks under the spore in the TaskTree
             	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
     	            local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
@@ -2452,7 +2454,14 @@ function Karm.moveCopyTask(task)
                     	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
                     end
 	            end  -- if addList.count > 0 then ends
+	            ]]
 			end		-- if task.SubTasks then ends
+			if Karm.GUI.taskTree.Nodes[task.TaskID].Row then
+				Karm.GUI.taskTree.Nodes[task.TaskID].Selected = true
+				Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
+			else
+				taskList[1].Selected = true
+			end
 		else		-- if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- This is to move/copy the task in relation to this task
 			-- This relative might be a Spore root task or a normal hierarchy task
@@ -2532,8 +2541,6 @@ function Karm.moveCopyTask(task)
 			task.SporeFile = taskList[1].Task.SporeFile
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
 			if task.SubTasks then
-				-- update the SubTasks parent
-				--task.SubTasks.parent = taskList[1].Task.SubTasks  DONE IN ADD2PARENT
 				-- Update the Spore file in all sub tasks
 				local list1 = Karm.FilterObject.applyFilterHier(nil,Karm.SporeData[task.SporeFile])
 				if #list1 > 0 then
@@ -2543,6 +2550,8 @@ function Karm.moveCopyTask(task)
 				end										
 				-- Now add all the Child hierarchy of the moved task to the GUI
 				local addList = Karm.FilterObject.applyFilterHier(Karm.Filter, task.SubTasks)
+				Karm.GUI.addTaskListToParent(addList,task.TaskID)
+				--[[
 				-- Now add the tasks under the spore in the TaskTree
             	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
     	            local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
@@ -2563,7 +2572,14 @@ function Karm.moveCopyTask(task)
                     	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
                     end
 	            end  -- if addList.count > 0 then ends
+	            ]]
 			end		-- if task.SubTasks then ends
+			if Karm.GUI.taskTree.Nodes[task.TaskID].Row then
+				Karm.GUI.taskTree.Nodes[task.TaskID].Selected = true
+				Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
+			else
+				taskList[1].Selected = true
+			end
 		end		-- if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then ends
 		Karm.Globals.unsavedSpores[taskList[1].Task.SporeFile] = Karm.SporeData[taskList[1].Task.SporeFile].Title
 		if Karm.GUI.MoveTask then
@@ -3491,7 +3507,7 @@ function Karm.finalizePlanning(task, type)
 	else
 		list = Karm.TaskObject.getWorkDoneDates(task,true)
 	end
-	if list then
+	if list and #list > 0 then
 		local todayDate = wx.wxDateTime()
 		todayDate:SetToCurrent()
 		todayDate = Karm.Utility.toXMLDate(todayDate:Format("%m/%d/%Y"))	
