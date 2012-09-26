@@ -157,7 +157,9 @@ Karm.GUI.fillTaskTree()
 				-- 4th Menu
 				{	
 					Text = "&Help", Menu = {
-											{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Karm.Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)"}
+												{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = [[
+		wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n    Version: '..Karm.Globals.KARM_VERSION.."\nFor Help:\n    wiki.karm.amved.com\n    forum.karm.amved.com\n    karm@amved.com", 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)]]
+												}
 									}
 				}
 }

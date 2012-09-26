@@ -67,7 +67,9 @@ end
 					-- 2nd Menu
 					{	
 						Text = "&Help", Menu = {
-												{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = "wx.wxMessageBox('Karm is the Task and Project management application for everybody.\\n Version: '..Karm.Globals.KARM_VERSION, 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)"}
+												{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = [[
+		wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n    Version: '..Karm.Globals.KARM_VERSION.."\nFor Help:\n    wiki.karm.amved.com\n    forum.karm.amved.com\n    karm@amved.com", 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)]]
+												}
 										}
 					}
 	}
@@ -4068,8 +4070,12 @@ function Karm.Initialize()
 	local image = wx.wxImage("images/SplashImage.jpg",wx.wxBITMAP_TYPE_JPEG)
 	--image = image:Scale(100,100)
     sizer:Add(panel, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
-    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_CENTRE + wx.wxBORDER_NONE + wx.wxTE_READONLY)
-    sizer:Add(textBox, 0, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+    local sizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+    local textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Version: "..Karm.Globals.KARM_VERSION, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_LEFT + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    sizer1:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 5)
+    textBox = wx.wxTextCtrl(splash, wx.wxID_ANY, "Contact: karm@amved.com", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_RIGHT + wx.wxBORDER_NONE + wx.wxTE_READONLY)
+    sizer1:Add(textBox, 1, bit.bor(wx.wxALL, wx.wxEXPAND, wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 5)
+    sizer:Add(sizer1,0,wx.wxALL+wx.wxEXPAND,1)
     panel:Connect(wx.wxEVT_PAINT,function(event)
 		    local cdc = wx.wxPaintDC(event:GetEventObject():DynamicCast("wxWindow"))
 		    cdc:DrawBitmap(wx.wxBitmap(image),11,0,false)
