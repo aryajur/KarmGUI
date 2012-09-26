@@ -29,14 +29,16 @@ end
 				-- 2nd Menu
 				{	
 					Text = "&Tools", Menu = {
-											{Text = "&Planning Mode\tCtrl-P", HelpText = "Toggle Planning mode", Code = [[local menuItems = Karm.GUI.menuBar:GetMenu(1):GetMenuItems() 
-if menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):IsChecked() then 
-	-- Enable Planning Mode 
-	Karm.GUI.taskTree:enablePlanningMode() 
-else 
-	-- Disable Planning Mode 
-	Karm.GUI.taskTree:disablePlanningMode() 
-end]] , ItemKind = wx.wxITEM_CHECK},
+											{Text = "&Planning Mode\tCtrl-P", HelpText = "Toggle Planning mode", Code = [[
+	local menuItem = Karm.GUI.menuBar:FindItem(myID)
+	if menuItem:IsChecked() then 
+		-- Enable Planning Mode 
+		Karm.GUI.taskTree:enablePlanningMode() 
+	else 
+		-- Disable Planning Mode 
+		Karm.GUI.taskTree:disablePlanningMode() 
+	end											
+											]], ItemKind = wx.wxITEM_CHECK},
 											{Text = "Planning Mode ON for &Tasks\tCtrl-T", HelpText = "Turn on Planning Mode for the selected tasks", Code = [[
 	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
@@ -96,9 +98,7 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 				-- 3rd Menu
 				{	
 					Text = "&Filters", Menu = {
-											{Text = "&Not Done Tasks under\tCtrl-1", HelpText = "All not done tasks under this task", Code = [[
-local menuItems = Karm.GUI.menuBar:GetMenu(2):GetMenuItems() 
-menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(true)
+											{Text = "&Show Not Done Tasks under also\tCtrl-1", HelpText = "All not done tasks under this task", Code = [[
 -- Get selected task first
 local taskList = Karm.GUI.taskTree.Selected
 if #taskList == 0 then
@@ -109,42 +109,23 @@ if #taskList > 1 then
     wx.wxMessageBox("Just select a single task as the relative of the new task.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
     return
 end	
--- Store the original validateTask
-MyVT = MyVT or {}
-MyVT[#MyVT + 1] = Karm.FilterObject.validateTask
-local myVTindex = #MyVT
-local function newValidateTask(filter,task)
-	-- Check if the task is a under selected task
-	if task:IsUnder(taskList[1].Task) then
-		local filter = {Status="Behind,Not Started,On Track",Tasks={[1]={TaskID=taskList[1].Task.TaskID,Title=taskList[1].Task.Title,Children="true"}}}
-		return MyVT[1](filter,task)
-	else
-		return MyVT[myVTindex](filter,task)
-	end
+local filter = Karm.Filter
+if filter.Map then
+	-- This is already a filter combination
+	filter.Map.count = filter.Map.count + 1
+	filter.Map["F"..filter.Map.count] = {Name = "F"..filter.Map.count..":"..taskList[1].Task.Title.." and not done Children", Filter = {Status="Behind,Not Started,On Track",Tasks={[1]={TaskID=taskList[1].Task.TaskID,Title=taskList[1].Task.Title,Children="true"}}}}
+	filter.Bool = filter.Bool.." or 'F"..filter.Map.count..":"..filter.Map["F"..filter.Map.count].Name.."'"
+else
+	-- Make this a filter combination
+	Karm.Filter = {
+				Map = {count = 2,
+				F1 = {Name = "F1:Previous Filter", Filter = Karm.Filter},
+				F2 = {Name = "F2:"..taskList[1].Task.Title.." and not done Children", Filter = {Status="Behind,Not Started,On Track",Tasks={[1]={TaskID=taskList[1].Task.TaskID,Title=taskList[1].Task.Title,Children="true"}}}} 
+				},
+				Bool = "'F1:Previous Filter' or 'F2:"..taskList[1].Task.Title.." and not done Children'"
+	}
 end
-Karm.FilterObject.validateTask = newValidateTask
 Karm.GUI.fillTaskTree()
-											]], ItemKind = wx.wxITEM_CHECK},
-											{Text = "&Undo last tasks under (upper menu)\tCtrl-2", HelpText = "Roll back the above menu action and go to last filter", Code = [[
-if MyVT then
-	Karm.FilterObject.validateTask = MyVT[#MyVT]
-	MyVT[#MyVT] = nil
-	Karm.GUI.fillTaskTree()
-	if #MyVT == 0 then
-		MyVT = nil
-		local menuItems = Karm.GUI.menuBar:GetMenu(2):GetMenuItems() 
-		menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(false)
-	end	
-end
-											]]},
-											{Text = "&Reset tasks under\tCtrl-3", HelpText = "Reset the above menu action and go to original filter", Code = [[
-if MyVT then
-	Karm.FilterObject.validateTask = MyVT[1]
-	Karm.GUI.fillTaskTree()
-	MyVT = nil
-	local menuItems = Karm.GUI.menuBar:GetMenu(2):GetMenuItems() 
-	menuItems:Item(0):GetData():DynamicCast('wxMenuItem'):Check(false)	
-end
 											]]},
 											{Text = "&Scheduled but not done\tCtrl-4", HelpText = "Tasks scheduled before today and not marked done", Code = [[
 local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Scheduled_But_Not_Done.kff")

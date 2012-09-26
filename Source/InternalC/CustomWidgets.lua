@@ -1413,14 +1413,26 @@ do
         		end		-- if o.SelTree:GetItemParent(Sel[i]):GetValue() ~= parent:GetValue() then ends
         	end		-- for i = 2,#Sel do ends
         end		-- if #Sel > 1 then ends
+        if o.clickEventFunc and type(o.clickEventFunc) == "function" then
+	        local Sel = o.SelTree:GetSelections(Sel)
+	        local selText = {}
+	        for i = 1,#Sel do
+	        	selText[i] = o.SelTree:GetItemText(Sel[i])
+	        end
+        	o.clickEventFunc(selText)
+        end
         event:Skip()
+	end
+	
+	local associateEventFunc = function(o,funcTable)
+		o.clickEventFunc = funcTable.clickEventFunc or o.clickEventFunc 
 	end
 	
 	BooleanTreeCtrl = function(parent,sizer,getInfoFunc)
 		if not parent or not sizer or not getInfoFunc or type(getInfoFunc)~="function" then
 			return nil
 		end
-		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression, setExpression = setExpression}
+		local o = {ResetCtrl=ResetCtrl,BooleanExpression=BooleanExpression, setExpression = setExpression, associateEventFunc = associateEventFunc}
 		o.getInfo = getInfoFunc
 		o.prevSel = {}
 		o.parent = parent

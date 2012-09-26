@@ -98,7 +98,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.09.24",
+	KARM_VERSION = "1.12.09.25",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {
@@ -2620,6 +2620,17 @@ function Karm.LoadFilter(file)
 				return nil,"Cannot compile custom script in filter. Error: "..message
 			end
 		end
+		if safeenv.filter.Map then
+			-- This is a combination filter
+			for i = 1,safeenv.filter.Map.count do
+				if safeenv.filter.Map["F"..i].Filter.Script then
+					f, message = loadstring(safeenv.filter.Map["F"..i].Filter.Script)
+					if not f then
+						return nil,"Cannot compile custom script in filter: "..safeenv.filter.Map["F"..i].Name.."\nError: "..message
+					end
+				end
+			end
+		end
 		return safeenv.filter
 	else
 		return nil,"Cannot find a valid filter in the file."
@@ -3469,7 +3480,7 @@ function Karm.GUI.menuEventHandlerFunction(ID, code, file)
 	local handler
 	if code then
 		handler = function(event)
-			local f,message = loadstring(code)
+			local f,message = loadstring("local myID="..tostring(ID).."\n"..code)
 			if not f then
 				error(message,1)
 			end
@@ -3478,7 +3489,15 @@ function Karm.GUI.menuEventHandlerFunction(ID, code, file)
 		end
 	else
 		handler = function(event)
-			local f,message = loadfile(file)
+	    	local fil,err = io.open(file,"r")
+	    	local str
+	    	if not fil then
+	            error("Unable to load file '"..file.."'.\n "..err, 1)
+	        else
+	        	str = fil:read("*all")
+	        	fil:close()
+	        end
+			local f,message = loadstring("local myID="..tostring(ID).."\n"..str)
 			if not f then
 				error(message,1)
 			end

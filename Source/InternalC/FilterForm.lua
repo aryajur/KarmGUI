@@ -55,6 +55,8 @@ setfenv(1,M)
 -- Local filter table to store the filter criteria
 local filter = {}
 local filterData = {}
+local FCombMap = {count = 0}
+
 
 local noStr = {
 	Cat = Globals.NoCatStr,
@@ -253,6 +255,17 @@ end
 local function setfilter(f)
 	-- Initialize the form
 	initializeFilterForm(filterData)
+	if f.Map then
+		-- This is a filter Combination
+		local fil = f
+		-- Fill the tree
+		FCombBoolCtrl:setExpression(fil.Bool)
+		FCombMap = fil.Map
+		f = fil.Map["F"..fil.Map.count].Filter	-- This would set this filter in the GUI
+		dnBox:SetValue(fil.Map["F"..fil.Map.count].Name)
+		ApplyCombButton:SetLabel("Apply Combination")
+		ApplyCombButton:Enable(true)
+	end
 	-- Set the task details
 	local str = ""
 	if f.Tasks then
@@ -578,6 +591,17 @@ local function loadFilter(event)
 					return nil,"Cannot compile custom script in filter. Error: "..message
 				end
 			end
+			if safeenv.filter.Map then
+				-- This is a combination filter
+				for i = 1,safeenv.filter.Map.count do
+					if safeenv.filter.Map["F"..i].Filter.Script then
+						f, message = loadstring(safeenv.filter.Map["F"..i].Filter.Script)
+						if not f then
+							return nil,"Cannot compile custom script in filter: "..safeenv.filter.Map["F"..i].Name.."\nError: "..message
+						end
+					end
+				end
+			end
 			return safeenv.filter
 		else
 			return nil,"Cannot find a valid filter in the file."
@@ -586,7 +610,7 @@ local function loadFilter(event)
     local fileDialog = wx.wxFileDialog(frame, "Open file",
                                        "",
                                        "",
-                                       "Karm Filter files (*.kff)|*.kff|Text files (*.txt)|*.txt|All files (*)|*",
+                                       "Karm Filter files (*.kff)|*.kff|Karm Filter Combination files (*.kfc)|*.kfc|Text files (*.txt)|*.txt|All files (*)|*",
                                        wx.wxOPEN + wx.wxFILE_MUST_EXIST)
     if fileDialog:ShowModal() == wx.wxID_OK then
     	local result,message = ValidFilter(fileDialog:GetPath())
@@ -624,6 +648,51 @@ local function saveFilter(event)
     end
     fileDialog:Destroy()
 
+end
+
+local function synthesizeFComb()
+	local fil = FCombBoolCtrl:BooleanExpression()
+	if not fil then 
+		return
+	end
+	local newFComb = {count = 0}
+	for i = 1,FCombMap.count do
+		if string.find(fil,"'"..FCombMap["F"..i].Name.."'") then
+			-- This filter is present
+			newFComb.count = newFComb.count + 1
+			newFComb["F"..newFComb.count] = FCombMap["F"..i]
+		end
+	end
+	-- Update FCombMap
+	FCombMap = newFComb
+	return {Map = FCombMap,Bool = fil}
+end
+
+local function saveFilterComb(event)
+	setfenv(1,package.loaded[modname])
+	if not FCombBoolCtrl:BooleanExpression()then
+		return
+	end
+    local fileDialog = wx.wxFileDialog(frame, "Save File",
+                                       "",
+                                       "",
+                                       "Karm Filter Combination files (*.kfc)|*.kfc|Text files (*.txt)|*.txt|All files (*)|*",
+                                       wx.wxFD_SAVE)
+    if fileDialog:ShowModal() == wx.wxID_OK then
+    	local file,err = io.open(fileDialog:GetPath(),"w+")
+    	if not file then
+            wx.wxMessageBox("Unable to save as file '"..fileDialog:GetPath().."'.\n "..err,
+                            "File Save Error",
+                            wx.wxOK + wx.wxCENTRE, frame)
+        else
+			local fil = synthesizeFComb()
+			if fil then
+        		file:write("filter="..tableToString(fil))
+			end
+        	file:close()
+        end
+    end
+    fileDialog:Destroy()
 end
 
 -- Customized multiselect control
@@ -755,11 +824,13 @@ function filterFormActivate(parent, callBack)
 	-- Create tool bar
 	ID_LOAD = NewID()
 	ID_SAVE = NewID()
+	ID_SAVE_COMB = NewID()
 	local toolBar = frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
 	local toolBmpSize = toolBar:GetToolBitmapSize()
 
 	toolBar:AddTool(ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Filter Criteria")
 	toolBar:AddTool(ID_SAVE, "Save", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save Filter Criteria")
+	toolBar:AddTool(ID_SAVE_COMB, "Save Filter Combination", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save filter combination to disk")
 	toolBar:Realize()
 	
 	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
@@ -933,7 +1004,7 @@ function filterFormActivate(parent, callBack)
 			SchRev = wx.wxComboBox(SchPanel, wx.wxID_ANY,"Latest",wx.wxDefaultPosition, wx.wxDefaultSize,{"Latest"})
 			duSizer:Add(SchRev,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 
-			-- Event connect to enable disable SchRev
+--[[			-- Event connect to enable disable SchRev
 			TypeSch:Connect(wx.wxEVT_COMMAND_CHOICE_SELECTED,function(event) 
 				setfenv(1,package.loaded[modname])
 				if TypeSch:GetString(TypeSch:GetSelection()) == "Estimate" or TypeSch:GetString(TypeSch:GetSelection()) == "Revisions" then
@@ -943,7 +1014,7 @@ function filterFormActivate(parent, callBack)
 				end
 			end 
 			)
-
+]]
 			local DateRangeLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Date Ranges", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 			duSizer:Add(DateRangeLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 			-- Date Ranges Control
@@ -998,18 +1069,99 @@ function filterFormActivate(parent, callBack)
 			ScriptPanelSizer:SetSizeHints(ScriptPanel)
 		MainBook:AddPage(ScriptPanel, "Custom Script")
 		
+		-- Filter Combination Panel
+		FCombPanel = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
+			local FCombPanelSizer = wx.wxBoxSizer(wx.wxHORIZONTAL) 
+			local dnSizer = wx.wxBoxSizer(wx.wxVERTICAL)	-- Sizer for Descriptive names
+			local dnSizer1 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+			
+			local dnLabel = wx.wxStaticText(FCombPanel, wx.wxID_ANY, "Descriptive name for the filter unit", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+			dnSizer:Add(dnLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			
+			dnBox = wx.wxTextCtrl(FCombPanel, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize)
+			dnSizer:Add(dnBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+	
+			dnSizer1:Add(dnSizer,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL, wx.wxALIGN_CENTER_VERTICAL), 1)
+			FCombPanelSizer:Add(dnSizer1,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+			local applyButton
+			-- Now add the Boolean Control
+			local getFilterUnit = function()
+				-- Get the full schedule boolean unit
+				local f = synthesizeFilter()
+				if not f then
+					return
+				end
+				local dn = dnBox:GetValue()
+				if dn == "" then
+					wx.wxMessageBox("Please enter a name for the current filter first.")
+					return
+				elseif string.find(dn,"'") then
+					wx.wxMessageBox("Name cannot contain single quotes ('). Please use double quotes instead.")
+					return
+				end
+				FCombMap.count = FCombMap.count + 1
+				FCombMap["F"..FCombMap.count] = {Name = "F"..FCombMap.count..":"..dn, Filter = f}
+				applyButton:SetLabel("Apply Combination")
+				applyButton:Enable(true)
+				return FCombMap["F"..FCombMap.count].Name
+			end 
+
+			FCombBoolCtrl = BooleanTreeCtrl(FCombPanel,FCombPanelSizer,getFilterUnit, "FComb")
+			FCombBoolCtrl:associateEventFunc({
+				clickEventFunc = function(selText)
+					for i = #selText,1,-1 do
+						-- Find this in FCombMap
+						local found = nil
+						for j = 1,FCombMap.count do
+							if selText[i] == FCombMap["F"..j].Name then
+								found = FCombMap["F"..j].Filter
+								break
+							end
+						end
+						if found then
+							-- Set this in the filter GUI
+							dnBox:SetValue(string.sub(selText[i],string.find(selText[i],":")+1,-1))
+							setfilter(found)
+							break
+						end
+					end
+				end
+			})
+			
+			FCombPanel:SetSizer(FCombPanelSizer)
+			FCombPanelSizer:SetSizeHints(FCombPanel)
+		MainBook:AddPage(FCombPanel, "Logically Combine Filters")
 
 	MainSizer:Add(MainBook, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	local ButtonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
-	ToBaseButton = wx.wxButton(frame, wx.wxID_ANY, "Current to Base", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
-	ButtonSizer:Add(ToBaseButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	ApplyCombButton = wx.wxButton(frame, wx.wxID_ANY, "Apply Combination", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+	applyButton = ApplyCombButton
+	ButtonSizer:Add(ApplyCombButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	ApplyCombButton:Disable()
 	CancelButton = wx.wxButton(frame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 	ButtonSizer:Add(CancelButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	ApplyButton = wx.wxButton(frame, wx.wxID_ANY, "Apply", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 	ButtonSizer:Add(ApplyButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	ResetButton = wx.wxButton(frame, wx.wxID_ANY, "Reset Filter", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+	ButtonSizer:Add(ResetButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	MainSizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 	frame:SetSizer(MainSizer)
 	--MainSizer:SetSizeHints(frame)
+	
+	-- MainBook Events
+	MainBook:Connect(wxaui.wxEVT_COMMAND_AUINOTEBOOK_PAGE_CHANGED,
+		function(event)
+			setfenv(1,package.loaded[modname])	
+			if MainBook:GetPageText(event:GetSelection()) == "Logically Combine Filters" then
+				local f = synthesizeFilter()
+				if not f then
+					return
+				end
+				dnBox:SetValue(tableToString(f))
+				dnBox:SetSelection(-1,-1)
+			end
+		end
+	)
 	
 	-- Connect event handlers to the buttons
 	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
@@ -1020,6 +1172,13 @@ function filterFormActivate(parent, callBack)
 		end
 	)
 	
+	ResetButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function (event)
+			setfenv(1,package.loaded[modname])
+			initializeFilterForm(filterData)		
+		end
+	)
+
 	frame:Connect(wx.wxEVT_CLOSE_WINDOW,
 		function (event)
 			setfenv(1,package.loaded[modname])		
@@ -1041,6 +1200,19 @@ function filterFormActivate(parent, callBack)
 		end		
 	)
 
+	ApplyCombButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+		function(event)
+			setfenv(1,package.loaded[modname])
+			local f = synthesizeFComb()
+			if not f then
+				ApplyCombButton:SetLabel("No Combination")
+				ApplyCombButton:Disable()
+				return
+			end
+			frame:Close()
+			callBack(f)
+		end		
+	)
 --	Connect(wxID_ANY,wxEVT_CLOSE_WINDOW,(wxObjectEventFunction)&CriteriaFrame::OnClose);
 
 	-- Task Selection/Clear button press event
@@ -1064,6 +1236,7 @@ function filterFormActivate(parent, callBack)
 	-- Toolbar button events
 	frame:Connect(ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,loadFilter)
 	frame:Connect(ID_SAVE,wx.wxEVT_COMMAND_MENU_SELECTED,saveFilter)
+	frame:Connect(ID_SAVE_COMB,wx.wxEVT_COMMAND_MENU_SELECTED,saveFilterComb)
 	
     frame:Layout() -- help sizing the windows before being shown
     frame:Show(true)
