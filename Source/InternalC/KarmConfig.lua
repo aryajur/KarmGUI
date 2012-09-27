@@ -98,7 +98,7 @@ end]] , ItemKind = wx.wxITEM_CHECK},
 				-- 3rd Menu
 				{	
 					Text = "&Filters", Menu = {
-											{Text = "&Show Not Done Tasks under also\tCtrl-1", HelpText = "All not done tasks under this task", Code = [[
+											{Text = "&Show Not Done Tasks under also\tCtrl-1", HelpText = "All not done tasks under this task will also show", Code = [[
 -- Get selected task first
 local taskList = Karm.GUI.taskTree.Selected
 if #taskList == 0 then
@@ -114,7 +114,7 @@ if filter.Map then
 	-- This is already a filter combination
 	filter.Map.count = filter.Map.count + 1
 	filter.Map["F"..filter.Map.count] = {Name = "F"..filter.Map.count..":"..taskList[1].Task.Title.." and not done Children", Filter = {Status="Behind,Not Started,On Track",Tasks={[1]={TaskID=taskList[1].Task.TaskID,Title=taskList[1].Task.Title,Children="true"}}}}
-	filter.Bool = filter.Bool.." or 'F"..filter.Map.count..":"..filter.Map["F"..filter.Map.count].Name.."'"
+	filter.Bool = filter.Bool.." or '"..filter.Map["F"..filter.Map.count].Name.."'"
 else
 	-- Make this a filter combination
 	Karm.Filter = {
