@@ -1,12 +1,12 @@
 --Spores = {{file = "Test/Tasks.xml",type = "XML"}}
 Karm.Spores = {
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Task Bank.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Task Bank.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\AmVed Tasks.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Home Tasks.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Maxim Tasks.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\Arnav.ksf",type = "KSF"},
-		{file = "C:\\Users\\milind.gupta\\Documents\\Tasks\\ExpressIndianRecipes Tasks.ksf",type = "KSF"}
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\AmVed Task Bank.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Task Bank.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\AmVed Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Home Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Maxim Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Arnav.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\ExpressIndianRecipes Tasks.ksf",type = "KSF"}
 }
 
 -- Karm.GUI Settings
@@ -129,27 +129,27 @@ end
 Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "&Scheduled but not done\tCtrl-4", HelpText = "Tasks scheduled before today and not marked done", Code = [[
-local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Scheduled_But_Not_Done.kff")
+local filter = Karm.LoadFilter("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\Scheduled_But_Not_Done.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "&Coming Week not Done\tCtrl-5", HelpText = "Tasks scheduled in the coming week", Code = [[
-local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Coming_Week_Not_Done.kff")
+local filter = Karm.LoadFilter("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\Coming_Week_Not_Done.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "&Today Not Done\tCtrl-6", HelpText = "Tasks scheduled for today", Code = [[
-local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\Today_Not_Done.kff")
+local filter = Karm.LoadFilter("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\Today_Not_Done.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "All &Not Done, Non Obsolete\tCtrl-7", HelpText = "Tasks scheduled for today", Code = [[
-local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Not_Done_Non_Obsolete.kff")
+local filter = Karm.LoadFilter("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\All_Not_Done_Non_Obsolete.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]},
 											{Text = "&All Tasks\tCtrl-8", HelpText = "Show all loaded Tasks", Code = [[
-local filter = Karm.LoadFilter("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
+local filter = Karm.LoadFilter("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 Karm.Filter = filter
 Karm.GUI.fillTaskTree()
 											]]}
@@ -236,7 +236,7 @@ end
 do
 	local safeenv = {}
 	setmetatable(safeenv, {__index = Karm.Globals.safeenv})
-	local f,message = loadfile("C:\\Users\\milind.gupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
+	local f,message = loadfile("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 	if f then
 		setfenv(f,safeenv)
 		f()

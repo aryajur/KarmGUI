@@ -638,10 +638,10 @@ function Karm.FilterObject.validateTask(filter, task)
 						end
 					end
 					typeSchedule = "Revs"
-				elseif string.upper(typeSchedule) == "ACTUAL" then
+				elseif string.upper(string.sub(typeSchedule,1,#"ACTUAL")) == "ACTUAL" then
 					typeSchedule = "Actual"
 					index = 1
-				elseif string.upper(typeSchedule) == "LATEST" then
+				elseif string.upper(string.sub(typeSchedule,1,#"LATEST")) == "LATEST" then
 					-- Find the latest schedule in the task here
 					if string.upper(task.Status) == "DONE" and task.Schedules and task.Schedules.Actual then
 						typeSchedule = "Actual"

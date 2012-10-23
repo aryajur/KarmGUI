@@ -1004,7 +1004,7 @@ function filterFormActivate(parent, callBack)
 			SchRev = wx.wxComboBox(SchPanel, wx.wxID_ANY,"Latest",wx.wxDefaultPosition, wx.wxDefaultSize,{"Latest"})
 			duSizer:Add(SchRev,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 
---[[			-- Event connect to enable disable SchRev
+			-- Event connect to enable disable SchRev
 			TypeSch:Connect(wx.wxEVT_COMMAND_CHOICE_SELECTED,function(event) 
 				setfenv(1,package.loaded[modname])
 				if TypeSch:GetString(TypeSch:GetSelection()) == "Estimate" or TypeSch:GetString(TypeSch:GetSelection()) == "Revisions" then
@@ -1014,7 +1014,7 @@ function filterFormActivate(parent, callBack)
 				end
 			end 
 			)
-]]
+
 			local DateRangeLabel = wx.wxStaticText(SchPanel, wx.wxID_ANY, "Select Date Ranges", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
 			duSizer:Add(DateRangeLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 			-- Date Ranges Control
