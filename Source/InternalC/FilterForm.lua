@@ -1228,7 +1228,8 @@ function filterFormActivate(parent, callBack)
 	frame:Connect(wx.wxEVT_SIZE,
 		function(event)
 			setfenv(1,package.loaded[modname])
-			InsLabel:Wrap(frame:GetSize():GetWidth())
+			InsLabel:SetLabel("Enter a custom script to filte out tasks additional to the Filter set in the form. The task would be present in the environment in the table called 'task'. Apart from that the environment is what is setup in Globals.safeenv. The 'result' variable should be updated to true if pass or false if does not pass.")
+			InsLabel:Wrap(frame:GetSize():GetWidth()-25)
 			event:Skip()
 		end
 	)
