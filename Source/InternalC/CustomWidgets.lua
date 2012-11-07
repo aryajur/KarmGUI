@@ -249,6 +249,27 @@ do
 		return true
 	end
 	
+	AppendItem = function(ListBox,Item)
+		-- Check if the Item exists in the list control
+		local itemNum = -1
+		while ListBox:GetNextItem(itemNum) ~= -1 do
+			itemNum = ListBox:GetNextItem(itemNum)
+			local itemText = ListBox:GetItemText(itemNum)
+			if itemText == Item then
+				return true
+			end
+		end
+		itemNum = ListBox:GetItemCount()-1 
+		local newItem = wx.wxListItem()
+		newItem:SetId(itemNum)
+		newItem:SetText(Item)
+		newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
+		ListBox:InsertItem(newItem)
+		ListBox:SetItem(itemNum,0,Item)
+		ListBox:SetColumnWidth(0,wx.wxLIST_AUTOSIZE)
+		return true
+	end
+
 	local getSelectedItems = function(o)
 		-- Function to return all the selected items in an array
 		-- if the index 0 of the array is true then the none selection checkbox is checked
@@ -278,7 +299,11 @@ do
 		local selItems = {}
 		while item ~= -1 do
 			local itemText = list:GetItemText(item)
-			InsertItem(selList,itemText)			
+			if o.orderCtrl then
+				AppendItem(selList,itemText)
+			else
+				InsertItem(selList,itemText)
+			end			
 			selItems[#selItems + 1] = item	
 			item = list:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	
 		end
@@ -299,6 +324,80 @@ do
 		end
 	end
 	
+	local UpPress = function(event)
+		setfenv(1,package.loaded[modname])
+		-- Get all selected Items
+		local item
+		local o = objMap[event:GetId()]
+		local selList = o.SelList
+		item = selList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
+		-- The 1st item position
+		local itemPos = item
+		local selItems = {}
+		local selItemNum = {}
+		while item ~= -1 do
+			local itemText = selList:GetItemText(item)
+			selItems[#selItems + 1] = itemText
+			selItemNum[#selItemNum + 1] = item	
+			item = selList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	
+		end
+		-- Now delete all the selected items
+		for i=#selItemNum,1,-1 do
+			selList:DeleteItem(selItemNum[i])
+		end
+		-- Now shift all selected items above the item of the 1st selected item
+		itemPos = itemPos - 1
+		if itemPos < 0 then
+			itemPos = 0
+		end
+		for i=1,#selItems do
+			local newItem = wx.wxListItem()
+			newItem:SetId(itemPos)
+			newItem:SetText(selItems[i])
+			newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
+			ListBox:InsertItem(newItem)
+			ListBox:SetItem(itemNum,0,Item)
+			itemPos = itemPos + 1			
+		end
+	end
+	
+	local DownPress = function(event)
+		setfenv(1,package.loaded[modname])
+		-- Get all selected Items
+		local item
+		local o = objMap[event:GetId()]
+		local selList = o.SelList
+		item = selList:GetNextItem(-1,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)
+		local selItems = {}
+		local selItemNum = {}
+		while item ~= -1 do
+			local itemText = selList:GetItemText(item)
+			selItems[#selItems + 1] = itemText
+			selItemNum[#selItemNum + 1] = item	
+			item = selList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	
+		end
+		-- Last Item position
+		local itemPos = selItemNum[#selItemNum]
+		-- Now shift all selected items below the item of the last selected item
+		itemPos = itemPos + 2
+		if itemPos > selList:GetItemCount() + 1 then
+			itemPos = selList:GetItemCount() + 1
+		end
+		for i=1,#selItems do
+			local newItem = wx.wxListItem()
+			newItem:SetId(itemPos)
+			newItem:SetText(selItems[i])
+			newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
+			ListBox:InsertItem(newItem)
+			ListBox:SetItem(itemNum,0,Item)
+			itemPos = itemPos + 1			
+		end	
+		-- Now delete all the selected items
+		for i=#selItemNum,1,-1 do
+			selList:DeleteItem(selItemNum[i])
+		end
+	end
+	
 	local RemovePress = function(event)
 		setfenv(1,package.loaded[modname])
 		-- Transfer all selected items from SelList to List
@@ -314,6 +413,7 @@ do
 			selItems[#selItems + 1] = item	
 			item = selList:GetNextItem(item,wx.wxLIST_NEXT_ALL,wx.wxLIST_STATE_SELECTED)	
 		end
+		-- Delete those items in the selected items list
 		for i=#selItems,1,-1 do
 			selList:DeleteItem(selItems[i])
 		end
@@ -342,13 +442,13 @@ do
 		end	
 	end
 	
-	MultiSelectCtrl = function(parent, LItems, RItems, noneSelection, textEntry)
+	MultiSelectCtrl = function(parent, LItems, RItems, noneSelection, textEntry,orderCtrl)
 		if not parent then
 			return nil
 		end
 		LItems = LItems or {}
 		RItems = RItems or {} 
-		local o = {AddSelListData=AddSelListData, AddListData=AddListData, ResetCtrl=ResetCtrl, getSelectedItems = getSelectedItems}	-- new object
+		local o = {AddSelListData=AddSelListData, AddListData=AddListData, ResetCtrl=ResetCtrl, getSelectedItems = getSelectedItems, orderCtrl = orderCtrl}	-- new object
 		-- Create the GUI elements here
 		o.Sizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
 			local sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
@@ -394,9 +494,26 @@ do
 			o.SelList:InsertColumn(0,"Selections")
 			o:AddListData(RItems)
 			o.Sizer:Add(o.SelList, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			if orderCtrl then
+				-- Add buttons to change order for the selected list items
+				ButtonSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+				ID = NewID()
+				o.UpButton = wx.wxButton(parent, ID, "Up", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				ButtonSizer:Add(o.UpButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				objMap[ID] = o 
+				ID = NewID()
+				o.DownButton = wx.wxButton(parent, ID, "Dn", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				ButtonSizer:Add(o.DownButton, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				objMap[ID] = o
+				o.Sizer:Add(ButtonSizer, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+			end
 		-- Connect the buttons to the event handlers
 		o.AddButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,AddPress)
 		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,RemovePress)
+		if orderCtrl then
+			o.UpButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,UpPress)
+			o.UpButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,UpPress)
+		end
 		return o
 	end
 end
