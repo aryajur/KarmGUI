@@ -3577,11 +3577,22 @@ function Karm.finalizePlanning(task, type)
 			task.Schedules[list.typeSchedule].count = list.index
 		end
 	end		-- if list ends here
+	-- Make sure the task passes checkTask
+	if type(checkTask) == "function" then
+		local err,msg = checkTask(task)
+		if not err then
+			msg = msg or "Error in the task reported by checkTask. Please review."
+			wx.wxMessageBox(msg, "Task Error",wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+			return nil
+		end
+	end
+
 	if type =="NORMAL" then
 		task.Planning = nil
 	else
 		task.PlanWorkDone = nil
 	end	
+	-- Remove the task from the planning list
 	if Karm.GUI.taskTree.taskList then
 		for i = 1,#Karm.GUI.taskTree.taskList do
 			if Karm.GUI.taskTree.taskList[i].Task == task then

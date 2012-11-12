@@ -259,7 +259,7 @@ do
 				return true
 			end
 		end
-		itemNum = ListBox:GetItemCount()-1 
+		itemNum = ListBox:GetItemCount()
 		local newItem = wx.wxListItem()
 		newItem:SetId(itemNum)
 		newItem:SetText(Item)
@@ -355,8 +355,9 @@ do
 			newItem:SetId(itemPos)
 			newItem:SetText(selItems[i])
 			newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
-			ListBox:InsertItem(newItem)
-			ListBox:SetItem(itemNum,0,Item)
+			selList:InsertItem(newItem)
+			selList:SetItem(itemPos,0,selItems[i])
+			selList:SetItemState(itemPos,wx.wxLIST_STATE_SELECTED,wx.wxLIST_STATE_SELECTED)
 			itemPos = itemPos + 1			
 		end
 	end
@@ -388,10 +389,12 @@ do
 			newItem:SetId(itemPos)
 			newItem:SetText(selItems[i])
 			newItem:SetTextColour(wx.wxColour(wx.wxBLACK))
-			ListBox:InsertItem(newItem)
-			ListBox:SetItem(itemNum,0,Item)
+			newItem:SetStateMask(wx.wxLIST_STATE_SELECTED)
+			selList:InsertItem(newItem)
+			selList:SetItem(itemPos,0,selItems[i])
+			selList:SetItemState(itemPos,wx.wxLIST_STATE_SELECTED,wx.wxLIST_STATE_SELECTED)
 			itemPos = itemPos + 1			
-		end	
+		end
 		-- Now delete all the selected items
 		for i=#selItemNum,1,-1 do
 			selList:DeleteItem(selItemNum[i])
@@ -512,7 +515,7 @@ do
 		o.RemoveButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,RemovePress)
 		if orderCtrl then
 			o.UpButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,UpPress)
-			o.UpButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,UpPress)
+			o.DownButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,DownPress)
 		end
 		return o
 	end
