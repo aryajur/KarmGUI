@@ -74,7 +74,8 @@ local function makeTask(task)
 	if not task then
 		error("Need a task object with at least a task ID",2)
 	end
-	local newTask = copyTask(task)
+	-- Copy the task, just link the sub tasks, do not remove DBDATA and update the sub task parents
+	local newTask = copyTask(task,false,false,true)
 --	if task then
 --		-- Since copyTask does not replicate that
 --		newTask.DBDATA = task.DBDATA

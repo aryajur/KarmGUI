@@ -951,10 +951,12 @@ end
 -- If copySubTasks is true then SubTasks are made a copy as well with the same parameters (in this case Previous and Next are 
 --         updated for all the SubTasks and so are the parent of the subtasks) otherwise it is the same linked SubTask table
 -- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table
--- Normally the sub-task parents are linked to the tasks from which the hierarchy is being copied over, if keepOldTaskParents is false then all the sub-task parents
+-- Normally the sub-task parents are linked to the tasks from which the hierarchy is being copied over, if updateSubTaskParents is true then all the sub-task parents
 -- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks
+-- WARNING: If copySubTasks is false and if updateSubTaskParents is true then even though a copy of sub tasks is not made the sub task parents are updated to point to this new task
+-- This may break the original task hierarchy if that is needed later
 -- Planning is not copied over
-function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParents)
+function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,updateSubTaskParents)
 	-- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value
 	local copyTableFunc
 	local function copyTable(t, deep, seen)
@@ -1017,7 +1019,7 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,keepOldTaskParent
 			end
 		end
 	end		-- for k,v in pairs(task) do ends
-	if not keepOldTaskParents and nTask.SubTasks then
+	if updateSubTaskParents and nTask.SubTasks then
 		-- Correct for the task parents of all subtasks
 		Karm.TaskObject.applyFuncHier(nTask,function(task, subTaskParent)
 								if task.SubTasks then

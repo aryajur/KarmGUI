@@ -100,7 +100,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.10.22",
+	KARM_VERSION = "1.12.11.17",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {
@@ -2362,7 +2362,7 @@ function Karm.moveCopyTask(task)
 			str = "Move"
 		else
 			-- Make a copy of the task and all its sub tasks and remove any DBDATA from the task to make a new task
-			task = Karm.TaskObject.copy(Karm.GUI.CopyTask.task, true, true)
+			task = Karm.TaskObject.copy(Karm.GUI.CopyTask.task, true, true,true)
 			str = "Copy"
 		end
 		if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
