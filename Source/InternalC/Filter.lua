@@ -803,7 +803,7 @@ function Karm.FilterObject.validateTask(filter, task)
 				-- This filter unit passes
 				result = "true"
 			end
-			bool = string.gsub(bool, "'"..filter.Map["F"..i].Name.."'", result)
+			bool = string.gsub(bool, string.gsub("'"..filter.Map["F"..i].Name.."'","[%(%)%.%%%+%-%*%?%[%]%^%$]", function(c) return "%" .. c end), result)
 		end
 		-- Check if the boolean passes
 		if not loadstring("return "..bool)() then

@@ -100,7 +100,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.11.17",
+	KARM_VERSION = "1.12.11.30",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {
@@ -3517,13 +3517,13 @@ function Karm.finalizePlanningAll(taskList, type)
 end
 
 -- To finalize the planning of a task and convert it to a normal schedule
-function Karm.finalizePlanning(task, type)
+function Karm.finalizePlanning(task, planType)
 	if not Karm.TaskObject.IsValidTask(task) then
 		error("Invalid Task Object passed to finalizePlanning", 2)
 	end
-	type = type or "NORMAL"
+	planType = planType or "NORMAL"
 	local list
-	if type == "NORMAL" then
+	if planType == "NORMAL" then
 		list = Karm.TaskObject.getLatestScheduleDates(task,true)
 	else
 		list = Karm.TaskObject.getWorkDoneDates(task,true)
@@ -3533,7 +3533,7 @@ function Karm.finalizePlanning(task, type)
 		todayDate:SetToCurrent()
 		todayDate = Karm.Utility.toXMLDate(todayDate:Format("%m/%d/%Y"))	
 		local list1
-		if type =="NORMAL" then
+		if planType =="NORMAL" then
 			list1 = Karm.TaskObject.getLatestScheduleDates(task)
 		else
 			list1 = Karm.TaskObject.getWorkDoneDates(task)
@@ -3587,7 +3587,7 @@ function Karm.finalizePlanning(task, type)
 		end
 	end
 
-	if type =="NORMAL" then
+	if planType =="NORMAL" then
 		task.Planning = nil
 	else
 		task.PlanWorkDone = nil

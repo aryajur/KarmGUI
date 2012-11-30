@@ -1072,12 +1072,17 @@ do
 						ob.object.SelTree:SetItemText(node,"(OR)")
 					elseif nodeText == "NOT(AND)" then
 						ob.object.SelTree:SetItemText(node,"(AND)")
-					else
-						-- NOT()
+					elseif nodeText == "NOT()" then
 						-- Move it up the hierarchy
 						local pParent = ob.object.SelTree:GetItemParent(node)
 						CopyTree(ob.object,Sel[1],pParent)
 						DelTree(ob.object,node)
+					elseif nodeText == "Expressions" then
+						local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
+						CopyTree(ob.object,Sel[1],currNode)
+						DelTree(ob.object,Sel[1])
+					else
+						error("Code Error: This condition should never occur! Boolean Tree Negate press -- 1.",1)					
 					end		-- if parentText == "(OR)" then ends here
 				else
 					local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
@@ -1096,8 +1101,10 @@ do
 						ob.object.SelTree:SetItemText(parent,"NOT(AND)")
 					elseif parentText == "NOT(OR)" then
 						ob.object.SelTree:SetItemText(parent,"(OR)")
-					else -- parentText == "NOT(AND)" 
+					elseif parentText == "NOT(AND)" then 
 						ob.object.SelTree:SetItemText(parent,"(AND)")
+					else
+						error("Code Error: This condition should never occur! Boolean Tree Negate press -- 2.",1)					
 					end
 				else
 					-- First move the selections to a correct new node
@@ -1105,6 +1112,8 @@ do
 						parentText = "NOT(OR)"
 					elseif parentText == "(AND)" or parentText == "NOT(AND)" then
 						parentText = "NOT(AND)" 
+					else
+						error("Code Error: This condition should never occur! Boolean Tree Negate press -- 3.",1)					
 					end
 					parent = ob.object.SelTree:AppendItem(ob.object.SelTree:GetItemParent(Sel[1]),parentText)
 					for i = 1,#Sel do

@@ -657,7 +657,7 @@ local function synthesizeFComb()
 	end
 	local newFComb = {count = 0}
 	for i = 1,FCombMap.count do
-		if string.find(fil,"'"..FCombMap["F"..i].Name.."'") then
+		if string.find(fil,"'"..FCombMap["F"..i].Name.."'",1,true) then
 			-- This filter is present
 			newFComb.count = newFComb.count + 1
 			newFComb["F"..newFComb.count] = FCombMap["F"..i]
