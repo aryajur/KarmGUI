@@ -100,7 +100,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.11.30",
+	KARM_VERSION = "1.12.12.05",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {

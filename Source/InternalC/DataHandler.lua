@@ -1043,6 +1043,7 @@ function Karm.TaskObject.MakeTaskObject(task)
 end
 
 -- Function to convert a task to a task list with incremental schedules i.e. 1st will be same as task passed (but a copy of it) and last task will have 1st schedule only
+-- This function ignores the Actual Schedule since that is always a single chunk of periods and is not an incremental schedule
 -- The task ID however have additional _n where n is a serial number from 1 
 function Karm.TaskObject.incSchTasks(task)
 	local taskList = {}
@@ -1050,6 +1051,7 @@ function Karm.TaskObject.incSchTasks(task)
 	taskList[1].TaskID = taskList[1].TaskID.."_1"
 	while taskList[#taskList].Schedules do
 		-- Find the latest schedule in the task here
+		--[[
 		if string.upper(taskList[#taskList].Status) == "DONE" and taskList[#taskList].Schedules.Actual then
 			-- Actual Schedule is the latest so remove this one
 			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])
@@ -1057,7 +1059,8 @@ function Karm.TaskObject.incSchTasks(task)
 			taskList[#taskList].Schedules.Actual = nil
 			-- Change the task ID
 			taskList[#taskList].TaskID = task.TaskID.."_"..tostring(#taskList)
-		elseif taskList[#taskList].Schedules.Revs then
+		else]]
+		if taskList[#taskList].Schedules.Revs then
 			-- Actual is not the latest one but Revision is 
 			taskList[#taskList + 1] = Karm.TaskObject.copy(taskList[#taskList])
 			-- Remove the latest Revision Schedule

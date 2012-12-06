@@ -634,8 +634,8 @@ function taskFormActivate(parent, callBack, task)
 				end
 				-- Enable planning mode for the task
 				taskTree:enablePlanningMode({localTask2},"NORMAL")
-				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE")
 				wdTaskTree.ShowActual = true
+				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE")
 				-- Add the comment box
 				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
