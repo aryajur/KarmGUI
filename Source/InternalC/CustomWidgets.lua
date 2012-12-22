@@ -1319,7 +1319,7 @@ do
 						local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
 						ob.object.SelTree:AppendItem(currNode,unit)
 					end
-				elseif parentText == "NOT()" and (ob.button == "AND" or ob.button == "NAND" or ob.button == "OR" or ob.button == "NOR") then
+				elseif parentText == "NOT()" and (ob.button == "AND" or ob.button == "NAND" or ob.button == "OR" or ob.button == "NOR" or ob.button == "ANDN" or ob.button == "ORN") then
 					-- parentText = "NOT()"
 					-- Change Parent text
 					if ob.button == "NAND" or ob.button == "AND" then
@@ -1342,6 +1342,12 @@ do
 							local currNode = ob.object.SelTree:AppendItem(parent,"NOT()")
 							ob.object.SelTree:AppendItem(currNode,unit)
 						end
+					elseif ob.button=="ORN" then
+						ob.object.SelTree:SetItemText(parent,"(OR)")
+						ob.object.SelTree:AppendItem(parent,unit)
+					elseif ob.button=="ANDN" then
+						ob.object.SelTree:SetItemText(parent,"(AND)")
+						ob.object.SelTree:AppendItem(parent,unit)						
 					end
 				else
 					-- Now we need to move this single selected node to a new fresh node in its place and add unit also to that node
