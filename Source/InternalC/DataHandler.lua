@@ -70,27 +70,43 @@ end
 function Karm.TaskObject.getSummary(task)
 	if task then
 		local taskSummary = ""
+		if not task:IsSpore() then
+			-- Get the task hierarchy here
+			local tH = ""
+			local currTask = task
+			while currTask.Parent do
+				tH="\n      -->"..currTask.Parent.Title..tH
+				currTask = currTask.Parent
+			end
+			for k,v in pairs(Karm.SporeData) do
+				if currTask.SubTasks.parent == v then
+					tH = k..tH
+					break
+				end
+			end
+			taskSummary = taskSummary.."Hierarchy: "..tH.."\n"
+		end
 		if task.TaskID then
-			taskSummary = "ID: "..task.TaskID
+			taskSummary = taskSummary.."ID: "..task.TaskID.."\n"
 		end
 		if task.Title then
-			taskSummary = taskSummary.."\nTITLE: "..task.Title
+			taskSummary = taskSummary.."TITLE: "..task.Title.."\n"
 		end
 		if task.Start then
-			taskSummary = taskSummary.."\nSTART DATE: "..task.Start
+			taskSummary = taskSummary.."START DATE: "..task.Start.."\n"
 		end
 		if task.Fin then
-			taskSummary = taskSummary.."\nFINISH DATE: "..task.Fin
+			taskSummary = taskSummary.."FINISH DATE: "..task.Fin.."\n"
 		end
 		if task.Due then
-			taskSummary = taskSummary.."\nDUE DATE: "..task.Due
+			taskSummary = taskSummary.."DUE DATE: "..task.Due.."\n"
 		end
 		if task.Status then
-			taskSummary = taskSummary.."\nSTATUS: "..task.Status
+			taskSummary = taskSummary.."STATUS: "..task.Status.."\n"
 		end
 		-- Responsible People
 		if task.Who then
-			taskSummary = taskSummary.."\nPEOPLE: "
+			taskSummary = taskSummary.."PEOPLE: "
 			local ACT = ""
 			local INACT = ""
 			for i=1,task.Who.count do
@@ -106,9 +122,10 @@ function Karm.TaskObject.getSummary(task)
 			if #INACT > 0 then
 				taskSummary = taskSummary.."\n   INACTIVE: "..string.sub(INACT,2,-1)
 			end
+			taskSummary = taskSummary.."\n"
 		end
 		if task.Access then
-			taskSummary = taskSummary.."\nLOCKED: YES"
+			taskSummary = taskSummary.."LOCKED: YES"
 			local RA = ""
 			local RWA = ""
 			for i = 1,task.Access.count do
@@ -124,35 +141,36 @@ function Karm.TaskObject.getSummary(task)
 			if #RWA > 0 then
 				taskSummary = taskSummary.."\n   READ/WRITE ACCESS PEOPLE: "..string.sub(RWA,2,-1)
 			end
+			taskSummary = taskSummary.."\n"
 		end
 		if task.Assignee then
-			taskSummary = taskSummary.."\nASSIGNEE: "
+			taskSummary = taskSummary.."ASSIGNEE: "
 			for i = 1,#task.Assignee do
 				taskSummary = taskSummary..task.Assignee[i].ID..","
 			end
-			taskSummary = taskSummary:sub(1,-2)
+			taskSummary = taskSummary:sub(1,-2).."\n"
 		end
 		if task.Priority then
-			taskSummary = taskSummary.."\nPRIORITY: "..task.Priority
+			taskSummary = taskSummary.."PRIORITY: "..task.Priority.."\n"
 		end
 		if task.Private then
-			taskSummary = taskSummary.."\nPRIVATE TASK"
+			taskSummary = taskSummary.."PRIVATE TASK\n"
 		end
 		if task.Cat then
-			taskSummary = taskSummary.."\nCATEGORY: "..task.Cat
+			taskSummary = taskSummary.."CATEGORY: "..task.Cat.."\n"
 		end
 		if task.SubCat then
-			taskSummary = taskSummary.."\nSUB-CATEGORY: "..task.SubCat
+			taskSummary = taskSummary.."SUB-CATEGORY: "..task.SubCat.."\n"
 		end
 		if task.Tags then
-			taskSummary = taskSummary.."\nTAGS: "
+			taskSummary = taskSummary.."TAGS: "
 			for i = 1,#task.Tags do
 				taskSummary = taskSummary..task.Tags[i]..","
 			end
-			taskSummary = taskSummary:sub(1,-2)
+			taskSummary = taskSummary:sub(1,-2).."\n"
 		end
 		if task.Comments then
-			taskSummary = taskSummary.."\nCOMMENTS:\n"..task.Comments
+			taskSummary = taskSummary.."COMMENTS:\n"..task.Comments.."\n"
 		end
 		return taskSummary
 	else
@@ -1787,7 +1805,7 @@ end
 --		Actual
 --	SubTasks.
 --		[0] = "SubTasks"
---		parent  = pointer to the array containing the list of tasks having the task whose SubTask Node this is (Points to Spore table for root tasks of a Spore)
+--		parent  = pointer to the array containing the list of tasks having the task whose SubTask Node this is (Points to Spore table for root tasks of a Spore) - Thus this is always present in a task even if it does not have sub tasks.
 --		tasks = count of number of subtasks
 --		[i] = Task table like this one repeated for sub tasks
 
@@ -1896,6 +1914,8 @@ function Karm.XML2Data(SporeXML, SporeFile)
 							tagTable[i] = task[count][i][1]
 						end
 						dataStruct[dataStruct.tasks].Tags = tagTable
+					elseif task[count][0] == "Estimate" then
+						dataStruct[dataStruct.tasks].Estimate = task[count][1]
 					elseif task[count][0] == "Schedules" then
 						local schedule = {[0]="Schedules"}
 						for i = 1,#task[count] do
@@ -1906,9 +1926,7 @@ function Karm.XML2Data(SporeXML, SporeFile)
 									estimate[j] = {[0]="Estimate"}
 									-- Loop through the children of Estimates element
 									for n = 1,#task[count][i][j] do
-										if task[count][i][j][n][0] == "Hours" then
-											estimate[j].Hours = task[count][i][j][n][1]
-										elseif task[count][i][j][n][0] == "Comment" then
+										if task[count][i][j][n][0] == "Comment" then
 											estimate[j].Comment = task[count][i][j][n][1]
 										elseif task[count][i][j][0] == "Updated" then
 											estimate[j].Updated = task[count][i][j][n][1]

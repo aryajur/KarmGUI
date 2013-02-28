@@ -23,6 +23,8 @@ end
 
 -- Display Done
 if count > 0 then
+	-- Refresh the Gantt here
+	Karm.GUI.fillTaskTree()
 	wx.wxMessageBox("Updated "..tostring(count).." Tasks:\n"..str)
 else
 	wx.wxMessageBox("No Tasks to update!")

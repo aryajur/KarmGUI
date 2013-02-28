@@ -390,6 +390,21 @@ function taskFormActivate(parent, callBack, task)
 					end					
 					sizer3:Add(status, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+					-- Estimated time
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
+					if Globals.EstimateUnit == "H" then
+						textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Estimated Hours:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+					else
+						textLabel = wx.wxStaticText(TInfo, wx.wxID_ANY, "Estimated Days:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+					end
+					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					if task and task.Estimate then
+						estimate = wx.wxSpinCtrl(TInfo, wx.wxID_ANY,task.Estimate, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxSP_ARROW_KEYS, 0, Globals.MaxEstimate,0)
+					else
+						estimate = wx.wxSpinCtrl(TInfo, wx.wxID_ANY,"0", wx.wxDefaultPosition, wx.wxDefaultSize,  wx.wxSP_ARROW_KEYS, 0, Globals.MaxEstimate,0)
+					end					
+					sizer3:Add(estimate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
+					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					sizer1:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
 				-- Comment

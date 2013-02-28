@@ -100,9 +100,11 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.12.12.05",
+	KARM_VERSION = "1.13.2.21",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
+	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
+	MaxEstimate = 1000, -- Maximum number of units that can be estimated for a task
 	StatusNodeColor = {
 				{	ForeColor = {Red=100,Green=100,Blue=0},
 					BackColor = {Red=255,Green=255,Blue=255}
@@ -130,7 +132,7 @@ Karm.Globals = {
 	NoSubCatStr = "__NO_SUBCAT__",
 	NoPriStr = "__NO_PRI__",
 	__DEBUG = true,		-- For debug mode
-	PlanningMode = false,	-- Flag to indicate Schedule Planning mode is on.
+	--PlanningMode = false,	-- Flag to indicate Schedule Planning mode is on. THIS IS NOT USED IT IS USED IN THE RESPECTIVE GANTT GUI OBJECT
 	unsavedSpores = {},	-- To store list of unsaved Spores
 	safeenv = {},
 	UserIDPattern = "%'([%w%.%_%,]+)%'"
@@ -1140,6 +1142,7 @@ do
 		
 		nodeMeta[node].Task = task
 		nodeMeta[node].Title = task.Title
+		nodeMeta[node].ForeColor, nodeMeta[node].BackColor = Karm.GUI.getNodeColor(node)
 		
 		if nodeMeta[node].Row then
 			-- Calculate the hierLevel
@@ -3362,6 +3365,7 @@ function Karm.loadKarmSpore(file, commands)
 	end        	
 	-- First update the Karm.Globals.ROOTKEY
 	Spore.TaskID = Karm.Globals.ROOTKEY..Spore.SporeFile
+	Karm.TaskObject.MakeTaskObject(Spore)
 	-- Get list of task in the spore
 	list1 = Karm.FilterObject.applyFilterHier(nil,Spore)
 	local reload = nil
