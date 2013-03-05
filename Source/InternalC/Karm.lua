@@ -313,7 +313,7 @@ do
 	-- Function to enable the planning mode
 	-- Type = "NORMAL" - Planning for normal schedules
 	-- Type = "WORKDONE" - Planning for the actual work done schedule
-	function taskTreeINT.enablePlanningMode(taskTree, taskList, type)
+	function taskTreeINT.enablePlanningMode(taskTree, taskList, type, requireSameClick)
 		local oTree = taskTreeINT[taskTree]
 		taskList = taskList or {}
 		if oTree.ShowActual then
@@ -324,12 +324,14 @@ do
 		if type ~= "NORMAL" and type ~= "WORKDONE" then
 			error("enablePlanningMode: Planning type should either be 'NORMAL' or 'WORKDONE'.",2)
 		end
-		oTree.Planning = type
+		oTree.Planning = {type = type, requireSameClick = requireSameClick}
+		-- Work done planning is stored in PlanWorkDone table while schedule planning is stored in Planning table
+		-- Both are separate since both may exist together.
 		if not oTree.taskList then
 			oTree.taskList = {}
 			-- Check if there are tasks with Planning
 			for i,v in taskTreeINT.tpairs(taskTree) do
-				if oTree.Planning == "NORMAL" then
+				if oTree.Planning.type == "NORMAL" then
 					if v.Task and v.Task.Planning then
 						oTree.taskList[#oTree.taskList + 1] = v
 					end
@@ -368,9 +370,9 @@ do
 						dateList = Karm.TaskObject.getWorkDoneDates(taskList[i])
 					end		-- if type == "NORMAL" then ends
 					if dateList then
-						Karm.TaskObject.togglePlanningType(taskList[i],oTree.Planning)
+						Karm.TaskObject.togglePlanningType(taskList[i],oTree.Planning.type)
 						for j=1,#dateList do
-							Karm.TaskObject.togglePlanningDate(taskList[i],dateList[j],oTree.Planning)
+							Karm.TaskObject.togglePlanningDate(taskList[i],dateList[j],oTree.Planning.type)
 						end
 					end
 				end		-- if not found then ends
@@ -782,9 +784,9 @@ do
 		elseif key == "ShowActual" then
 			if oTree.Planning then
 				if val then
-					oTree.Planning = "WORKDONE"
+					oTree.Planning.type = "WORKDONE"
 				else
-					oTree.Planning = "NORMAL"
+					oTree.Planning.type = "NORMAL"
 				end
 			end
 			oTree[key] = val
@@ -1862,7 +1864,7 @@ do
 				for i = 1,#oTree.taskList do
 					if oTree.taskList[i].Row == row+1 then
 						-- This is the task modify/add the planning schedule
-						Karm.TaskObject.togglePlanningType(oTree.taskList[i].Task,oTree.Planning)
+						Karm.TaskObject.togglePlanningType(oTree.taskList[i].Task,oTree.Planning.type)
 						dispGanttFunc(obj,row+1,false,oTree.taskList[i])
 						break
 					end
@@ -2070,12 +2072,14 @@ do
 			stepDate = stepDate:Add(wx.wxDateSpan(0,0,0,1))
 			colCount = colCount + 1
 		end
-		if taskTreeINT[obj].Planning then
+		local colOrig = oTree.ganttGrid:GetGridCursorCol()
+		local rowOrig = oTree.ganttGrid:GetGridCursorRow()
+		if (oTree.Planning and oTree.Planning.requireSameClick and colOrig==col and rowOrig==row) or (oTree.Planning and not oTree.Planning.requireSameClick) then
 			if row > -1 then
 				for i = 1,#oTree.taskList do
 					if oTree.taskList[i].Row == row+1 then
 						-- This is the task modify/add the planning schedule
-						Karm.TaskObject.togglePlanningDate(oTree.taskList[i].Task,Karm.Utility.toXMLDate(stepDate:Format("%m/%d/%Y")),oTree.Planning)
+						Karm.TaskObject.togglePlanningDate(oTree.taskList[i].Task,Karm.Utility.toXMLDate(stepDate:Format("%m/%d/%Y")),oTree.Planning.type)
 						dispGanttFunc(obj,row+1,false,oTree.taskList[i])
 						break
 					end

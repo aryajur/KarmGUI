@@ -32,6 +32,7 @@ end
 -- Task structure
 -- Task.
 --	Planning
+--  PlanWorkDone.
 --	[0] = Task
 -- 	SporeFile
 --	Title
@@ -1771,6 +1772,7 @@ end
 -- Task structure
 -- Task.
 --	Planning.
+--  PlanWorkDone.
 --	[0] = Task
 -- 	SporeFile
 --	Title

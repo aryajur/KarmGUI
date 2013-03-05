@@ -579,7 +579,7 @@ function taskFormActivate(parent, callBack, task)
 		-- Schedule Page
 		TSch = wx.wxPanel(MainBook, wx.wxID_ANY, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTAB_TRAVERSAL)
 			sizer1 = wx.wxBoxSizer(wx.wxVERTICAL)
-				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)
+				sizer2 = wx.wxBoxSizer(wx.wxHORIZONTAL)	-- To hold the start/end date selection controls
 					dateStartPick = wx.wxDatePickerCtrl(TSch, wx.wxID_ANY,wx.wxDefaultDateTime, wx.wxDefaultPosition, wx.wxDefaultSize,wx.wxDP_DROPDOWN)
 					startDate = dateStartPick:GetValue()
 					local month = wx.wxDateSpan(0,1,0,0)
@@ -607,14 +607,13 @@ function taskFormActivate(parent, callBack, task)
 				sizer1:Add(staticBoxSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				
 				staticBoxSizer = wx.wxStaticBoxSizer(wx.wxHORIZONTAL, TSch, "Schedules")
-				sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
-				
-				taskTree = GUI.newTreeGantt(TSch,true)
-				sizer3:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
-				dateRangeChange()
+					sizer3 = wx.wxBoxSizer(wx.wxVERTICAL)
+					taskTree = GUI.newTreeGantt(TSch,true)
+					sizer3:Add(taskTree.horSplitWin, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
+					dateRangeChange()
 				taskTree:layout()
 				wdTaskTree:layout()
-				local localTask1, localTask2
+				local localTask1, localTask2	-- localTask1 is for the work done gantt chart and localTask2 is for the Scheduling Gantt Chart
 				if not task.Title then
 					localTask1 = getEmptyTask()
 					localTask2 = getEmptyTask()
@@ -627,8 +626,8 @@ function taskFormActivate(parent, callBack, task)
 					end
 				end
 				-- Create the 1st row for the task
-				localTask1.Planning = nil	-- Since we will use this task for Work Done Entry and Work done never maintains the Planning
-				localTask1.PlanWorkDone = nil
+				localTask1.Planning = nil	-- Since we will use this task for planning Work Done Entry 
+				localTask1.PlanWorkDone = nil	-- Work done planning table (separate from Planning table since both may exist simultaneously)
 			    wdTaskTree:Clear()
 			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}
 			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor
@@ -650,7 +649,7 @@ function taskFormActivate(parent, callBack, task)
 				-- Enable planning mode for the task
 				taskTree:enablePlanningMode({localTask2},"NORMAL")
 				wdTaskTree.ShowActual = true
-				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE")
+				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE") 
 				-- Add the comment box
 				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)
 				textLabel = wx.wxStaticText(TSch, wx.wxID_ANY, "Comment:", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_LEFT)
@@ -771,7 +770,7 @@ function taskFormActivate(parent, callBack, task)
 	end
 	
 	local prevDate, wdPlanning
-	wdPlanning = {Planning = {Type = "Actual", index = 1}}
+	wdPlanning = {PlanWorkDone = {Type = "Actual", index = 1}}
 	
 	local function updateHoursComment(task,row,col,date)
 		if not prevDate then
@@ -781,18 +780,18 @@ function taskFormActivate(parent, callBack, task)
 		local exist = false
 		local existwd = false
 		local perNum, wdNum
-		if localTask1.Planning then
-			for i = 1,#localTask1.Planning.Period do
-				if date == localTask1.Planning.Period[i].Date then
+		if localTask1.PlanWorkDone then
+			for i = 1,#localTask1.PlanWorkDone.Period do
+				if date == localTask1.PlanWorkDone.Period[i].Date then
 					perNum = i
 					exist = true
 					break
 				end
 			end
 		end
-		if wdPlanning.Planning.Period then
-			for i = 1,#wdPlanning.Planning.Period do
-				if date == wdPlanning.Planning.Period[i].Date then
+		if wdPlanning.PlanWorkDone.Period then
+			for i = 1,#wdPlanning.PlanWorkDone.Period do
+				if date == wdPlanning.PlanWorkDone.Period[i].Date then
 					wdNum = i
 					existwd = true
 					break
@@ -803,20 +802,20 @@ function taskFormActivate(parent, callBack, task)
 		if exist then
 			if not existwd then
 				-- Add it to wdPlanning
-				if not wdPlanning.Planning.Period then
-					wdPlanning.Planning.Period = {}
+				if not wdPlanning.PlanWorkDone.Period then
+					wdPlanning.PlanWorkDone.Period = {}
 				end
-				wdPlanning.Planning.Period[#wdPlanning.Planning.Period + 1] = localTask1.Planning.Period[perNum]
+				wdPlanning.PlanWorkDone.Period[#wdPlanning.PlanWorkDone.Period + 1] = localTask1.PlanWorkDone.Period[perNum]
 			end
 		else
 			if existwd then
 				if prevDate ~= date then
 					-- Add it back in the task
 					togglePlanningDate(localTask1,date,"WORKDONE")
-					for i = 1,#localTask1.Planning.Period do
-						if localTask1.Planning.Period[i].Date == date then
-							localTask1.Planning.Period[i].Hours = wdPlanning.Planning.Period[wdNum].Hours
-							localTask1.Planning.Period[i].Comment = wdPlanning.Planning.Period[wdNum].Comment
+					for i = 1,#localTask1.PlanWorkDone.Period do
+						if localTask1.PlanWorkDone.Period[i].Date == date then
+							localTask1.PlanWorkDone.Period[i].Hours = wdPlanning.PlanWorkDone.Period[wdNum].Hours
+							localTask1.PlanWorkDone.Period[i].Comment = wdPlanning.PlanWorkDone.Period[wdNum].Comment
 							break
 						end
 					end
@@ -824,21 +823,21 @@ function taskFormActivate(parent, callBack, task)
 					wdTaskTree:RefreshNode(localTask1)
 				else
 					-- Remove it from wdPlanning
-					for i = wdNum,#wdPlanning.Planning.Period - 1 do
-						wdPlanning.Planning.Period[i] = wdPlanning.Planning.Period[i+1]
+					for i = wdNum,#wdPlanning.PlanWorkDone.Period - 1 do
+						wdPlanning.PlanWorkDone.Period[i] = wdPlanning.PlanWorkDone.Period[i+1]
 					end
-					wdPlanning.Planning.Period[#wdPlanning.Planning.Period] = nil
+					wdPlanning.PlanWorkDone.Period[#wdPlanning.PlanWorkDone.Period] = nil
 				end
 			end
 		end
 		prevDate = date
 		local hours, comment
 		-- Extract the hours and comments
-		if localTask1.Planning then
-			for i = 1,#localTask1.Planning.Period do
-				if date == localTask1.Planning.Period[i].Date then
-					hours = localTask1.Planning.Period[i].Hours
-					comment = localTask1.Planning.Period[i].Comment
+		if localTask1.PlanWorkDone then
+			for i = 1,#localTask1.PlanWorkDone.Period do
+				if date == localTask1.PlanWorkDone.Period[i].Date then
+					hours = localTask1.PlanWorkDone.Period[i].Hours
+					comment = localTask1.PlanWorkDone.Period[i].Comment
 					break
 				end
 			end
@@ -855,7 +854,7 @@ function taskFormActivate(parent, callBack, task)
 		else
 			wdCommentBox:SetValue("")
 		end		
-	end
+	end		-- local function updateHoursComment(task,row,col,date) ends
 	
 	wdTaskTree:associateEventFunc({ganttCellDblClickCallBack = workDoneHourCommentEntry, ganttCellClickCallBack = updateHoursComment})
 	-- Connect event handlers to the buttons
