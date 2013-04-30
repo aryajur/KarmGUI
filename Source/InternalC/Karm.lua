@@ -72,8 +72,153 @@ end
 												}
 										}
 					}
-	}
-}
+	},	-- MainMenu ends here
+	
+	-- Toolbar
+	Tools = {
+		{	-- Load XML file
+			Text = "Load XML",
+			Code = "Karm.loadXML",
+			HelpText = "Load XML Spore from Disk",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/load_xml.png"
+			}
+		},
+		{	-- Load Spore file
+			Text = "Load",
+			HelpText = "Load Spore from Disk",
+			Image = { Data = wx.wxART_GO_DIR_UP	}
+		},
+		{	-- UnLoad Spore file
+			Text = "Unload",
+			HelpText = "Unload current spore",
+			Image = { Data = wx.wxART_FOLDER	}
+		},
+		{	-- Save all spores to Disk
+			Text = "Save All",
+			HelpText = "Save All Spores to Disk",
+			Image = { Data = wx.wxART_FILE_SAVE	}
+		},
+		{	-- Save current spore to Disk
+			Text = "Save Current",
+			HelpText = "Save current spore to disk",
+			Image = { Data = wx.wxART_FILE_SAVE_AS	}
+		},
+		"SEPARATOR",		
+		{	-- Set Filter Criteria
+			Text = "Set Filter",
+			Code = "Karm.SetFilter",
+			HelpText = "Set Filter Criteria",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/filter.png"
+					}
+		},
+		{	-- Create New Task Under
+			Text = "Create Sub-task",
+			Code = "Karm.NewTask",
+			HelpText = "Create Sub-task",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/new_under.png"
+					}
+		},
+		{	-- Create New Task Below
+			Text = "Create Next Task",
+			Code = "Karm.NewTask",
+			HelpText = "Creat Next Task",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/new_below.png"
+					}
+		},
+		{	-- Create New Task Above
+			Text = "Create Previous Task",
+			HelpText = "Creat Previous task",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/new_above.png"
+					}
+		},
+		{	-- Edit Task
+			Text = "Edit Task",
+			HelpText = "Edit Task",
+			Image = { Data = wx.wxART_REPORT_VIEW	}
+		},
+		{	-- Delete Task
+			Text = "Delete Task",
+			HelpText = "Delete Task",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/delete.png"
+					}
+		},
+		{	-- Move Task Under
+			Text = "Move Under",
+			HelpText = "Move Task Under...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/move_under.png"
+					}
+		},
+		{	-- Move Task Above
+			Text = "Move Above",
+			HelpText = "Move Task Above...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/move_above.png"
+					}
+		},
+		{	-- Move Task Below
+			Text = "Move Below",
+			HelpText = "Move Task Below...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/move_below.png"
+					}
+		},
+		"SEPARATOR",
+		{	-- Copy Task Under
+			Text = "Copy Under",
+			HelpText = "Copy Task Under...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/copy_under.png"
+					}
+		},
+		{	-- Copy Task Above
+			Text = "Copy Above",
+			HelpText = "Copy Task Above...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/copy_above.png"
+					}
+		},
+		{	-- Copy Task Below
+			Text = "Copy Below",
+			HelpText = "Copy Task Below...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/copy_below.png"
+					}
+		},
+		"SEPARATOR",
+		{	-- Run Macro
+			Text = "Run Lua Macro",
+			HelpText = "Run Lua Macro...",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/lua_macro.png"
+					}
+		}
+	-- Toolbar button events
+	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_NEXT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_PREV_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_EDIT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.EditTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_DEL_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.DeleteTask)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
+	
+	Karm.GUI.frame:Connect(Karm.GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveCurrSpore)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.openKarmSpore)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_UNLOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.unloadSpore)
+	Karm.GUI.frame:Connect(Karm.GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveAllSpores)
+	
+	Karm.GUI.frame:Connect(Karm.GUI.ID_LUA_MACRO,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.Macro)
+	}	-- Tools ends here
+}		-- Karm.GUI ends here
 
 Karm.GUI.initFrameW, Karm.GUI.initFrameH = wx.wxDisplaySize()
 Karm.GUI.initFrameW = 0.75*Karm.GUI.initFrameW
@@ -406,7 +551,7 @@ do
 	function Karm.GUI.newTreeGantt(parent,noTaskTree)
 		local taskTree = {}	-- Main object
 		-- Main table to store the task tree that is on display
-		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, Planning = nil, taskList = nil, Selected = {},ShowActual = nil}
+		taskTreeINT[taskTree] = {Nodes = {}, Roots = {}, update = true, nodeCount = 0, actionQ = {}, Planning = nil, taskList = nil, Selected = {},ShowActual = nil, Bubble=nil}
 		-- A task in Nodes or Roots will have the following attributes:
 		-- Expanded = if has children then true means it is expanded in the GUI
 		-- MakeVisible = Function to make sure the task is visible
@@ -2225,6 +2370,7 @@ function Karm.GUI.fillTaskTree()
         end
         Karm.GUI.taskTree:disablePlanningMode()
         restorePrev = true
+        -- Also get the scroll bar status for both windows to restore to the right point
     end
     
 -- Clear the treeview and add the root element
@@ -3796,85 +3942,32 @@ function Karm.main()
                         wx.wxDefaultPosition, wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH),
                         wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
 
-	--Toolbar buttons plan 5/10/2012
-	-- Open - open native saved data spore
-	-- Save - Save everything
-	-- Delete Task
-	-- Set Filter
-	-- Edit Task
-	-- New Child
-	-- New Next Sibling
-	-- New Previous Sibling
-	Karm.GUI.ID_LOAD_XML = Karm.NewID()
-	Karm.GUI.ID_LOAD = Karm.NewID()
-	Karm.GUI.ID_UNLOAD = Karm.NewID()
-	Karm.GUI.ID_SAVEALL = Karm.NewID()
-	Karm.GUI.ID_SAVECURR = Karm.NewID()
-	Karm.GUI.ID_SET_FILTER = Karm.NewID()
-	Karm.GUI.ID_NEW_SUB_TASK = Karm.NewID()
-	Karm.GUI.ID_NEW_PREV_TASK = Karm.NewID()
-	Karm.GUI.ID_NEW_NEXT_TASK = Karm.NewID()
-	Karm.GUI.ID_EDIT_TASK = Karm.NewID()
-	Karm.GUI.ID_DEL_TASK = Karm.NewID()
-	Karm.GUI.ID_MOVE_UNDER = Karm.NewID()
-	Karm.GUI.ID_MOVE_ABOVE = Karm.NewID()
-	Karm.GUI.ID_MOVE_BELOW = Karm.NewID()
-	Karm.GUI.ID_COPY_UNDER = Karm.NewID()
-	Karm.GUI.ID_COPY_ABOVE = Karm.NewID()
-	Karm.GUI.ID_COPY_BELOW = Karm.NewID()
-	Karm.GUI.ID_LUA_MACRO = Karm.NewID()
-	
-	local bM
+	-- Toolbar generation
 	Karm.GUI.toolbar = Karm.GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
-	--local toolBmpSize = Karm.GUI.toolbar:GetToolBitmapSize()
-	local toolBmpSize = wx.wxSize(16,16)
-	bM = wx.wxImage("images/load_xml.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LOAD_XML, "Load XML", wx.wxBitmap(bM), "Load XML Spore from Disk")
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LOAD, "Load", wx.wxArtProvider.GetBitmap(wx.wxART_GO_DIR_UP, wx.wxART_MENU, toolBmpSize), "Load Spore from Disk")
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_UNLOAD, "Unload", wx.wxArtProvider.GetBitmap(wx.wxART_FOLDER, wx.wxART_MENU, toolBmpSize), "Unload current spore")
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_SAVEALL, "Save All", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE, wx.wxART_MENU, toolBmpSize), "Save All Spores to Disk")
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_SAVECURR, "Save Current", wx.wxArtProvider.GetBitmap(wx.wxART_FILE_SAVE_AS, wx.wxART_MENU, toolBmpSize), "Save current spore to disk")
-	Karm.GUI.toolbar:AddSeparator()
-	bM = wx.wxImage("images/filter.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_SET_FILTER, "Set Filter", wx.wxBitmap(bM),   "Set Filter Criteria")
-	bM = wx.wxImage("images/new_under.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_NEW_SUB_TASK, "Create Subtask", wx.wxBitmap(bM),   "Creat Sub-task")
-	bM = wx.wxImage("images/new_below.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_NEW_NEXT_TASK, "Create Next Task", wx.wxBitmap(bM),   "Creat  Next task")
-	bM = wx.wxImage("images/new_above.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_NEW_PREV_TASK, "Create Previous Task", wx.wxBitmap(bM),   "Creat Previous task")
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_EDIT_TASK, "Edit Task", wx.wxArtProvider.GetBitmap(wx.wxART_REPORT_VIEW, wx.wxART_MENU, toolBmpSize),   "Edit Task")
-	bM = wx.wxImage("images/delete.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_DEL_TASK, "Delete Task", wx.wxBitmap(bM),   "Delete Task")
-	bM = wx.wxImage("images/move_under.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_MOVE_UNDER, "Move Under", wx.wxBitmap(bM),   "Move Task Under...", wx.wxITEM_CHECK)
-	bM = wx.wxImage("images/move_above.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_MOVE_ABOVE, "Move Above", wx.wxBitmap(bM),   "Move task above...", wx.wxITEM_CHECK)
-	bM = wx.wxImage("images/move_below.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_MOVE_BELOW, "Move Below", wx.wxBitmap(bM),   "Move task below...", wx.wxITEM_CHECK)
-	Karm.GUI.toolbar:AddSeparator()
-	bM = wx.wxImage("images/copy_under.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_COPY_UNDER, "Copy Under", wx.wxBitmap(bM), "Copy Task Under...", wx.wxITEM_CHECK)
-	bM = wx.wxImage("images/copy_above.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_COPY_ABOVE, "Copy Above", wx.wxBitmap(bM), "Copy Task Above...", wx.wxITEM_CHECK)
-	bM = wx.wxImage("images/copy_below.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_COPY_BELOW, "Copy Below", wx.wxBitmap(bM), "Copy Task Below...", wx.wxITEM_CHECK)
-	Karm.GUI.toolbar:AddSeparator()
-	bM = wx.wxImage("images/lua_macro.png",wx.wxBITMAP_TYPE_PNG)
-	bM = bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight())
-	Karm.GUI.toolbar:AddTool(Karm.GUI.ID_LUA_MACRO, "Run Lua Macro", wx.wxBitmap(bM), "Run Lua Macro...")
+	for i = 1,#Karm.GUI.Tools do
+		if Karm.GUI.Tools[i] == "SEPARATOR" then
+			Karm.GUI.toolbar:AddSeparator()
+		elseif type(Karm.GUI.Tools[i]) == "table"
+			local bM
+			local toolBmpSize = Karm.GUI.toolbar:GetToolBitmapSize()
+			if not Karm.GUI.Tools[i].Image.Type then
+				--local toolBmpSize = wx.wxSize(16,16)
+				bM = wx.wxArtProvider.GetBitmap(Karm.GUI.Tools[i].Image.Data, wx.wxART_TOOLBAR, toolBmpSize)
+			else
+				bM = wx.wxImage()
+				local err = bM:LoadFile(Karm.GUI.Tools[i].Image.Data,Karm.GUI.Tools[i].Image.Type)
+				if not err then
+					bM = wx.wxArtProvider.GetBitmap(wx.wxART_INFORMATION, wx.wxART_TOOLBAR, toolBmpSize)
+				else
+					bM = wx.wxBitmap(bM:Scale(toolBmpSize:GetWidth(),toolBmpSize:GetHeight()))				
+				end
+			end
+			local ID = Karm.NewID()
+			Karm.GUI.toolbar:AddTool(ID, Karm.GUI.Tools[i].Text or "", bM, Karm.GUI.Tools[i].HelpText or "")
+			-- Connect the event for this
+			Karm.GUI.frame:Connect(ID, wx.wxEVT_COMMAND_MENU_SELECTED,Karm.GUI.menuEventHandlerFunction(ID,Karm.GUI.Tools[i].Code,Karm.GUI.Tools[i].File))
+		end			
+	end	
 	Karm.GUI.toolbar:Realize()
 
 	-- Create status Bar in the window
@@ -3916,13 +4009,6 @@ function Karm.main()
 			Karm.GUI.menuBar:Append(getMenu(Karm.GUI.MainMenu[i].Menu),Karm.GUI.MainMenu[i].Text)
 		end
 	end    
---    local fileMenu = wx.wxMenu()
---    fileMenu:Append(wx.wxID_EXIT, "E&xit", "Quit the program")
---    local helpMenu = wx.wxMenu()
---    helpMenu:Append(wx.wxID_ABOUT, "&About", "About Karm")
---
---    Karm.GUI.menuBar:Append(fileMenu, "&File")
---    Karm.GUI.menuBar:Append(helpMenu, "&Help")
 	-- MENU COMMANDS
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
@@ -3945,16 +4031,6 @@ function Karm.main()
 				Karm.GUI.frame:Destroy() 
 			end
         end )
---
---    -- connect the selection event of the about menu item
---    Karm.GUI.frame:Connect(wx.wxID_ABOUT, wx.wxEVT_COMMAND_MENU_SELECTED,
---        function (event)
---            wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n'..
---                            wxlua.wxLUA_VERSION_STRING.." built with "..wx.wxVERSION_STRING,
---                            "About Karm",
---                            wx.wxOK + wx.wxICON_INFORMATION,
---                            frame)
---        end )
 
     Karm.GUI.frame:SetMenuBar(Karm.GUI.menuBar)
 	Karm.GUI.vertSplitWin = wx.wxSplitterWindow(Karm.GUI.frame, wx.wxID_ANY, wx.wxDefaultPosition, 
@@ -4021,28 +4097,6 @@ function Karm.main()
 	-- Task Details click event
 	Karm.GUI.taskDetails:Connect(wx.wxEVT_LEFT_DOWN,function(event) print(menuItems) end)
 	
-	-- Toolbar button events
-	Karm.GUI.frame:Connect(Karm.GUI.ID_LOAD_XML,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.loadXML)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_SET_FILTER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SetFilter)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_SUB_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_NEXT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_NEW_PREV_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.NewTask)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_EDIT_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.EditTask)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_DEL_TASK,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.DeleteTask)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_MOVE_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.MoveTaskToggle)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_UNDER,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_ABOVE,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_COPY_BELOW,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.CopyTaskToggle)
-	
-	Karm.GUI.frame:Connect(Karm.GUI.ID_SAVECURR,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveCurrSpore)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_LOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.openKarmSpore)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_UNLOAD,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.unloadSpore)
-	Karm.GUI.frame:Connect(Karm.GUI.ID_SAVEALL,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.SaveAllSpores)
-	
-	Karm.GUI.frame:Connect(Karm.GUI.ID_LUA_MACRO,wx.wxEVT_COMMAND_MENU_SELECTED,Karm.Macro)
-
     -- Task selection in task tree
     Karm.GUI.taskTree:associateEventFunc({cellClickCallBack = Karm.GUI.taskClicked})
     -- *******************EVENTS FINISHED***************************************************************
