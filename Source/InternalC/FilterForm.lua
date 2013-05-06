@@ -295,6 +295,12 @@ local function setfilter(f)
 		end
 		FilterTask:SetLabel(str)
 	end
+	-- Set the ShowHierarchy flag
+	if f.DontShowHierarchy then
+		ShowHierarchyBox:SetValue(false)
+	else
+		ShowHierarchyBox:SetValue(true)
+	end
 	-- Set Category data
 	if f.Cat then
 		-- Separate out the items in the comma
@@ -469,6 +475,12 @@ local function synthesizeFilter()
 	-- Get the tasks information
 	if filter.TasksSet then
 		f.Tasks = filter.TasksSet
+	end
+	-- Get the ShowHierarchy Information
+	if ShowHierarchyBox:GetValue() then
+		f.DontShowHierarchy = nil
+	else
+		f.DontShowHierarchy = true
 	end
 	-- Get Who information here
 	f.Who = WhoBoolCtrl:BooleanExpression()
@@ -846,6 +858,10 @@ function filterFormActivate(parent, callBack)
 				TaskSizer:Add(FilterTask, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				ClearTaskButton = wx.wxButton(TandC, wx.wxID_ANY, "Clear Task", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
 				TaskSizer:Add(ClearTaskButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+				-- Checkbox for ShowHierarchy
+				ShowHierarchyBox = wx.wxCheckBox(TandC, wx.wxID_ANY, "Show Parent Hierarchy", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+				ShowHierarchyBox:SetValue(true)
+				TaskSizer:Add(ShowHierarchyBox,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 				TandCSizer:Add(TaskSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 
 				CategoryLabel = wx.wxStaticText(TandC, wx.wxID_ANY, "Select Categories", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)

@@ -41,6 +41,10 @@ function Karm.FilterObject.getSummary(filter)
 			end
 			filterSummary = filterSummary.."\n"
 		end
+		-- Show Hierarchy
+		if not filter.DontShowHierarchy then
+			filterSummary = filterSummary.."SHOW HIERARCHY: YES\n"
+		end
 		-- Who
 		if filter.Who then
 			filterSummary = filterSummary.."PEOPLE: "..filter.Who.."\n"
@@ -182,6 +186,7 @@ end
 		"'Full,Estimate(L),12/1/2011-12/5/2011,12/10/2011-1/2/2012' and 'Overlap,Revision(L),12/1/2011-1/2/2012' or 'Full,Estimate(L),'..Karm.Globals.NoDateStr"
 		Karm.Globals.NoDateStr signifies no schedule for the type of schedule the type of matching is ignored in this case
 13. Script - The custom user script. task is passed in task variable. Executes in the Karm.Globals.safeenv environment. Final result (true or false) is present in the result variable
+14. DontShowHierarchy - Boolean flag, if false (default set) then the parent hierarchy up to the spore of a task that passes the filter will also pass the filter
 ]]
 
 -- Function to validate a given task
@@ -193,6 +198,27 @@ function Karm.FilterObject.validateTask(filter, task)
 	local function validateWithFilterUnit(filter,task)
 		if not filter then
 			return true
+		end
+		if not filter.DontShowHierarchy and task.SubTasks then
+			-- Check if any task in the child hierarchy passes the filter, if it does this task automatically passes
+			local hier = task.SubTasks
+			local data = {passed=nil, filter = filter}
+			for i = 1,#hier do
+				data = Karm.TaskObject.applyFuncHier(hier[i],function(task,data)
+										if not data.passed then
+											local passed = Karm.FilterObject.validateTask(data.filter,task)
+											if passed then
+												data.passed = true
+											end
+										end
+										return data
+									  end, data
+				)
+				if data.passed then
+					-- a task in the child hierarchy passes to this task would pass
+					return true
+				end
+			end
 		end
 		-- Check if task ID passes
 		if filter.Tasks then
@@ -789,6 +815,7 @@ function Karm.FilterObject.validateTask(filter, task)
 				return false
 			end
 		end
+		
 		-- All pass
 		return true
 	end		-- function validateWithFilterUnit(filter,task) ends

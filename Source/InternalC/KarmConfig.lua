@@ -64,7 +64,7 @@ end
 											{Text = "&Finalize all Planning Schedules\tCtrl-F", HelpText = "Finalize all Planning schedules in the tasks in the UI", Code = [[
 if Karm.GUI.taskTree.taskList then
 	while #Karm.GUI.taskTree.taskList > 0 do
-		Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1].Task, Karm.GUI.taskTree.Planning)
+		Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1].Task, Karm.GUI.taskTree.Planning.type)
 	end
 end
 											]]},

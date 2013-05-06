@@ -114,6 +114,13 @@ local function makeTask(task)
 	else
 		newTask.Due = nil
 	end
+	-- Estimate
+	if not tonumber(estimate:GetValue()) then
+		wx.wxMessageBox("The task should be assigned to someone. It cannot be blank. Please choose the people responsible.", "Task not assigned",wx.wxOK + wx.wxCENTRE, frame)
+	    return nil
+	else
+		newTask.Estimate = 	tostring(tonumber(estimate:GetValue()))
+	end
 	-- Who List
 	local list = whoList:getAllItems()
 	if list[1] then
@@ -240,42 +247,46 @@ local function makeTask(task)
 		newTask.Planning = nil
 	end		-- if HoldPlanning.GetValue() then ends
 	-- Work done Schedule
-	list = getWorkDoneDates(wdTaskTree.taskList[1].Task,true)
-	if list then
-		local list1 = getWorkDoneDates(newTask)
-		-- Compare the schedules
-		local same = true
-		if not list1 or #list1 ~= #list then
-			same = false
-		else
-			for i = 1,#list do
-				if list[i] ~= list1[i] then
-					same = false
-					break
+	if wdHoldPlanning:GetValue() then
+		newTask.PlanWorkDone = wdTaskTree.taskList[1].Task.PlanWorkDone
+	else
+		list = getWorkDoneDates(wdTaskTree.taskList[1].Task,true)
+		if list then
+			local list1 = getWorkDoneDates(newTask)
+			-- Compare the schedules
+			local same = true
+			if not list1 or #list1 ~= #list then
+				same = false
+			else
+				for i = 1,#list do
+					if list[i] ~= list1[i] then
+						same = false
+						break
+					end
 				end
 			end
-		end
-		if not same then
-			-- Add the schedule here
-			if not newTask.Schedules then
-				newTask.Schedules = {}
+			if not same then
+				-- Add the schedule here
+				if not newTask.Schedules then
+					newTask.Schedules = {}
+				end
+				if not newTask.Schedules[list.typeSchedule] then
+					-- Schedule type does not exist so create it
+					newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
+				end
+				-- Schedule type already exists so just add it to the next index
+				local newSched = {[0]=list.typeSchedule, Updated = todayDate}
+				local str = "WD"
+				-- Update the period
+				newSched.Period = {[0] = "Period", count = #list}
+				for i = 1,#list do
+					newSched.Period[i] = wdTaskTree.taskList[1].Task.PlanWorkDone.Period[i]
+				end
+				newTask.Schedules[list.typeSchedule][list.index] = newSched
+				newTask.Schedules[list.typeSchedule].count = list.index
 			end
-			if not newTask.Schedules[list.typeSchedule] then
-				-- Schedule type does not exist so create it
-				newTask.Schedules[list.typeSchedule] = {[0]=list.typeSchedule}
-			end
-			-- Schedule type already exists so just add it to the next index
-			local newSched = {[0]=list.typeSchedule, Updated = todayDate}
-			local str = "WD"
-			-- Update the period
-			newSched.Period = {[0] = "Period", count = #list}
-			for i = 1,#list do
-				newSched.Period[i] = wdTaskTree.taskList[1].Task.PlanWorkDone.Period[i]
-			end
-			newTask.Schedules[list.typeSchedule][list.index] = newSched
-			newTask.Schedules[list.typeSchedule].count = list.index
-		end
-	end		-- if list ends here
+		end		-- if list ends here
+	end
 --	print(tableToString(list))
 --	print(tableToString(newTask))
 	local chkTask = checkTask()
@@ -399,9 +410,9 @@ function taskFormActivate(parent, callBack, task)
 					end
 					sizer3:Add(textLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					if task and task.Estimate then
-						estimate = wx.wxSpinCtrl(TInfo, wx.wxID_ANY,task.Estimate, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxSP_ARROW_KEYS, 0, Globals.MaxEstimate,0)
+						estimate = wx.wxTextCtrl(TInfo, wx.wxID_ANY,task.Estimate, wx.wxDefaultPosition, wx.wxDefaultSize)
 					else
-						estimate = wx.wxSpinCtrl(TInfo, wx.wxID_ANY,"0", wx.wxDefaultPosition, wx.wxDefaultSize,  wx.wxSP_ARROW_KEYS, 0, Globals.MaxEstimate,0)
+						estimate = wx.wxTextCtrl(TInfo, wx.wxID_ANY,"", wx.wxDefaultPosition, wx.wxDefaultSize)
 					end					
 					sizer3:Add(estimate, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					sizer2:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
@@ -602,6 +613,15 @@ function taskFormActivate(parent, callBack, task)
 					sizer2:Add(wdCommentLabel, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL,wx.wxEXPAND), 1)
 					local wdCommentBox = wx.wxTextCtrl(TSch, wx.wxID_ANY, "", wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxTE_MULTILINE + wx.wxTE_READONLY)
 					sizer2:Add(wdCommentBox, 1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+					AddwdInfoButton = wx.wxButton(TSch, wx.wxID_ANY, "Add Info", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+					sizer2:Add(AddwdInfoButton, 0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+					wdHoldPlanning = wx.wxCheckBox(TSch, wx.wxID_ANY, "Hold Planning", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+					if task.PlanWorkDone then
+						wdHoldPlanning:SetValue(true)
+					else
+						wdHoldPlanning:SetValue(false)
+					end
+					sizer2:Add(wdHoldPlanning, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
 					sizer3:Add(sizer2, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 					staticBoxSizer:Add(sizer3, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
 				sizer1:Add(staticBoxSizer, 1, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL), 1)
@@ -620,17 +640,19 @@ function taskFormActivate(parent, callBack, task)
 				else
 					localTask1 = copyTask(task)
 					localTask2 = copyTask(task)
-					-- Since Planning is never copied over by copyTask we do it here
+					-- Since Planning and PlanWorkDone is never copied over by copyTask we do it here
 					if task.Planning then
 						localTask2.Planning = task.Planning
 					end
+					if task.PlanWorkDone then
+						localTask1.PlanWorkDone = task.PlanWorkDone
+					end
 				end
-				-- Create the 1st row for the task
-				localTask1.Planning = nil	-- Since we will use this task for planning Work Done Entry 
-				localTask1.PlanWorkDone = nil	-- Work done planning table (separate from Planning table since both may exist simultaneously)
+				-- Create the 1st row for work done the task
 			    wdTaskTree:Clear()
 			    wdTaskTree:AddNode{Key=localTask1.TaskID, Text = localTask1.Title, Task = localTask1}
 			    wdTaskTree.Nodes[localTask1.TaskID].ForeColor = GUI.nodeForeColor
+				-- Create the 1st row for the task
 			    taskTree:Clear()
 			    taskTree:AddNode{Key=localTask2.TaskID, Text = localTask2.Title, Task = localTask2}
 			    taskTree.Nodes[localTask2.TaskID].ForeColor = GUI.nodeForeColor
@@ -641,14 +663,14 @@ function taskFormActivate(parent, callBack, task)
 					-- Now add these tasks
 					for i = 1,#taskList do
 						taskList[i].Planning = nil	-- To make sure that a task already having Planning does not propagate that in successive schedules
-		            	taskTree:AddNode{Relative=prevKey, Relation="Next Sibling", Key=taskList[i].TaskID, Text=taskList[i].Title, Task = taskList[i]}
+		            	taskTree:AddNode{Relative=prevKey, Relation=Globals.NEXT_SIBLING, Key=taskList[i].TaskID, Text=taskList[i].Title, Task = taskList[i]}
 		            	taskTree.Nodes[taskList[i].TaskID].ForeColor = GUI.nodeForeColor
 		            	prevKey = taskList[i].TaskID
 		            end
 				end
 				-- Enable planning mode for the task
 				taskTree:enablePlanningMode({localTask2},"NORMAL")
-				wdTaskTree.ShowActual = true
+				wdTaskTree.ShowActual = true		-- Put it in show work done mode
 				wdTaskTree:enablePlanningMode({localTask1},"WORKDONE") 
 				-- Add the comment box
 				sizer4 = wx.wxBoxSizer(wx.wxHORIZONTAL)

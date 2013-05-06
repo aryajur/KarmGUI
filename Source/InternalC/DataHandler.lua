@@ -53,6 +53,7 @@ end
 --	Cat
 --	SubCat
 --	Tags
+--  Estimate
 --	Schedules.
 --		[0] = "Schedules"
 --		Estimate.
@@ -92,6 +93,13 @@ function Karm.TaskObject.getSummary(task)
 		end
 		if task.Title then
 			taskSummary = taskSummary.."TITLE: "..task.Title.."\n"
+		end
+		if task.Estimate then
+			if Karm.Globals.EstimateUnit == "H" then
+				taskSummary = taskSummary.."Estimated Hours: ".. task.Estimate.."\n"
+			else
+				taskSummary = taskSummary.."Estimated Days: ".. task.Estimate.."\n"
+			end
 		end
 		if task.Start then
 			taskSummary = taskSummary.."START DATE: "..task.Start.."\n"
@@ -201,6 +209,12 @@ function Karm.TaskObject.IsValidTask(task)
 		return nil
 	elseif getmetatable(task) ~= Karm.TaskObject then
 		return nil
+	end
+	if type(checkTask) == "function" then
+		local err,msg = checkTask(task)
+		if not err then
+			return nil
+		end
 	end
 	return true
 end
@@ -964,17 +978,23 @@ end
 -- SubTasks
 -- DBDATA
 -- Planning  
+-- PlanWorkDone
 
 -- 1st 5 are made a copy of
 -- Parent, Next and Previous are the same linked tables
 -- If copySubTasks is true then SubTasks are made a copy as well with the same parameters (in this case Previous and Next are 
---         updated for all the SubTasks and so are the parent of the subtasks) otherwise it is the same linked SubTask table
+--         updated for all the SubTasks (irrespective of the updateSubTaskParents flag) and so are the parent of the subtasks) otherwise it is the same linked SubTask table
 -- If removeDBDATA is true then it removes the DBDATA table to make this an individual task otherwise it is the same linked table
 -- Normally the sub-task parents are linked to the tasks from which the hierarchy is being copied over, if updateSubTaskParents is true then all the sub-task parents
--- in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks
+-- 		   in the copied hierarchy (excluding this task) will be updated to point to the copied hierarchy tasks
 -- WARNING: If copySubTasks is false and if updateSubTaskParents is true then even though a copy of sub tasks is not made the sub task parents are updated to point to this new task
--- This may break the original task hierarchy if that is needed later
+-- 		   This may break the original task hierarchy if that is needed later
+-- copySubTasks updateSubTaskParents   Result
+--    false          false				The subtasks of the original task is linked to the new copy task, the subtasks remain untouched
+--    false          true				The subtasks of the original task is linked to the new copy task and the parent data in each task in the hierarchy points to the new copy task hierarchy - this effectively moves the subtask hierarchy to the copy task but the original task subtasks still link to this subtasks table
+--	  true 			 false/true			The subtasks are copied task by task and their Parent links are updated to be in the new hierarchy
 -- Planning is not copied over
+-- PlanWorkDone is not copied over
 function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,updateSubTaskParents)
 	-- Copied from http://stackoverflow.com/questions/640642/how-do-you-copy-a-lua-table-by-value
 	local copyTableFunc
@@ -1002,7 +1022,7 @@ function Karm.TaskObject.copy(task, copySubTasks, removeDBDATA,updateSubTaskPare
 	end
 	local nTask = {}
 	for k,v in pairs(task) do
-		if k ~= "Planning" and not (k == "DBDATA" and removeDBDATA)then
+		if k ~= "Planning" and k~="PlanWorkDone" and not (k == "DBDATA" and removeDBDATA)then
 			if k ~= "Who" and k ~= "Schedules" and k~= "Tags" and k ~= "Access" and k ~= "Assignee" and not (k == "SubTasks" and copySubTasks)then
 				nTask[k] = task[k]
 			else
@@ -1358,13 +1378,13 @@ function Karm.TaskObject.getWorkDates(task,bubble,planning)
 						break
 					end
 					if dateTable[j].Date > dateList[i] then
-						index = j
+						index = j-1
 						break
 					end
 				end
 				if not found then
 					-- Create a space at index
-					for j = #dateTable, index, -1 do
+					for j = #dateTable, index+1, -1 do
 						dateTable[j+1] = dateTable[j]
 					end
 					local newColor = {Red=Karm.GUI.ScheduleColor.Red - Karm.GUI.bubbleOffset.Red,Green=Karm.GUI.ScheduleColor.Green - Karm.GUI.bubbleOffset.Green,
@@ -1372,15 +1392,24 @@ function Karm.TaskObject.getWorkDates(task,bubble,planning)
 					if newColor.Red < 0 then newColor.Red = 0 end
 					if newColor.Green < 0 then newColor.Green = 0 end
 					if newColor.Blue < 0 then newColor.Blue = 0 end
-					dateTable[index] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
-					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = ""}
+					dateTable[index+1] = {Date = dateList[i], typeSchedule = dateList.typeSchedule, index = dateList.index, 
+					  Bubbled = true, BackColor = newColor, ForeColor = {Red=0,Green=0,Blue=0}, Text = "A"}
 				end
 			end		-- for i = 1,#dateList do ends
 		end		-- if dateList then ends
 		return dateTable
 	end
 	if bubble then
-		local dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable)
+		local dateTable = updateDateTable(task)
+		if dateTable then
+			-- Remove the Bubbled flag and text for the task that actually has that schedule date.
+			for i = 1,#dateTable do
+				dateTable[i].Bubbled = nil
+				dateTable[i].BackColor = Karm.GUI.ScheduleColor
+				dateTable[i].Text = ""
+			end
+		end
+		local dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable,dateTable,true)
 		return dateTable
 	else 
 		-- Just get the latest dates for this task
@@ -1424,6 +1453,7 @@ function Karm.TaskObject.getDates(task,bubble,planning)
 			if not dateTable then
 				dateTable = {typeSchedule = dateList.typeSchedule, index = dateList.index}
 			end
+			-- Loop through the latest schedule dates to check whether it is in the already in the dateTable
 			for i = 1,#dateList do
 				local found = false
 				local index = 0
@@ -1433,6 +1463,7 @@ function Karm.TaskObject.getDates(task,bubble,planning)
 						break
 					end
 					if dateTable[j].Date > dateList[i] then
+						-- Need to add this dateList[i] date at the index j
 						index = j - 1
 						break
 					end
@@ -1458,13 +1489,14 @@ function Karm.TaskObject.getDates(task,bubble,planning)
 		-- Main task schedule
 		local dateTable = updateDateTable(task)
 		if dateTable then
+			-- Remove the Bubbled flag and text for the task that actually has that schedule date.
 			for i = 1,#dateTable do
 				dateTable[i].Bubbled = nil
 				dateTable[i].BackColor = Karm.GUI.ScheduleColor
 				dateTable[i].Text = ""
 			end
 		end
-		plan = nil
+		--plan = nil
 		dateTable = Karm.TaskObject.applyFuncHier(task,updateDateTable,dateTable, true)
 		return dateTable
 	else 
@@ -1795,6 +1827,7 @@ end
 --	Cat
 --	SubCat
 --	Tags.
+--  Estimate
 --	Schedules.
 --		[0] = "Schedules"
 --		Estimate.
