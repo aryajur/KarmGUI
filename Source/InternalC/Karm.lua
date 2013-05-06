@@ -630,8 +630,8 @@ do
 								},
 								{
 									Type = "String",
-									--Code = "return string.rep(' ',hierLevel*4)..taskNode.Title",
-									Code = "return taskNode.Title",
+									Code = "return string.rep(' ',hierLevel*4)..taskNode.Title",
+									--Code = "return taskNode.Title",
 									Title = "Tasks",
 									Width = -1		-- Width=-1 means whatever width is left after other columns and the space we have
 								}	
@@ -947,7 +947,7 @@ do
 				oNode.Selected = true
 				-- Select the node in the GUI here
 				oTree.Selected = {tab,Latest = 1}
-				oTree.treeGrid:SetGridCursor(oNode.Row-1,1)
+				oTree.treeGrid:SetGridCursor(oNode.Row-1,0)
 			end	
 		elseif key == "ForeColor" or key == "BackColor" then
 			if type(val) == "table" and val.Red and type(val.Red) == "number" and val.Green and type(val.Green) == "number" and
@@ -1056,23 +1056,28 @@ do
 				return		-- Only 1 Width=-1 allowed
 			end
 			--The passed table is valid
-			oTree[key] = val
-			-- Now refresh the tree grid
-			local cols = oTree.treeGrid:GetNumberCols()
-			oTree.treeGrid:DeleteCols(0,cols)
-			-- Generate the new columns
-		    oTree.treeGrid:AppendCols(#oTree.taskTreeConfig)
-		    for i = 1,#oTree.taskTreeConfig do
-		    	if oTree.taskTreeConfig[i].Type == "Boolean" then
-		    		oTree.treeGrid:SetColFormatBool(i-1)
-		    	end
-			    oTree.treeGrid:SetColLabelValue(i-1,oTree.taskTreeConfig[i].Title)
-		    end
-		    oTree.treeGrid:SetRowLabelSize(15)
-		    oTree.treeGrid:EnableGridLines(false)
-		    -- Layout the tree grid columns
-			taskTreeINT.layout(tab)
-			refreshTasks(tab)	    
+			if oTree.update then
+				oTree[key] = val
+				-- Now refresh the tree grid
+				local cols = oTree.treeGrid:GetNumberCols()
+				oTree.treeGrid:DeleteCols(0,cols)
+				-- Generate the new columns
+			    oTree.treeGrid:AppendCols(#oTree.taskTreeConfig)
+			    for i = 1,#oTree.taskTreeConfig do
+			    	if oTree.taskTreeConfig[i].Type == "Boolean" then
+			    		oTree.treeGrid:SetColFormatBool(i-1)
+			    	end
+				    oTree.treeGrid:SetColLabelValue(i-1,oTree.taskTreeConfig[i].Title)
+			    end
+			    oTree.treeGrid:SetRowLabelSize(15)
+			    oTree.treeGrid:EnableGridLines(false)
+			    -- Layout the tree grid columns
+				taskTreeINT.layout(tab)
+				refreshTasks(tab)
+			else
+				-- Add to the actionQ
+				oTree.actionQ[#oTree.actionQ + 1] = "tab.taskTreeConfig = "..Karm.Utility.tableToString(val)
+			end	    
 		else
 			oTree[key] = val
 		end
@@ -1151,6 +1156,7 @@ do
 				local f = loadstring(taskTreeINT[taskTree].taskTreeConfig[i].Code)
 				local env = getfenv(1)
 				env.taskNode = taskNode
+				env.hierLevel = hierLevel
 				setfenv(f,env)
 				local err,ret
 				err,ret = pcall(f)
@@ -1165,6 +1171,7 @@ do
 				local f = loadstring(taskTreeINT[taskTree].taskTreeConfig[i].Code)
 				local env = getfenv(1)
 				env.taskNode = taskNode
+				env.hierLevel = hierLevel
 				setfenv(f,env)
 				local err,ret
 				err,ret = pcall(f)
@@ -1485,7 +1492,7 @@ do
 				dispTask(taskTree,nodeMeta[node].Row,false,node,hierLevel)
 				dispGantt(taskTree,nodeMeta[node].Row,false,node)
 				if #oTree.Selected > 0 then
-					oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+					oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 				end
 			else
 				-- Add to actionQ
@@ -1493,7 +1500,7 @@ do
 					string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."],"..tostring(hierLevel)..")"
 				oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes["..
 					string.format("%q",task.TaskID).."].Row,false,taskTreeINT[tab].Nodes["..string.format("%q",task.TaskID).."])"				
-				oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+				oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 			end
 		end		-- if nodeMeta[node].Row then ends
 	end
@@ -1679,7 +1686,7 @@ do
 					dispTask(taskTree,nodeMeta[nextNode].Row,false,nextNode,hierLevel)
 					dispGantt(taskTree,nodeMeta[nextNode].Row,false,nextNode)
 					if #oTree.Selected > 0 then
-						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 					end
 				else
 					-- Add to actionQ
@@ -1687,7 +1694,7 @@ do
 						string.format("%q",nodeMeta[nextNode].Key).."'].Row,false,taskTreeINT[tab].Nodes['"..string.format("%q",nodeMeta[nextNode].Key).."'],"..tostring(hierLevel)..")"
 					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes['"..
 						string.format("%q",nodeMeta[nextNode].Key).."'].Row,false,taskTreeINT[tab].Nodes['"..string.format("%q",nodeMeta[nextNode].Key).."'])"				
-					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 				end
 			end
 			-- Update the row now since this will be the new row after the node row is deleted
@@ -1874,7 +1881,7 @@ do
 					dispTask(taskTree,oTree.Nodes[nodeInfo.Key].Row,true,oTree.Nodes[nodeInfo.Key],0)
 					dispGantt(taskTree,oTree.Nodes[nodeInfo.Key].Row,true,oTree.Nodes[nodeInfo.Key])
 					if #oTree.Selected > 0 then
-						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 					end
 				else
 					-- Add to actionQ
@@ -1882,15 +1889,15 @@ do
 						string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],0)"
 					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,taskTreeINT[tab].Nodes["..
 						string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"				
-					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 				end
 			else
-				oTree.Nodes[nodeInfo.Key].Row = 1
+				oTree.Nodes[nodeInfo.Key].Row = 1		-- Row numbering starts from 1 but grid numbering starts from 0 remember
 				if oTree.update then
 					dispTask(taskTree,1,true,oTree.Nodes[nodeInfo.Key],0)
 					dispGantt(taskTree,1,true,oTree.Nodes[nodeInfo.Key])
 					if #oTree.Selected>0 then
-						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+						oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 					end
 				else
 					-- Add to actionQ
@@ -1898,7 +1905,7 @@ do
 						string.format("%q",nodeInfo.Key).."],0)"
 					oTree.actionQ[#oTree.actionQ+1] = "dispGantt(tab,1,true,taskTreeINT[tab].Nodes["..
 						string.format("%q",nodeInfo.Key).."])"
-					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+					oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 				end
 			end
 
@@ -1971,7 +1978,7 @@ do
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
 						if #oTree.Selected>0 then
-							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 						end
 					else
 						-- Add to actionQ
@@ -1979,7 +1986,7 @@ do
 							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],"..tostring(hierLevel)..")"
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
 							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"
-						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 					end
 				elseif nodeMeta[parent].Row and nodeMeta[parent].Children == 1 then
 					-- This is the 1st child to this visible parent
@@ -2063,7 +2070,7 @@ do
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
 						if #oTree.Selected>0 then
-							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 						end
 					else
 						-- Add to actionQ
@@ -2071,7 +2078,7 @@ do
 							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],"..tostring(hierLevel)..")"
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
 							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"
-						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 					end
 				end			
 				-- return the node
@@ -2126,7 +2133,7 @@ do
 						dispTask(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key],hierLevel)
 						dispGantt(taskTree,nodeMeta[oTree.Nodes[nodeInfo.Key]].Row,true,oTree.Nodes[nodeInfo.Key])
 						if #oTree.Selected>0 then
-							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,1)
+							oTree.treeGrid:SetGridCursor(oTree.Selected[oTree.Selected.Latest].Row-1,0)
 						end
 					else
 						-- Add to actionQ
@@ -2134,7 +2141,7 @@ do
 							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."],"..tostring(hierLevel)..")"
 						oTree.actionQ[#oTree.actionQ+1] = "dispTask(tab,taskTreeINT[tab].Nodes["..
 							string.format("%q",nodeInfo.Key).."].Row,true,taskTreeINT[tab].Nodes["..string.format("%q",nodeInfo.Key).."])"
-						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,1) end"
+						oTree.actionQ[#oTree.actionQ+1] = "if #taskTreeINT[tab].Selected>0 then taskTreeINT[tab].treeGrid:SetGridCursor(taskTreeINT[tab].Selected[taskTreeINT[tab].Selected.Latest].Row-1,0) end"
 					end
 				end			
 				-- return the node
@@ -2218,6 +2225,8 @@ do
 			local oTree = taskTreeINT[obj]
 			oTree.treeGrid:Connect(ID,wx.wxEVT_COMMAND_BUTTON_CLICKED,postOnScrollTree(obj))
 			oTree.treeGrid:AddPendingEvent(evt)
+			--Karm.GUI.frame:SetStatusText("3rd row coordinate: "..tostring(oTree.treeGrid:CellToRect(1,0):GetY()),0)
+			Karm.GUI.frame:SetStatusText("3rd row coordinate: "..tostring(oTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(23,0),wx.wxGridCellCoords(23,0)):GetY()),0)
 			event:Skip()
 		end
 	end
@@ -2356,25 +2365,20 @@ do
 		local row = event:GetRow()
 		local col = event:GetCol()
 		if row>-1 then
-			taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
-			if col == 1 then
-				local taskNode
-				-- Find the task associated with the row
-				for i,v in taskTreeINT.tpairs(obj) do
-					v.Selected = false	-- Make everything else unselected
-					if v.Row == row+1 then
-						taskNode = v
-						break
-					end
-				end		-- Looping through all the nodes ends
-				-- print("Clicked row "..tostring(row))
-				taskNode.Selected = true
-				taskTreeINT[obj].Selected = {taskNode,Latest=1}
-				if taskTreeINT[obj].cellClickCallBack then
-					taskTreeINT[obj].cellClickCallBack(taskNode.Task, row, col)
+			local taskNode
+			-- Find the task associated with the row
+			for i,v in taskTreeINT.tpairs(obj) do
+				v.Selected = false	-- Make everything else unselected
+				if v.Row == row+1 then
+					taskNode = v
+					break
 				end
-			else
-				taskTreeINT[obj].Selected = {}
+			end		-- Looping through all the nodes ends
+			-- print("Clicked row "..tostring(row))
+			taskNode.Selected = true
+			taskTreeINT[obj].treeGrid:SetGridCursor(row,col)
+			if taskTreeINT[obj].cellClickCallBack then
+				taskTreeINT[obj].cellClickCallBack(taskNode.Task, row, col)
 			end
 		end		
 		--taskTreeINT[obj].treeGrid:SelectBlock(row,col,row,col)
@@ -2550,6 +2554,7 @@ function Karm.GUI.fillTaskTree()
 
 	local prevSelect, restorePrev
 	local expandedStatus = {}
+	local visibleNodes = {}
 	local planningTasks = {}		-- To carry over the planning mode tasks after the tree is refreshed
 	Karm.GUI.taskTree.update = false		-- stop GUI updates for the time being    
     if Karm.GUI.taskTree.nodeCount > 0 then
@@ -2561,6 +2566,10 @@ function Karm.GUI.fillTaskTree()
             end
             if v.Selected then
                 prevSelect = i
+            end
+            if v.Row then
+            	-- This node is visible
+            	visibleNodes[i] = true
             end
         end
         if Karm.GUI.taskTree.taskList and Karm.GUI.taskTree.Planning then
@@ -3159,7 +3168,19 @@ function Karm.EditTaskCallBack(task, noGUI)
 		    else
 		    	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
 		    	Karm.GUI.taskTree:DeleteSubUpdate(task.TaskID)
-		    end
+		    	-- Check if the parent of the task needs to be in the GUI
+		    	local done = false
+		    	local currTask = task.Parent
+		    	while not done and currTask do
+			    	if not Karm.Filter.DontShowHierarchy then
+			    		taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{currTask})
+			    		if #taskList == 0 then
+			    			Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
+			    			currTask = currTask.Parent
+			    		end
+			    	end
+			    end
+		    end		-- if #taskList == 1 then ends
 		end
 		Karm.Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
 	end

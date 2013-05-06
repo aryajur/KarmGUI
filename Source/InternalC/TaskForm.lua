@@ -115,10 +115,10 @@ local function makeTask(task)
 		newTask.Due = nil
 	end
 	-- Estimate
-	if not tonumber(estimate:GetValue()) then
-		wx.wxMessageBox("The task should be assigned to someone. It cannot be blank. Please choose the people responsible.", "Task not assigned",wx.wxOK + wx.wxCENTRE, frame)
+	if not estimate:GetValue()=="" and not tonumber(estimate:GetValue()) then
+		wx.wxMessageBox("The estimate should be a number.", "Estimate not a number",wx.wxOK + wx.wxCENTRE, frame)
 	    return nil
-	else
+	elseif tonumber(estimate:GetValue()) then
 		newTask.Estimate = 	tostring(tonumber(estimate:GetValue()))
 	end
 	-- Who List
