@@ -285,7 +285,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.5.5",
+	KARM_VERSION = "1.13.5.7",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
@@ -2225,8 +2225,6 @@ do
 			local oTree = taskTreeINT[obj]
 			oTree.treeGrid:Connect(ID,wx.wxEVT_COMMAND_BUTTON_CLICKED,postOnScrollTree(obj))
 			oTree.treeGrid:AddPendingEvent(evt)
-			--Karm.GUI.frame:SetStatusText("3rd row coordinate: "..tostring(oTree.treeGrid:CellToRect(1,0):GetY()),0)
-			Karm.GUI.frame:SetStatusText("3rd row coordinate: "..tostring(oTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(23,0),wx.wxGridCellCoords(23,0)):GetY()),0)
 			event:Skip()
 		end
 	end
@@ -2565,11 +2563,29 @@ function Karm.GUI.fillTaskTree()
             	expandedStatus[i] = true
             end
             if v.Selected then
-                prevSelect = i
+            	-- Get the Y coordinate for the node and store it
+            	for j = 1,#Karm.GUI.taskTree.taskTreeConfig do
+            		if Karm.GUI.taskTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(v.Row-1,j),wx.wxGridCellCoords(v.Row-1,j)):GetY()~=0 then
+            			prevSelect= {i,Karm.GUI.taskTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(v.Row-1,j),wx.wxGridCellCoords(v.Row-1,j)):GetY()}
+            			break
+            		end
+            	end
+            	if not prevSelect then
+            		prevSelect = {i,0}
+            	end
             end
             if v.Row then
             	-- This node is visible
-            	visibleNodes[i] = true
+            	-- Get the Y coordinate for the node and store it
+            	for j = 1,#Karm.GUI.taskTree.taskTreeConfig do
+            		if Karm.GUI.taskTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(v.Row-1,j),wx.wxGridCellCoords(v.Row-1,j)):GetY()~=0 then
+            			visibleNodes[i]= Karm.GUI.taskTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(v.Row-1,j),wx.wxGridCellCoords(v.Row-1,j)):GetY()
+            			break
+            		end
+            	end
+            	if not visibleNodes[i] then
+            		visibleNodes[i] = 0
+            	end
             end
         end
         if Karm.GUI.taskTree.taskList and Karm.GUI.taskTree.Planning then
@@ -2598,6 +2614,7 @@ function Karm.GUI.fillTaskTree()
 -- Repeat for all spores
         end		-- for k,v in pairs(Karm.SporeData) do ends
     end  -- if Karm.SporeData[0] > 0 then ends
+	Karm.GUI.taskTree.update = true		-- Resume the tasktree update    
     local selected
     if restorePrev then
 -- Update the tree status to before the refresh
@@ -2605,20 +2622,61 @@ function Karm.GUI.fillTaskTree()
             if expandedStatus[currNode.Key] then
                 currNode.Expanded = true
 			end
+			if visibleNodes[k] and currNode.Parent then
+				local node = currNode
+				while node.Parent do
+					node.Parent.Expanded = true
+					node = node.Parent
+				end
+			end
         end
         for k,currNode in Karm.GUI.taskTree.tvpairs(Karm.GUI.taskTree) do
-            if currNode.Key == prevSelect then
+            if prevSelect and currNode.Key == prevSelect[1] then
                 currNode.Selected = true
                 selected = currNode.Task
+				if prevSelect[2] ~= 0 then
+					-- Set the scroll bar to the right position
+					local xp,yp,yf
+					xp,yp = Karm.GUI.taskTree.treeGrid:GetScrollPixelsPerUnit()
+					for j = 1,#Karm.GUI.taskTree.taskTreeConfig do
+						if Karm.GUI.taskTree.treeGrid:CellToRect(currNode.Row-1,j):GetY() ~= 0 then
+							yf = (Karm.GUI.taskTree.treeGrid:CellToRect(currNode.Row-1,j):GetY()-prevSelect[2])/yp
+							break
+						end
+					end
+					if yf then
+						Karm.GUI.taskTree.treeGrid:Scroll(-1,yf)
+						Karm.GUI.taskTree.ganttGrid:Scroll(-1,yf)
+					end
+				end
             end
         end
+		if not (selected and prevSelect[2]~=0) then
+			for k,currNode in Karm.GUI.taskTree.tvpairs(Karm.GUI.taskTree) do
+				for i,v in pairs(visibleNodes) do
+					if k == i and v~=0 then
+						-- Set the scroll bar to the right position
+						local xp,yp,yf
+						xp,yp = Karm.GUI.taskTree.treeGrid:GetScrollPixelsPerUnit()
+						for j = 1,#Karm.GUI.taskTree.taskTreeConfig do
+							if Karm.GUI.taskTree.treeGrid:CellToRect(currNode.Row-1,j):GetY() ~= 0 then
+								yf = (Karm.GUI.taskTree.treeGrid:CellToRect(currNode.Row-1,j):GetY()-v)/yp
+							end
+						end
+						if yf then
+							Karm.GUI.taskTree.treeGrid:Scroll(-1,yf)
+							Karm.GUI.taskTree.ganttGrid:Scroll(-1,yf)
+						end
+					end
+				end
+			end
+		end
         if #planningTasks > 0 then
         	Karm.GUI.taskTree:enablePlanningMode(planningTasks)
         end
     else
  		Karm.GUI.taskTree.Nodes[Karm.Globals.ROOTKEY].Expanded = true
     end
-	Karm.GUI.taskTree.update = true		-- Resume the tasktree update    
 	-- Update the Filter summary
 	if Karm.Filter then
 		Karm.GUI.taskFilter:SetValue(Karm.FilterObject.getSummary(Karm.Filter))
@@ -3923,6 +3981,18 @@ function Karm.finalizePlanning(task, planType)
     else
     	-- Delete the task node and adjust the hier level of all the sub task hierarchy if any
     	Karm.GUI.taskTree:DeleteSubUpdate(task.TaskID)
+    	-- Check if the parent of the task needs to be in the GUI
+    	local done = false
+    	local currTask = task.Parent
+    	while not done and currTask do
+	    	if not Karm.Filter.DontShowHierarchy then
+	    		taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{currTask})
+	    		if #taskList == 0 then
+	    			Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
+	    			currTask = currTask.Parent
+	    		end
+	    	end
+	    end
     end
     Karm.Globals.unsavedSpores[task.SporeFile] = Karm.SporeData[task.SporeFile].Title
 end		-- function Karm.finalizePlanning ends
@@ -4080,25 +4150,8 @@ function Karm.Macro()
 	frame:Show(true)
 end
 
-
-function Karm.main()
-    Karm.GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
-                        wx.wxDefaultPosition, wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH),
-                        wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
-
-	-- Toolbar generation
---[[
-Sample Table for a Tool:
-		{	-- Load XML file
-			Text = "Load XML",
-			Code = "Karm.loadXML",
-			HelpText = "Load XML Spore from Disk",
-			Image = { Type = wx.wxBITMAP_TYPE_PNG,
-					  Data = "images/load_xml.png"
-			}
-		},
-]]	
-	Karm.GUI.toolbar = Karm.GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
+function Karm.GUI.refreshToolBar()
+	Karm.GUI.toolbar:ClearTools()
 	for i = 1,#Karm.GUI.Tools do
 		if Karm.GUI.Tools[i] == "SEPARATOR" then
 			Karm.GUI.toolbar:AddSeparator()
@@ -4127,23 +4180,12 @@ Sample Table for a Tool:
 		end			
 	end	
 	Karm.GUI.toolbar:Realize()
+end
 
-	-- Create status Bar in the window
-    Karm.GUI.statusBar = Karm.GUI.frame:CreateStatusBar(2)
-    -- Text for the 1st field in the status bar
-    Karm.GUI.frame:SetStatusText("Welcome to Karm", 0)
-    Karm.GUI.frame:SetStatusBarPane(-1)
-    -- text for the second field in the status bar
-    --Karm.GUI.frame:SetStatusText("Test", 1)
-    -- Set the width of the second field to 25% of the whole window
-    local widths = {}
-    widths[1]=-3
-    widths[2] = -1
-    Karm.GUI.frame:SetStatusWidths(widths)
-    Karm.GUI.defaultColor.Red = Karm.GUI.statusBar:GetBackgroundColour():Red()
-    Karm.GUI.defaultColor.Green = Karm.GUI.statusBar:GetBackgroundColour():Green()
-    Karm.GUI.defaultColor.Blue = Karm.GUI.statusBar:GetBackgroundColour():Blue()
-    
+function Karm.GUI.refreshMenuBar()
+	for i = 1,Karm.GUI.menuBar:GetMenuCount() do
+		Karm.GUI.menuBar:Remove(0)
+	end
     local getMenu
     getMenu = function(menuTable)
 		local newMenu = wx.wxMenu()    
@@ -4161,13 +4203,53 @@ Sample Table for a Tool:
     end
 
     -- create the menubar and attach it
-    Karm.GUI.menuBar = wx.wxMenuBar()
 	for i = 1,#Karm.GUI.MainMenu do
 		if Karm.GUI.MainMenu[i].Text and Karm.GUI.MainMenu[i].Menu then
 			Karm.GUI.menuBar:Append(getMenu(Karm.GUI.MainMenu[i].Menu),Karm.GUI.MainMenu[i].Text)
 		end
 	end    
-	-- MENU COMMANDS
+
+end
+
+function Karm.main()
+    Karm.GUI.frame = wx.wxFrame( wx.NULL, wx.wxID_ANY, "Karm",
+                        wx.wxDefaultPosition, wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH),
+                        wx.wxDEFAULT_FRAME_STYLE + wx.wxWANTS_CHARS)
+
+	-- Toolbar generation
+--[[
+Sample Table for a Tool:
+		{	-- Load XML file
+			Text = "Load XML",
+			Code = "Karm.loadXML",
+			HelpText = "Load XML Spore from Disk",
+			Image = { Type = wx.wxBITMAP_TYPE_PNG,
+					  Data = "images/load_xml.png"
+			}
+		},
+]]	
+	Karm.GUI.toolbar = Karm.GUI.frame:CreateToolBar(wx.wxNO_BORDER + wx.wxTB_FLAT + wx.wxTB_DOCKABLE)
+	Karm.GUI.refreshToolBar()
+	-- Create the menubar
+    Karm.GUI.menuBar = wx.wxMenuBar()
+    Karm.GUI.refreshMenuBar()
+
+	-- Create status Bar in the window
+    Karm.GUI.statusBar = Karm.GUI.frame:CreateStatusBar(2)
+    -- Text for the 1st field in the status bar
+    Karm.GUI.frame:SetStatusText("Welcome to Karm", 0)
+    Karm.GUI.frame:SetStatusBarPane(-1)
+    -- text for the second field in the status bar
+    --Karm.GUI.frame:SetStatusText("Test", 1)
+    -- Set the width of the second field to 25% of the whole window
+    local widths = {}
+    widths[1]=-3
+    widths[2] = -1
+    Karm.GUI.frame:SetStatusWidths(widths)
+    Karm.GUI.defaultColor.Red = Karm.GUI.statusBar:GetBackgroundColour():Red()
+    Karm.GUI.defaultColor.Green = Karm.GUI.statusBar:GetBackgroundColour():Green()
+    Karm.GUI.defaultColor.Blue = Karm.GUI.statusBar:GetBackgroundColour():Blue()
+    
     -- connect the selection event of the exit menu item to an
     -- event handler that closes the window
     Karm.GUI.frame:Connect(wx.wxID_ANY, wx.wxEVT_CLOSE_WINDOW,
