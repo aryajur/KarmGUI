@@ -199,7 +199,7 @@ function Karm.validateSpore(Spore)
 end
 
 function Karm.TaskObject.IsValidTask(task)
-	if not type(task) == "table" then
+	if not (type(task) == "table") then
 		return nil
 	elseif not task.TaskID then
 		return nil
