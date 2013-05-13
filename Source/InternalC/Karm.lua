@@ -7,7 +7,7 @@
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 -- For windows distribution
-package.cpath = ";./?.dll;"
+package.cpath = ";c:\\?.dll;?.dll;./?.dll;"
 
 -- For linux distribution
 --package.cpath = ";./?.so;/usr/lib/?.so;/usr/local/lib/?.so;"
@@ -172,28 +172,40 @@ Karm.GUI = {
 	Karm.GUI.fillTaskTree()
 												]]},
 												{Text = "&Scheduled but not done\tCtrl-4", HelpText = "Tasks scheduled before today and not marked done", Code = [[
-	local filter = Karm.LoadFilter("../../Tasks/Filters/Scheduled_But_Not_Done.kff")
-	Karm.Filter = filter
+	local year = os.date("%Y")
+	local month = os.date("%m")
+	local day = os.date("%d")
+	local finDay = os.time{year=year,month=month,day=day-1}
+	Karm.Filter={Status="Behind,Not Started,On Track",Schedules="'Full,Latest,01/01/2010-"..os.date("%m",finDay).."/"..os.date("%d",finDay).."/"..os.date("%Y",finDay).."'"}
 	Karm.GUI.fillTaskTree()
 												]]},
 												{Text = "&Coming Week not Done\tCtrl-5", HelpText = "Tasks scheduled in the coming week", Code = [[
-	local filter = Karm.LoadFilter("../../Tasks/Filters/Coming_Week_Not_Done.kff")
-	Karm.Filter = filter
+	local year = os.date("%Y")
+	local month = os.date("%m")
+	local day = os.date("%d")
+	local today = os.time{year=year,month=month,day=day}
+	local startDay = os.date("%m",today).."/"..os.date("%d",today).."/"..os.date("%Y",today)
+	local aweeklater = os.time{year=year,month=month,day=day+7}
+	local finDay = os.date("%m",aweeklater).."/"..os.date("%d",aweeklater).."/"..os.date("%Y",aweeklater)
+	Karm.Filter={Status="Behind,Not Started,On Track",Schedules="('Overlap,Revisions(L),"..startDay.."-"..finDay.."' or 'Overlap,Committed,"..startDay.."-"..finDay.."' or 'Overlap,Estimate(L),"..startDay.."-"..finDay.."')"}
 	Karm.GUI.fillTaskTree()
 												]]},
 												{Text = "&Today Not Done\tCtrl-6", HelpText = "Tasks scheduled for today", Code = [[
-	local filter = Karm.LoadFilter("../../Tasks/Filters/Today_Not_Done.kff")
-	Karm.Filter = filter
+	local year = os.date("%Y")
+	local month = os.date("%m")
+	local day = os.date("%d")
+	local today = os.time{year=year,month=month,day=day}
+	local startDay = os.date("%m",today).."/"..os.date("%d",today).."/"..os.date("%Y",today)
+	local finDay = os.date("%m",today).."/"..os.date("%d",today).."/"..os.date("%Y",today)
+	Karm.Filter={Status="Behind,Not Started,Obsolete,On Track",Schedules="('Overlap,Revisions(L),"..startDay.."-"..finDay.."' or 'Overlap,Committed,"..startDay.."-"..finDay.."' or 'Overlap,Estimate(L),"..startDay.."-"..finDay.."')"}
 	Karm.GUI.fillTaskTree()
 												]]},
 												{Text = "All &Not Done, Non Obsolete\tCtrl-7", HelpText = "Tasks scheduled for today", Code = [[
-	local filter = Karm.LoadFilter("../../Tasks/Filters/All_Not_Done_Non_Obsolete.kff")
-	Karm.Filter = filter
+	Karm.Filter = {Status="Behind,Not Started,On Track,Pending"}
 	Karm.GUI.fillTaskTree()
 												]]},
 												{Text = "&All Tasks\tCtrl-8", HelpText = "Show all loaded Tasks", Code = [[
-	local filter = Karm.LoadFilter("../../Tasks/Filters/All_Tasks.kff")
-	Karm.Filter = filter
+	Karm.Filter = {}
 	Karm.GUI.fillTaskTree()
 												]]}
 										}
@@ -202,7 +214,7 @@ Karm.GUI = {
 					{	
 						Text = "&Help", Menu = {
 													{Text = "&About\tCtrl-A", HelpText = "About Karm", Code = [[
-			wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n    Version: '..Karm.Globals.KARM_VERSION.."\nFor Help:\n    wiki.karm.amved.com\n    forum.karm.amved.com\n    karm@amved.com", 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)]]
+			wx.wxMessageBox('Karm is the Task and Project management application for everybody.\n    Version: '..Karm.Globals.KARM_VERSION.."\nFor Help:\n    wiki.karm.amved.com\n    group.karm.amved.com\n    karm@amved.com", 'About Karm',wx.wxOK + wx.wxICON_INFORMATION,Karm.GUI.frame)]]
 													}
 										}	-- Menu ends
 					}	-- 4th Menu ends
@@ -419,7 +431,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.5.9",
+	KARM_VERSION = "1.13.5.10",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
@@ -1260,7 +1272,7 @@ do
 		taskTreeINT[taskTree].ganttGrid:DeleteRows(0,taskTreeINT[taskTree].ganttGrid:GetNumberRows())
 		local rowPtr = 0
 		for i,v in taskTreeINT.tvpairs(taskTree) do
-			dispTask(taskTree,rowPtr+1,true,v)
+			dispGantt(taskTree,rowPtr+1,true,v)
 			rowPtr = rowPtr + 1
 		end		-- Looping through all the nodes ends	
 		-- Sync the Scroll bars
@@ -1300,6 +1312,13 @@ do
 					else
 						taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,i-1,"0")
 					end
+					-- Set the back ground color
+					if taskNode.BackColor then
+						taskTreeINT[taskTree].treeGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
+					end
+					if taskNode.ForeColor then
+						taskTreeINT[taskTree].treeGrid:SetCellTextColour(row-1,i-1,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
+					end
 				end
 			else
 				local f = loadstring(taskTreeINT[taskTree].taskTreeConfig[i].Code)
@@ -1312,8 +1331,16 @@ do
 				if err then
 					taskTreeINT[taskTree].treeGrid:SetCellValue(row-1,i-1,ret or " ")
 					taskTreeINT[taskTree].treeGrid:SetCellAlignment(row-1,i-1,wx.wxALIGN_LEFT, wx.wxALIGN_CENTRE)
+					-- Set the back ground color
+					if taskNode.BackColor then
+						taskTreeINT[taskTree].treeGrid:SetCellBackgroundColour(row-1,i-1,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
+					end
+					if taskNode.ForeColor then
+						taskTreeINT[taskTree].treeGrid:SetCellTextColour(row-1,i-1,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
+					end
 				end				
 			end
+			taskTreeINT[taskTree].treeGrid:SetReadOnly(row-1,i-1)
 		end		-- for i = 1,#taskTreeINT[taskTree].taskTreeConfig do ends
 		if taskNode.Children > 0 then
 			if taskNode.Expanded then
@@ -1323,15 +1350,6 @@ do
 			end
 		else
 			taskTreeINT[taskTree].treeGrid:SetRowLabelValue(row-1," ")
-		end
-		taskTreeINT[taskTree].treeGrid:SetReadOnly(row-1,0)
-		taskTreeINT[taskTree].treeGrid:SetReadOnly(row-1,1)
-		-- Set the back ground color
-		if taskNode.BackColor then
-			taskTreeINT[taskTree].treeGrid:SetCellBackgroundColour(row-1,1,wx.wxColour(taskNode.BackColor.Red,taskNode.BackColor.Green,taskNode.BackColor.Blue))
-		end
-		if taskNode.ForeColor then
-			taskTreeINT[taskTree].treeGrid:SetCellTextColour(row-1,1,wx.wxColour(taskNode.ForeColor.Red,taskNode.ForeColor.Green,taskNode.ForeColor.Blue))
 		end
 		taskTreeINT[taskTree].treeGrid:ForceRefresh()
 	end
@@ -3369,6 +3387,8 @@ function Karm.EditTaskCallBack(task, noGUI)
 			    		if #taskList == 0 then
 			    			Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
 			    			currTask = currTask.Parent
+			    		else
+			    			done = true
 			    		end
 			    	end
 			    end
@@ -4124,6 +4144,8 @@ function Karm.finalizePlanning(task, planType)
 	    		if #taskList == 0 then
 	    			Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
 	    			currTask = currTask.Parent
+	    		else
+	    			done = true
 	    		end
 	    	end
 	    end

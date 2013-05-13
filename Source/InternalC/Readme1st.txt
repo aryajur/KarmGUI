@@ -16,4 +16,4 @@ Karm is released under MIT license. Please see the LICENSE.txt file in this dist
 Other resources:
 wiki.karm.amved.com
 karm.amved.com
-forum.karm.amved.com
+group.karm.amved.com
