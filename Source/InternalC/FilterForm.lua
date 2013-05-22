@@ -269,7 +269,7 @@ local function setfilter(f)
 	-- Set the task details
 	local str = ""
 	if f.Tasks then
-		filter.TasksSet = {[1]={}}
+		filter.TasksSet = {[1]={}}  -- TO store the already selected task
 		if f.Tasks[1].Title then
 			str = f.Tasks[1].Title
 			filter.TasksSet[1].Title = str

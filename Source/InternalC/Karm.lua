@@ -7,7 +7,7 @@
 
 -- Load the wxLua module, does nothing if running from wxLua, wxLuaFreeze, or wxLuaEdit
 -- For windows distribution
-package.cpath = ";c:\\?.dll;?.dll;./?.dll;"
+package.cpath = ";?.dll;./?.dll;"
 
 -- For linux distribution
 --package.cpath = ";./?.so;/usr/lib/?.so;/usr/local/lib/?.so;"
@@ -304,14 +304,7 @@ Karm.GUI = {
 		{	-- Move Task Under
 			Text = "Move Under",
 			HelpText = "Move Task Under...",
-			Code = [[local ret = Karm.MoveTaskToggle(Karm.Globals.CHILD)
-						if not ret then
-							Karm.GUI.toolbar:ToggleTool(myID,nil)
-						else
-							Karm.GUI.resetToggleTools[#Karm.GUI.resetToggleTools + 1] = myID
-						end
-						]],
-			Type = wx.wxITEM_CHECK,
+			Code = "Karm.InitiateMoveCopy(Karm.Globals.CHILD)",
 			Image = { Type = wx.wxBITMAP_TYPE_PNG,
 					  Data = "images/move_under.png"
 					}
@@ -319,14 +312,7 @@ Karm.GUI = {
 		{	-- Move Task Above
 			Text = "Move Above",
 			HelpText = "Move Task Above...",
-			Code = [[local ret = Karm.MoveTaskToggle(Karm.Globals.PREV_SIBLING)
-						if not ret then
-							Karm.GUI.toolbar:ToggleTool(myID,nil)
-						else
-							Karm.GUI.resetToggleTools[#Karm.GUI.resetToggleTools + 1] = myID
-						end
-						]],
-			Type = wx.wxITEM_CHECK,
+			Code = "Karm.InitiateMoveCopy(Karm.Globals.PREV_SIBLING)",
 			Image = { Type = wx.wxBITMAP_TYPE_PNG,
 					  Data = "images/move_above.png"
 					}
@@ -334,14 +320,7 @@ Karm.GUI = {
 		{	-- Move Task Below
 			Text = "Move Below",
 			HelpText = "Move Task Below...",
-			Code = [[local ret = Karm.MoveTaskToggle(Karm.Globals.NEXT_SIBLING)
-						if not ret then
-							Karm.GUI.toolbar:ToggleTool(myID,nil)
-						else
-							Karm.GUI.resetToggleTools[#Karm.GUI.resetToggleTools + 1] = myID
-						end
-						]],
-			Type = wx.wxITEM_CHECK,
+			Code = "Karm.InitiateMoveCopy(Karm.Globals.NEXT_SIBLING)",
 			Image = { Type = wx.wxBITMAP_TYPE_PNG,
 					  Data = "images/move_below.png"
 					}
@@ -350,14 +329,7 @@ Karm.GUI = {
 		{	-- Copy Task Under
 			Text = "Copy Under",
 			HelpText = "Copy Task Under...",
-			Code = [[local ret = Karm.CopyTaskToggle(Karm.Globals.CHILD)
-						if not ret then
-							Karm.GUI.toolbar:ToggleTool(myID,nil)
-						else
-							Karm.GUI.resetToggleTools[#Karm.GUI.resetToggleTools + 1] = myID
-						end
-						]],
-			Type = wx.wxITEM_CHECK,
+			Code = "Karm.InitiateMoveCopy(Karm.Globals.CHILD, true)",
 			Image = { Type = wx.wxBITMAP_TYPE_PNG,
 					  Data = "images/copy_under.png"
 					}
@@ -365,14 +337,7 @@ Karm.GUI = {
 		{	-- Copy Task Above
 			Text = "Copy Above",
 			HelpText = "Copy Task Above...",
-			Code = [[local ret = Karm.CopyTaskToggle(Karm.Globals.PREV_SIBLING)
-						if not ret then
-							Karm.GUI.toolbar:ToggleTool(myID,nil)
-						else
-							Karm.GUI.resetToggleTools[#Karm.GUI.resetToggleTools + 1] = myID
-						end
-						]],
-			Type = wx.wxITEM_CHECK,
+			Code = "Karm.InitiateMoveCopy(Karm.Globals.PREV_SIBLING, true)",
 			Image = { Type = wx.wxBITMAP_TYPE_PNG,
 					  Data = "images/copy_above.png"
 					}
@@ -380,14 +345,7 @@ Karm.GUI = {
 		{	-- Copy Task Below
 			Text = "Copy Below",
 			HelpText = "Copy Task Below...",
-			Code = [[local ret = Karm.CopyTaskToggle(Karm.Globals.NEXT_SIBLING)
-						if not ret then
-							Karm.GUI.toolbar:ToggleTool(myID,nil)
-						else
-							Karm.GUI.resetToggleTools[#Karm.GUI.resetToggleTools + 1] = myID
-						end
-						]],
-			Type = wx.wxITEM_CHECK,
+			Code = "Karm.InitiateMoveCopy(Karm.Globals.NEXT_SIBLING, true)",
 			Image = { Type = wx.wxBITMAP_TYPE_PNG,
 					  Data = "images/copy_below.png"
 					}
@@ -401,9 +359,7 @@ Karm.GUI = {
 					  Data = "images/lua_macro.png"
 					}
 		}
-	},	-- Tools ends here
-	resetToggleTools = {}
-
+	}	-- Tools ends here
 }		-- Karm.GUI ends here
 
 Karm.GUI.initFrameW, Karm.GUI.initFrameH = wx.wxDisplaySize()
@@ -431,10 +387,10 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.5.10",
+	KARM_VERSION = "1.13.5.20",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
-	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
+	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
 	StatusNodeColor = {
 				{	ForeColor = {Red=100,Green=100,Blue=0},
 					BackColor = {Red=255,Green=255,Blue=255}
@@ -1983,7 +1939,7 @@ do
 		-- First make sure the key is unique
 		if oTree.Nodes[nodeInfo.Key] then
 			-- Key already exists
-			wx.wxMessageBox("Trying to add a duplicate Key ("..nodeInfo.Key..") to the task Tree.",
+			wx.wxMessageBox("Trying to add a duplicate Key ("..nodeInfo.Key..") to the task Tree.", "Error!", 
 		                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 			return nil
 		end
@@ -1991,14 +1947,14 @@ do
 		if nodeInfo.Relative then
 			if not oTree.Nodes[nodeInfo.Relative] then
 				-- Relative specified but does not exist
-				wx.wxMessageBox("Specified relative does not exist ("..nodeInfo.Relative..") in the task Tree.",
+				wx.wxMessageBox("Specified relative does not exist ("..nodeInfo.Relative..") in the task Tree.", "Error!", 
 			                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 				return nil
 			end
 			-- Since relative is specified relation should be specified
 			if not nodeInfo.Relation then
 				-- Relative specified but Relation not specified
-				wx.wxMessageBox("No relation specified for task (".. nodeInfo.Text..").",
+				wx.wxMessageBox("No relation specified for task (".. nodeInfo.Text..").", "Error!", 
 			                wx.wxOK + wx.wxICON_ERROR, Karm.GUI.frame)
 				return nil
 			end
@@ -2866,7 +2822,7 @@ end
 function Karm.createNewSpore(title, relation, relative)
 	if not relative then
 		if relation then
-			return nil
+			return nil, "relation specified but not relative"
 		end
 	else
 		if not relation then
@@ -2901,65 +2857,233 @@ function Karm.createNewSpore(title, relation, relative)
 	return Karm.Globals.ROOTKEY..SporeName
 end
 
--- For MoveTask it needs the following information
---	Karm.GUI.MoveTask.action = ID
---	Karm.GUI.MoveTask.task = taskList[1].Task
--- For CopyTask it needs the following information
---	Karm.GUI.CopyTask.action = ID
---	Karm.GUI.CopyTask.task = taskList[1].Task
-function Karm.moveCopyTask(task)
+-- Function to display the task tree with the same expansions as the GUI tree
+function Karm.GUI.SelectTask(callBack, dispMessage,multipleSelect)
+  if type(callBack) ~= "function" then
+    return nil,"Need Call back function to pass on the selected task"
+  end
+	local frame = wx.wxFrame(Karm.GUI.frame, wx.wxID_ANY, "Select Task", wx.wxDefaultPosition,
+		wx.wxSize(Karm.GUI.initFrameW, Karm.GUI.initFrameH), wx.wxDEFAULT_FRAME_STYLE)
+	local MainSizer = wx.wxBoxSizer(wx.wxVERTICAL)
+  if dispMessage and dispMessage ~= "" then
+    local msgLabel = wx.wxStaticText(frame, wx.wxID_ANY, dispMessage, wx.wxDefaultPosition, wx.wxDefaultSize, wx.wxALIGN_CENTRE)
+    MainSizer:Add(msgLabel,0,bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+  end
+	local taskTree 
+  if multipleSelect then
+    taskTree = wx.wxTreeCtrl(frame, wx.wxID_ANY, wx.wxDefaultPosition,wx.wxSize(0.9*Karm.GUI.initFrameW, 0.9*Karm.GUI.initFrameH),bit.bor(wx.wxTR_MULTIPLE,wx.wxTR_HAS_BUTTONS))
+  else
+    taskTree = wx.wxTreeCtrl(frame, wx.wxID_ANY, wx.wxDefaultPosition,wx.wxSize(0.9*Karm.GUI.initFrameW, 0.9*Karm.GUI.initFrameH),bit.bor(wx.wxTR_SINGLE,wx.wxTR_HAS_BUTTONS))
+  end
+	MainSizer:Add(taskTree, 3, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	local buttonSizer = wx.wxBoxSizer(wx.wxHORIZONTAL)
+	local OKButton = wx.wxButton(frame, wx.wxID_ANY, "OK", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+	local CancelButton = wx.wxButton(frame, wx.wxID_ANY, "Cancel", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+	local ChangeFilterButton = wx.wxButton(frame, wx.wxID_ANY, "Change Filter", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+	local CheckBox = wx.wxCheckBox(frame, wx.wxID_ANY, "Show All Tasks", wx.wxDefaultPosition, wx.wxDefaultSize, 0, wx.wxDefaultValidator)
+	
+	buttonSizer:Add(OKButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	buttonSizer:Add(CancelButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	buttonSizer:Add(ChangeFilterButton,1, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	buttonSizer:Add(CheckBox,0, bit.bor(wx.wxALL,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	MainSizer:Add(buttonSizer, 0, bit.bor(wx.wxALL,wx.wxEXPAND,wx.wxALIGN_CENTER_HORIZONTAL,wx.wxALIGN_CENTER_VERTICAL), 1)
+	
+  local treeData
+  
+  local function populateTasks(filter)
+    taskTree:DeleteAllItems()
+    -- Add the root
+    local root = taskTree:AddRoot("Task Spores")
+    treeData = {}
+    treeData[root:GetValue()] = {Key = Karm.Globals.ROOTKEY, Parent = nil, Title = "Task Spores", Task = nil,node=root}
+      if Karm.SporeData[0] > 0 then
+  -- Populate the tree control view
+      local count = 0
+      -- Loop through all the spores
+          for k,v in pairs(Karm.SporeData) do
+            if k~=0 then
+              -- Get the tasks in the spore
+  -- Add the spore to the TaskTree
+              -- Find the name of the file
+              local strVar
+              local intVar1 = -1
+              count = count + 1
+              for intVar = #k,1,-1 do
+                if string.sub(k, intVar, intVar) == "." then
+                  intVar1 = intVar
+                end
+                if string.sub(k, intVar, intVar) == "\\" or string.sub(k, intVar, intVar) == "/" then
+                  strVar = string.sub(k, intVar + 1, intVar1-1)
+                  break
+                end
+              end
+              -- Add the spore node
+              local currNode = taskTree:AppendItem(root,strVar)
+              treeData[currNode:GetValue()] = {Key = Karm.Globals.ROOTKEY..k, Parent = root, Title = strVar,Task=v,node=currNode}
+              local taskList = Karm.FilterObject.applyFilterHier(filter, v)
+  -- Now add the tasks under the spore in the TaskTree
+              if taskList.count > 0 then  --There are some tasks passing the criteria in this spore
+                -- Add the 1st element under the spore
+                local parent = currNode
+                currNode = taskTree:AppendItem(parent,taskList[1].Title)
+                treeData[currNode:GetValue()] = {Key = taskList[1].TaskID, Parent = parent, Title = taskList[1].Title, Task = taskList[1], node=currNode}
+                for intVar = 2,taskList.count do
+                  local cond1 = treeData[currNode:GetValue()].Key ~= Karm.Globals.ROOTKEY..k
+                  local cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key
+                  local cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key.."_"
+                  while cond1 and not (cond2 and cond3) do
+                    -- Go up the hierarchy
+                    currNode = treeData[currNode:GetValue()].Parent
+                    cond1 = treeData[currNode:GetValue()].Key ~= Karm.Globals.ROOTKEY..k
+                    cond2 = #taskList[intVar].TaskID > #treeData[currNode:GetValue()].Key
+                    cond3 = string.sub(taskList[intVar].TaskID, 1, #treeData[currNode:GetValue()].Key + 1) == treeData[currNode:GetValue()].Key.."_"
+                  end
+                  -- Now currNode has the node which is the right parent
+                  parent = currNode
+                  currNode = taskTree:AppendItem(parent,taskList[intVar].Title)
+                  treeData[currNode:GetValue()] = {Key = taskList[intVar].TaskID, Parent = parent, Title = taskList[intVar].Title, Task = taskList[intVar], node = currNode}
+                end
+              end  -- if taskList.count > 0 then ends
+            end		-- if k~=0 then ends
+          -- Repeat for all spores
+          end		-- for k,v in pairs(SporeData) do ends
+      end  -- if SporeData[0] > 0 then ends
+      
+    -- Expand the root element
+    taskTree:Expand(root)
+    -- Now expand all the expanded elements in the 
+    for k,v in Karm.GUI.taskTree:tvpairs() do
+      if v.Expanded then
+        for i,j in pairs(treeData) do
+          if v.Key == j.Key then
+            taskTree:Expand(j.node)
+            break
+          end
+        end
+      end
+    end
+  end
+	
+  -- Now populate the tree with all the tasks
+  populateTasks(Karm.Filter)
+  
+	-- Connect the button events
+	OKButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+    function (event)
+      local sel, tasks
+      if multipleSelect then
+        sel = taskTree:GetSelections(sel)
+        for i = 1,#sel do
+          if treeData[sel[i]:GetValue()].Task then
+            tasks[#tasks + 1] = treeData[sel[i]:GetValue()].Task
+          else
+            tasks[#tasks + 1] = "ROOT"
+          end
+        end
+      else
+        sel = taskTree:GetSelection()
+        if treeData[sel:GetValue()].Task then
+          tasks = treeData[sel:GetValue()].Task
+        else
+          tasks = "ROOT"
+        end
+      end
+      callBack(tasks)
+      frame:Close()
+    end
+	)
+	CancelButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+    function (event)
+      frame:Close()
+    end
+  )
+
+	ChangeFilterButton:Connect(wx.wxEVT_COMMAND_BUTTON_CLICKED,
+    function(event)
+      local filterWindowOpen = false
+      local function SetFilterCallBack(filter)
+        filterWindowOpen = false
+        package.loaded["FilterForm"] = Karm.GUI.FilterForm
+        if filter then
+            populateTasks(filter)
+            CheckBox:SetValue(false)
+        end
+      end
+      if not filterWindowOpen then
+        package.loaded["FilterForm"] = nil   -- To reload the filterForm (instantiate it again)
+        filterWindowOpen = require("FilterForm")
+        filterWindowOpen.filterFormActivate(frame,SetFilterCallBack)
+      else
+        filterWindowOpen.frame:SetFocus()
+      end
+    end
+  )
+	
+	frame:Connect(wx.wxID_ANY, wx.wxEVT_CLOSE_WINDOW,
+        function (event)
+          frame:MakeModal(false)
+          frame:Destroy()
+        end
+  )
+  CheckBox:Connect(wx.wxEVT_COMMAND_CHECKBOX_CLICKED,
+    function(event)
+      if CheckBox then
+          populateTasks({})
+      else
+          populateTasks(Karm.Filter)
+      end      
+    end
+  )
+
+	frame:SetSizer(MainSizer)
+	MainSizer:SetSizeHints(frame)
+	frame:Layout()
+	frame:Show(true)
+  frame:MakeModal(true)
+end		-- local function SelectTask() ends
+
+
+-- info contains the following
+-- action = ID
+-- task = task table that has to be moved/copied
+-- dTask = destination relative
+-- if copy is true it does a copy otherwise a move
+function Karm.moveCopyTask(info,copy)
 	-- Do the move/copy task here
-	-- Get the selected task
-	local taskList = Karm.GUI.taskTree.Selected
-	if #taskList == 0 then
-		-- Cancel the move/copy
-		Karm.GUI.statusBar:SetStatusText("",0)
-		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-		Karm.GUI.MoveTask = nil
-		Karm.GUI.CopyTask = nil
-		Karm.GUI.ResetToggleTools()
-        return
-	end			
-	if #taskList > 1 then
-		Karm.GUI.statusBar:SetStatusText("",0)
-		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-		Karm.GUI.MoveTask = nil
-		Karm.GUI.CopyTask = nil
-		-- Cancel the move/copy
-		Karm.GUI.ResetToggleTools()
-        return
-	end		
-	if Karm.GUI.MoveTask and taskList[1].Task ~= Karm.GUI.MoveTask.task or Karm.GUI.CopyTask and taskList[1].Task ~= Karm.GUI.CopyTask.task then
+  if type(info) ~= "table" or type(info.task) ~= "table" or type(info.dTask) ~= "table" then
+    return nil, "info structure not valid"
+  end
+  if not info.task:IsValidTask() or not info.dTask:IsValidTask() then
+    return nil,"Passed task or dTask not a valid task object"
+  end
+	if info.dTask ~= info.task then
 		-- Start the move/copy
-		if taskList[1].Key == Karm.Globals.ROOTKEY then
+		if info.dTask.TaskID == Karm.Globals.ROOTKEY then
 			-- Relative is the Root node
-			if Karm.GUI.MoveTask and (Karm.GUI.MoveTask.action == Karm.Globals.PREV_SIBLING or Karm.GUI.MoveTask.action == Karm.Globals.NEXT_SIBLING) then
-				wx.wxMessageBox("Can only move a task under the root task!","Illegal Move", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-				return
+			if not copy and (info.action == Karm.Globals.PREV_SIBLING or info.action == Karm.Globals.NEXT_SIBLING) then
+				return nil, "Can only move a task under the root task!"
 			end
-			if Karm.GUI.CopyTask and (Karm.GUI.CopyTask.action == Karm.Globals.NEXT_SIBLING or Karm.GUI.CopyTask.action == Karm.Globals.NEXT_SIBLING) then
-				wx.wxMessageBox("Can only copy a task under the root task!","Illegal Copy", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-				return
+			if copy and (info.action == Karm.Globals.NEXT_SIBLING or info.action == Karm.Globals.NEXT_SIBLING) then
+				return nil, "Can only copy a task under the root task!"
 			end
 			-- This is to move/copy the task into a new Spore
 			-- Create a new Spore here and make that the target parent instead of the root node
-			taskList[1] = Karm.GUI.taskTree.Nodes[Karm.createNewSpore()]
+			info.dTask = Karm.GUI.taskTree.Nodes[Karm.createNewSpore()].Task
 		end
 		local task, str 
-		if Karm.GUI.MoveTask then
-			task = Karm.GUI.MoveTask.task
+		if not copy then
+			task = info.task
 			str = "Move"
 		else
 			-- Make a copy of the task and all its sub tasks and remove any DBDATA from the task to make a new task
-			task = Karm.TaskObject.copy(Karm.GUI.CopyTask.task, true, true,true)
+			task = Karm.TaskObject.copy(info.task, true, true,true)
 			str = "Copy"
 		end
-		if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
+		if info.dTask.TaskID:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- Relative is Spore
-			if (Karm.GUI.MoveTask and (Karm.GUI.MoveTask.action == Karm.Globals.PREV_SIBLING or Karm.GUI.MoveTask.action == Karm.Globals.NEXT_SIBLING))
-			  or (Karm.GUI.CopyTask and (Karm.GUI.CopyTask.action == Karm.Globals.NEXT_SIBLING or Karm.GUI.CopyTask.action == Karm.Globals.NEXT_SIBLING)) then
+			if (info.action == Karm.Globals.PREV_SIBLING or info.action == Karm.Globals.NEXT_SIBLING) then
 				-- Create a new spore and move/copy it under there (set that the new target parent)
-				taskList[1] = Karm.GUI.taskTree.Nodes[Karm.createNewSpore()]
+				info.dTask = Karm.GUI.taskTree.Nodes[Karm.createNewSpore()].Task
 			end
 			-- This is to move/copy the task into this spore
 			local taskID
@@ -2967,10 +3091,6 @@ function Karm.moveCopyTask(task)
 			taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", str.." Task Under Spore", "")
 			if taskID == "" then
 				-- Cancel the move/copy
-				Karm.GUI.statusBar:SetStatusText("",0)
-				Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-				Karm.GUI.MoveTask = nil
-				Karm.GUI.CopyTask = nil
 				return
 			end
 			-- Check if the task ID exists in all the loaded spores
@@ -2989,10 +3109,6 @@ function Karm.moveCopyTask(task)
 					taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", str.." Task Under Spore", "")
 					if taskID == "" then
 						-- Cancel the move/copy
-						Karm.GUI.statusBar:SetStatusText("",0)
-						Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-						Karm.GUI.MoveTask = nil
-						Karm.GUI.CopyTask = nil
 						return
 					end
 				else
@@ -3000,7 +3116,7 @@ function Karm.moveCopyTask(task)
 				end
 			end		
 			
-			if Karm.GUI.MoveTask then	
+			if not copy then	
 				-- Delete it from db
 				-- Delete from Spores
 				-- Parent of a root node is nil
@@ -3010,8 +3126,8 @@ function Karm.moveCopyTask(task)
 			end
 			Karm.TaskObject.updateTaskID(task,taskID)
 			task.Parent = nil
-			task.SporeFile = string.sub(taskList[1].Key,#Karm.Globals.ROOTKEY+1,-1)
-			Karm.GUI.TaskWindowOpen = {Spore = true, Relative = taskList[1].Key, Relation = Karm.Globals.CHILD}
+			task.SporeFile = string.sub(info.dTask.TaskID,#Karm.Globals.ROOTKEY+1,-1)
+			Karm.GUI.TaskWindowOpen = {Spore = true, Relative = info.dTask.TaskID, Relation = Karm.Globals.CHILD}
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task		
 			if task.SubTasks then
 				-- Update the Spore file in all sub tasks
@@ -3024,61 +3140,35 @@ function Karm.moveCopyTask(task)
 				-- Now add all the Child hierarchy of the moved task to the GUI
 				local addList = Karm.FilterObject.applyFilterHier(Karm.Filter, task.SubTasks)
 				Karm.GUI.addTaskListToParent(addList,task.TaskID)
-				--[[
-				-- Now add the tasks under the spore in the TaskTree
-            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
-    	            local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
-	                for intVar = 1,addList.count do
-	                	local cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
-	                	local cond2 = #addList[intVar].TaskID > #currNode.Key
-	                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                    	while cond1 and not (cond2 and cond3) do
-                        	-- Go up the hierarchy
-                        	currNode = currNode.Parent
-		                	cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
-		                	cond2 = #addList[intVar].TaskID > #currNode.Key
-		                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                        end
-                    	-- Now currNode has the node which is the right parent
-	                    currNode = Karm.GUI.taskTree:AddNode{Relative=currNode.Key, Relation=Karm.Globals.CHILD, Key=addList[intVar].TaskID, 
-	                    		Text=addList[intVar].Title, Task = addList[intVar]}
-                    	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
-                    end
-	            end  -- if addList.count > 0 then ends
-	            ]]
 			end		-- if task.SubTasks then ends
 			if Karm.GUI.taskTree.Nodes[task.TaskID].Row then
 				Karm.GUI.taskTree.Nodes[task.TaskID].Selected = true
 				Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
 			else
-				taskList[1].Selected = true
+				Karm.GUI.taskTree.Nodes[info.dTask.TaskID].Selected = true
 			end
 		else		-- if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
 			-- This is to move/copy the task in relation to this task
 			-- This relative might be a Spore root task or a normal hierarchy task
-			if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.Globals.CHILD or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.Globals.CHILD then
+			if info.action == Karm.Globals.CHILD then
 				-- Sub task handling is same in both cases
-				if Karm.GUI.MoveTask then
+				if not copy then
 					-- Delete it from db
 					-- Delete from Spores
 					Karm.TaskObject.DeleteFromDB(task)
 					-- Delete from task Tree GUI
 					Karm.GUI.taskTree:DeleteTree(task.TaskID)
 				end
-				Karm.TaskObject.updateTaskID(task, Karm.TaskObject.getNewChildTaskID(taskList[1].Task))
-				task.Parent = taskList[1].Task
-				Karm.GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = Karm.Globals.CHILD}
-			else		-- if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.Globals.CHILD or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.Globals.CHILD then else
+				Karm.TaskObject.updateTaskID(task, Karm.TaskObject.getNewChildTaskID(info.dTask))
+				task.Parent = info.dTask
+				Karm.GUI.TaskWindowOpen = {Relative = info.dTask.TaskID, Relation = Karm.Globals.CHILD}
+			else		-- if info.action == Karm.Globals.CHILD then else
 				local parent, taskID
-				if not taskList[1].Task.Parent then
+				if not info.dTask.Parent then
 					-- This is a spore root node so will have to ask for the task ID from the user
 					taskID = wx.wxGetTextFromUser("Enter a new TaskID (Blank to cancel):", str.." Task", "")
 					if taskID == "" then
 						-- Cancel the move
-						Karm.GUI.statusBar:SetStatusText("",0)
-						Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-						Karm.GUI.MoveTask = nil
-						Karm.GUI.CopyTask = nil
 						return
 					end
 					-- Check if the task ID exists in all the loaded spores
@@ -3097,10 +3187,6 @@ function Karm.moveCopyTask(task)
 							taskID = wx.wxGetTextFromUser("Task ID already exists. Enter a new TaskID (Blank to cancel):", str.." Task", "")
 							if taskID == "" then
 								-- Cancel the move
-								Karm.GUI.statusBar:SetStatusText("",0)
-								Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-								Karm.GUI.MoveTask = nil
-								Karm.GUI.CopyTask = nil
 								return
 							end
 						else
@@ -3109,17 +3195,17 @@ function Karm.moveCopyTask(task)
 					end		
 					-- Parent of a root node is nil	
 				else				
-					taskID = Karm.TaskObject.getNewChildTaskID(taskList[1].Task.Parent)
-					parent = taskList[1].Task.Parent
+					taskID = Karm.TaskObject.getNewChildTaskID(info.dTask.Parent)
+					parent = info.dTask.Parent
 				end		-- if not taskList[1].Task.Parent then ends
-				if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.Globals.PREV_SIBLING or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.Globals.PREV_SIBLING then
+				if info.action == Karm.Globals.PREV_SIBLING then
 					-- Move/Copy Above
-					Karm.GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = Karm.Globals.PREV_SIBLING}
+					Karm.GUI.TaskWindowOpen = {Relative = info.dTask.TaskID, Relation = Karm.Globals.PREV_SIBLING}
 				else
 					-- Move/Copy Below
-					Karm.GUI.TaskWindowOpen = {Relative = taskList[1].Key, Relation = Karm.Globals.NEXT_SIBLING}
+					Karm.GUI.TaskWindowOpen = {Relative = info.dTask.TaskID, Relation = Karm.Globals.NEXT_SIBLING}
 				end
-				if Karm.GUI.MoveTask then
+				if not copy then
 					-- Delete it from db
 					-- Delete from Spores
 					Karm.TaskObject.DeleteFromDB(task)
@@ -3128,8 +3214,8 @@ function Karm.moveCopyTask(task)
 				end
 				Karm.TaskObject.updateTaskID(task,taskID)
 				task.Parent = parent
-			end		-- if Karm.GUI.MoveTask and Karm.GUI.MoveTask.action == Karm.Globals.CHILD or Karm.GUI.CopyTask and Karm.GUI.CopyTask.action == Karm.Globals.CHILD then ends				
-			task.SporeFile = taskList[1].Task.SporeFile
+			end		-- if info.action == Karm.Globals.CHILD then ends				
+			task.SporeFile = info.dTask.SporeFile
 			Karm.NewTaskCallBack(task)		-- This takes care of adding the task to the database and also displaying this task
 			if task.SubTasks then
 				-- Update the Spore file in all sub tasks
@@ -3142,56 +3228,21 @@ function Karm.moveCopyTask(task)
 				-- Now add all the Child hierarchy of the moved task to the GUI
 				local addList = Karm.FilterObject.applyFilterHier(Karm.Filter, task.SubTasks)
 				Karm.GUI.addTaskListToParent(addList,task.TaskID)
-				--[[
-				-- Now add the tasks under the spore in the TaskTree
-            	if addList.count > 0 then  --There are some tasks passing the criteria in this spore
-    	            local currNode = Karm.GUI.taskTree.Nodes[task.TaskID]
-	                for intVar = 1,addList.count do
-	                	local cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
-	                	local cond2 = #addList[intVar].TaskID > #currNode.Key
-	                	local cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                    	while cond1 and not (cond2 and cond3) do
-                        	-- Go up the hierarchy
-                        	currNode = currNode.Parent
-		                	cond1 = currNode.Key ~= Karm.Globals.ROOTKEY..task.SporeFile
-		                	cond2 = #addList[intVar].TaskID > #currNode.Key
-		                	cond3 = string.sub(addList[intVar].TaskID, 1, #currNode.Key + 1) == currNode.Key.."_"
-                        end
-                    	-- Now currNode has the node which is the right parent
-	                    currNode = Karm.GUI.taskTree:AddNode{Relative=currNode.Key, Relation=Karm.Globals.CHILD, Key=addList[intVar].TaskID, 
-	                    		Text=addList[intVar].Title, Task = addList[intVar]}
-                    	currNode.ForeColor, currNode.BackColor = Karm.GUI.getNodeColor(currNode)
-                    end
-	            end  -- if addList.count > 0 then ends
-	            ]]
 			end		-- if task.SubTasks then ends
 			if Karm.GUI.taskTree.Nodes[task.TaskID].Row then
 				Karm.GUI.taskTree.Nodes[task.TaskID].Selected = true
 				Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
 			else
-				taskList[1].Selected = true
+				Karm.GUI.taskTree.Nodes[info.dTask.TaskID].Selected = true
 			end
 		end		-- if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then ends
-		Karm.Globals.unsavedSpores[taskList[1].Task.SporeFile] = Karm.SporeData[taskList[1].Task.SporeFile].Title
-		if Karm.GUI.MoveTask then
-			Karm.Globals.unsavedSpores[Karm.GUI.MoveTask.task.SporeFile] = Karm.SporeData[Karm.GUI.MoveTask.task.SporeFile].Title
-		else
-			Karm.Globals.unsavedSpores[Karm.GUI.CopyTask.task.SporeFile] = Karm.SporeData[Karm.GUI.CopyTask.task.SporeFile].Title
-		end
-		Karm.GUI.statusBar:SetStatusText("",0)
-		Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.defaultColor.Red,Karm.GUI.defaultColor.Green,Karm.GUI.defaultColor.Blue))
-		Karm.GUI.MoveTask = nil
-		Karm.GUI.CopyTask = nil
-		-- Finish the move
-		Karm.GUI.ResetToggleTools()
-	end		-- if Karm.GUI.MoveTask and taskList[1].Task ~= Karm.GUI.MoveTask.task or Karm.GUI.CopyTask and taskList[1].Task ~= Karm.GUI.CopyTask.task then ends
-end		-- function Karm.moveCopyTask ends
+		Karm.Globals.unsavedSpores[info.dTask.SporeFile] = Karm.SporeData[info.dTask.SporeFile].Title
+    Karm.Globals.unsavedSpores[info.task.SporeFile] = Karm.SporeData[info.task.SporeFile].Title
+	end		-- if info.dTask ~= info.task then ends
+ end		-- function Karm.ends
 
 function Karm.GUI.taskClicked(task)
 	Karm.GUI.taskDetails:SetValue(Karm.TaskObject.getSummary(task))
-	if Karm.GUI.MoveTask or Karm.GUI.CopyTask then
-		Karm.moveCopyTask(task)
-	end		-- if Karm.GUI.MoveTask then ends here
 end		-- function taskClicked(task) ends here
 
 function Karm.LoadFilter(file)
@@ -3401,7 +3452,6 @@ end
 
 function Karm.DeleteTask()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
 	-- Get the selected task
 	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
@@ -3440,82 +3490,51 @@ function Karm.DeleteTask()
 	end
 end
 
-function Karm.CopyTaskToggle(relation)
+function Karm.InitiateMoveCopy(relation, copy)
 	-- Get the selected task
 	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
-        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-        return
+    wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    return
 	end			
 	if #taskList > 1 then
-        wx.wxMessageBox("Just select a single task to copy.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-        return
+    if copy then
+      wx.wxMessageBox("Just select a single task to copy.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    else
+      wx.wxMessageBox("Just select a single task to move.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    end
+    return
 	end	
 	if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
-		wx.wxMessageBox("Cannot copy the root node or a Spore node. Please select a task to be copied.", "No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-		return
+    if copy then
+      wx.wxMessageBox("Cannot copy the root node or a Spore node. Please select a task to be copied.", "No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    else
+      wx.wxMessageBox("Cannot move the root node or a Spore node. Please select a task to be moved.", "No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
+    end
+    return
 	end	
-	Karm.GUI.ResetToggleTools()
-	Karm.GUI.CopyTask = {}
+	local info = {}
 
-	Karm.GUI.CopyTask.action = relation
-	Karm.GUI.CopyTask.task = taskList[1].Task
+	info.action = relation
+	info.task = taskList[1].Task
 	local status
-	if relation == Karm.Globals.CHILD then
-		status = "COPY TASK: Click task to copy this task under..."
-	elseif relation == Karm.Globals.PREV_SIBLING then
-		status = "COPY TASK: Click task to copy this task above..."
-	else
-		status = "COPY TASK: Click Task to copy this task below..."
-	end	
-	Karm.GUI.frame:SetStatusText(status,0)
-	Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.highLightColor.Red,Karm.GUI.highLightColor.Green,Karm.GUI.highLightColor.Blue))
-end
-
-function Karm.MoveTaskToggle(relation)
-	-- Get the selected task
-	local taskList = Karm.GUI.taskTree.Selected
-	if #taskList == 0 then
-        wx.wxMessageBox("Select a task first.","No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-        return
-	end			
-	if #taskList > 1 then
-        wx.wxMessageBox("Just select a single task to move.","Multiple Tasks selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-        return
-	end	
-	if taskList[1].Key:sub(1,#Karm.Globals.ROOTKEY) == Karm.Globals.ROOTKEY then
-		wx.wxMessageBox("Cannot move the root node or a Spore node. Please select a task to be moved.", "No Task Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
-		return
-	end	
-	Karm.GUI.ResetToggleTools()
-	Karm.GUI.MoveTask = {}
-
-	Karm.GUI.MoveTask.action = relation
-	Karm.GUI.MoveTask.task = taskList[1].Task
-	local status
-	if relation == Karm.Globals.CHILD then
-		status = "MOVE TASK: Click task to move this task under..."
-	elseif relation == Karm.Globals.PREV_SIBLING then
-		status = "MOVE TASK: Click task to move this task above..."
-	else
-		status = "MOVE TASK: Click Task to move this task below..."
-	end	
-	Karm.GUI.frame:SetStatusText(status,0)
-	Karm.GUI.statusBar:SetBackgroundColour(wx.wxColour(Karm.GUI.highLightColor.Red,Karm.GUI.highLightColor.Green,Karm.GUI.highLightColor.Blue))
+  local function doMove(task)
+    if not task then 
+      return
+    end
+    if task == "ROOT" then
+      task = nil
+    end
+    info.dTask = task
+    Karm.moveCopyTask(info, copy)
+  end
+  
+  Karm.GUI.SelectTask(doMove,"Select the task to move the task: ".." under")
 	return true
-end
-
-function Karm.GUI.ResetToggleTools()
-	if #Karm.GUI.resetToggleTools > 0 then
-		for i=1,#Karm.GUI.resetToggleTools do
-			Karm.GUI.toolbar:ToggleTool(Karm.GUI.resetToggleTools[i],nil)
-		end
-	end
 end
 
 function Karm.EditTask()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
 	if not Karm.GUI.TaskWindowOpen then
 		-- Get the selected task
 		local taskList = Karm.GUI.taskTree.Selected
@@ -3548,7 +3567,6 @@ end
 function Karm.NewTask(relation, readyMadeTask)
 	if (relation == Karm.Globals.PREV_SIBLING or relation == Karm.Globals.NEXT_SIBLING or relation == Karm.Globals.CHILD) and ((readyMadeTask and type(readyMadeTask)=="table" and getmetatable(readyMadeTask)==Karm.TaskObject) or not readyMadeTask) then
 		-- Reset any toggle tools
-		Karm.GUI.ResetToggleTools()
 		if not Karm.GUI.TaskWindowOpen then
 			local taskList = Karm.GUI.taskTree.Selected
 			if #taskList == 0 then
@@ -3616,7 +3634,7 @@ function Karm.NewTask(relation, readyMadeTask)
 					task.SporeFile = string.sub(Karm.GUI.taskTree.Nodes[relativeID].Key,#Karm.Globals.ROOTKEY+1,-1)
 					Karm.GUI.TaskWindowOpen = {Spore = true, Relative = relativeID, Relation = Karm.Globals.CHILD}
 					if readyMadeTask then
-						if task.IsValidTask() then
+						if task:IsValidTask() then
 							Karm.NewTaskCallBack(task)
 						else
 							Karm.GUI.TaskWindowOpen = nil
@@ -3708,7 +3726,6 @@ end
 
 function Karm.SaveAllSpores()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
 	for k,v in pairs(Karm.SporeData) do
 		if k ~= 0 then
 			Karm.saveKarmSpore(k)
@@ -3783,7 +3800,6 @@ end
 
 function Karm.SaveCurrSpore()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
 	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 or (#taskList>0 and not taskList[1].Task) then
         wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
@@ -3816,7 +3832,6 @@ end
 
 function Karm.loadXML()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
     local fileDialog = wx.wxFileDialog(Karm.GUI.frame, "Open XML Spore file",
                                        "",
                                        "",
@@ -3916,7 +3931,6 @@ end
 
 function Karm.openKarmSpore()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
     local fileDialog = wx.wxFileDialog(Karm.GUI.frame, "Open Spore file",
                                        "",
                                        "",
@@ -3945,7 +3959,6 @@ end
 
 function Karm.unloadSpore()
 	-- Reset any toggle tools
-	Karm.GUI.ResetToggleTools()
 	local taskList = Karm.GUI.taskTree.Selected
 	if #taskList == 0 then
         wx.wxMessageBox("Select a task or a spore first.","No Spore Selected", wx.wxOK + wx.wxCENTRE, Karm.GUI.frame)
@@ -4330,7 +4343,7 @@ function Karm.GUI.refreshToolBar()
 				Karm.GUI.Tools[i].Type = nil
 			end
 			local ID = Karm.NewID()
-			Karm.GUI.toolbar:AddTool(ID, Karm.GUI.Tools[i].Text or "", bM, Karm.GUI.Tools[i].HelpText or "", wx.wxITEM_NORMAL or Karm.GUI.Tools[i].Type)
+			Karm.GUI.toolbar:AddTool(ID, Karm.GUI.Tools[i].Text or "", bM, Karm.GUI.Tools[i].HelpText or "", Karm.GUI.Tools[i].Type or wx.wxITEM_NORMAL)
 			-- Connect the event for this
 			Karm.GUI.frame:Connect(ID, wx.wxEVT_COMMAND_MENU_SELECTED,Karm.GUI.menuEventHandlerFunction(ID,Karm.GUI.Tools[i].Code,Karm.GUI.Tools[i].File))
 		end			
