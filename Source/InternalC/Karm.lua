@@ -3123,6 +3123,19 @@ function Karm.moveCopyTask(info,copy)
 				Karm.TaskObject.DeleteFromDB(task)
 				-- Delete from task Tree GUI
 				Karm.GUI.taskTree:DeleteTree(task.TaskID)
+				-- Check if the parent of the task needs to be in the GUI
+				local done = false
+				local currTask = task.Parent
+				while not done and currTask do
+					if not Karm.Filter.DontShowHierarchy then
+						if #Karm.FilterObject.applyFilterList(Karm.Filter,{currTask}) == 0 then
+							Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
+							currTask = currTask.Parent
+						else
+							done = true
+						end
+					end
+				end
 			end
 			Karm.TaskObject.updateTaskID(task,taskID)
 			task.Parent = nil
@@ -3158,6 +3171,19 @@ function Karm.moveCopyTask(info,copy)
 					Karm.TaskObject.DeleteFromDB(task)
 					-- Delete from task Tree GUI
 					Karm.GUI.taskTree:DeleteTree(task.TaskID)
+					-- Check if the parent of the task needs to be in the GUI
+					local done = false
+					local currTask = task.Parent
+					while not done and currTask do
+						if not Karm.Filter.DontShowHierarchy then
+							if #Karm.FilterObject.applyFilterList(Karm.Filter,{currTask}) == 0 then
+								Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
+								currTask = currTask.Parent
+							else
+								done = true
+							end
+						end
+					end
 				end
 				Karm.TaskObject.updateTaskID(task, Karm.TaskObject.getNewChildTaskID(info.dTask))
 				task.Parent = info.dTask
@@ -3211,6 +3237,19 @@ function Karm.moveCopyTask(info,copy)
 					Karm.TaskObject.DeleteFromDB(task)
 					-- Delete from task Tree Karm.GUI
 					Karm.GUI.taskTree:DeleteTree(task.TaskID)
+					-- Check if the parent of the task needs to be in the GUI
+					local done = false
+					local currTask = task.Parent
+					while not done and currTask do
+						if not Karm.Filter.DontShowHierarchy then
+							if #Karm.FilterObject.applyFilterList(Karm.Filter,{currTask}) == 0 then
+								Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
+								currTask = currTask.Parent
+							else
+								done = true
+							end
+						end
+					end
 				end
 				Karm.TaskObject.updateTaskID(task,taskID)
 				task.Parent = parent
@@ -3413,7 +3452,7 @@ function Karm.EditTaskCallBack(task, noGUI)
 				if not task.Planning and not task.PlanWorkDone and Karm.GUI.taskTree.taskList then
 					for i = 1,#Karm.GUI.taskTree.taskList do
 						if Karm.GUI.taskTree.Nodes[task.TaskID] == Karm.GUI.taskTree.taskList[i] then
-							-- The node is in the planning mode so remove it from the list of planning mode tasks
+							-- The node is in the planning mode list in taskTree but planning has ended in the task so remove it from the list of planning mode tasks
 							for k = i + 1, #Karm.GUI.taskTree.taskList - 1 do
 								Karm.GUI.taskTree.taskList[k-1] = Karm.GUI.taskTree.taskList[k]
 							end
@@ -3485,10 +3524,25 @@ function Karm.DeleteTask()
 				Karm.TaskObject.DeleteFromDB(taskList[i].Task)
 				Karm.Globals.unsavedSpores[taskList[i].Task.SporeFile] = Karm.SporeData[taskList[i].Task.SporeFile].Title
 			end
+			local task = taskList[i].Task
 			Karm.GUI.taskTree:DeleteTree(taskList[i].Key)
-		end
+			-- Check if the parent of the task needs to be in the GUI
+			local done = false
+			local currTask = task.Parent
+			while not done and currTask do
+				if not Karm.Filter.DontShowHierarchy then
+					taskList = Karm.FilterObject.applyFilterList(Karm.Filter,{currTask})
+					if #taskList == 0 then
+						Karm.GUI.taskTree:DeleteSubUpdate(currTask.TaskID)
+						currTask = currTask.Parent
+					else
+						done = true
+					end
+				end
+			end
+		end		-- for i = 1,#taskList do ends
 	end
-end
+end		-- function Karm.DeleteTask() ends here
 
 function Karm.InitiateMoveCopy(relation, copy)
 	-- Get the selected task
@@ -3927,7 +3981,7 @@ function Karm.loadKarmSpore(file, commands)
 		Karm.GUI.addSpore(Spore.SporeFile,Spore)
 	end
 	return true
-end
+end		-- function Karm.loadKarmSpore(file, commands) ends here
 
 function Karm.openKarmSpore()
 	-- Reset any toggle tools
