@@ -387,7 +387,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.5.20",
+	KARM_VERSION = "1.13.5.23",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
