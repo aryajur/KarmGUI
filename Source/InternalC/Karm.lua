@@ -387,7 +387,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.5.23",
+	KARM_VERSION = "1.13.6.13",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
@@ -2477,7 +2477,6 @@ do
 				v.Selected = false	-- Make everything else unselected
 				if v.Row == row+1 then
 					taskNode = v
-					break
 				end
 			end		-- Looping through all the nodes ends
 			-- print("Clicked row "..tostring(row))
@@ -2672,6 +2671,7 @@ function Karm.GUI.fillTaskTree()
             end
             if v.Selected then
             	-- Get the Y coordinate for the node and store it
+              -- Cycle all cells in the row in case any cell is not visible
             	for j = 1,#Karm.GUI.taskTree.taskTreeConfig do
             		if Karm.GUI.taskTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(v.Row-1,j),wx.wxGridCellCoords(v.Row-1,j)):GetY()~=0 then
             			prevSelect= {i,Karm.GUI.taskTree.treeGrid:BlockToDeviceRect(wx.wxGridCellCoords(v.Row-1,j),wx.wxGridCellCoords(v.Row-1,j)):GetY()}
@@ -2727,10 +2727,12 @@ function Karm.GUI.fillTaskTree()
     if restorePrev then
 -- Update the tree status to before the refresh
         for k,currNode in Karm.GUI.taskTree.tpairs(Karm.GUI.taskTree) do
+			-- If the node was expanded then expand it now also
             if expandedStatus[currNode.Key] then
                 currNode.Expanded = true
 			end
-			if visibleNodes[k] and currNode.Parent then
+			-- If node was visible then expand all parents to make the node visible again
+			if visibleNodes[k] then
 				local node = currNode
 				while node.Parent do
 					node.Parent.Expanded = true
