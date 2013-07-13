@@ -185,7 +185,7 @@ Karm.GUI = {
 	local day = os.date("%d")
 	local today = os.time{year=year,month=month,day=day}
 	local startDay = os.date("%m",today).."/"..os.date("%d",today).."/"..os.date("%Y",today)
-	local aweeklater = os.time{year=year,month=month,day=day+7}
+	local aweeklater = os.time{year=year,month=month,day=day+6}
 	local finDay = os.date("%m",aweeklater).."/"..os.date("%d",aweeklater).."/"..os.date("%Y",aweeklater)
 	Karm.Filter={Status="Behind,Not Started,On Track",Schedules="('Overlap,Revisions(L),"..startDay.."-"..finDay.."' or 'Overlap,Committed,"..startDay.."-"..finDay.."' or 'Overlap,Estimate(L),"..startDay.."-"..finDay.."')"}
 	Karm.GUI.fillTaskTree()
@@ -387,7 +387,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.6.13",
+	KARM_VERSION = "1.13.7.8",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
