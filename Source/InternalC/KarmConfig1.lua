@@ -1,12 +1,12 @@
 --Spores = {{file = "Test/Tasks.xml",type = "XML"}}
 Karm.Spores = {
-		{file = "../../../Tasks/AmVed Task Bank.ksf",type = "KSF"},
-		{file = "../../../Tasks/Task Bank.ksf",type = "KSF"},
-		{file = "../../../Tasks/AmVed Tasks.ksf",type = "KSF"},
-		{file = "../../../Tasks/Home Tasks.ksf",type = "KSF"},
-		{file = "../../../Tasks/Touchstone Tasks.ksf",type = "KSF"},
-		{file = "../../../Tasks/Arnav.ksf",type = "KSF"},
-		{file = "../../../Tasks/ExpressIndianRecipes Tasks.ksf",type = "KSF"}
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\AmVed Task Bank.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Task Bank.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\AmVed Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Home Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Maxim Tasks.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\Arnav.ksf",type = "KSF"},
+		{file = "C:\\Users\\milindgupta\\Documents\\Tasks\\ExpressIndianRecipes Tasks.ksf",type = "KSF"}
 }
 
 -- Karm.GUI Settings
@@ -32,7 +32,6 @@ else
 end
 											]]}
 											
-
 MainMenu[2].Menu[#MainMenu[2].Menu + 1] = {Text = "&Add Estimate\tCtrl-E", HelpText = "Add Estimated time to the task", Code = [[
 local taskList = Karm.GUI.taskTree.Selected
 if #taskList == 0 then
@@ -53,7 +52,7 @@ else
   end
 end
 											]]}
-
+                    
 setfenv(1,_G)
 -- print(Spores)
 
@@ -125,7 +124,7 @@ end
 do
 	local safeenv = {}
 	setmetatable(safeenv, {__index = Karm.Globals.safeenv})
-	local f,message = loadfile("../../../Tasks/Filters/All_Tasks.kff")
+	local f,message = loadfile("C:\\Users\\milindgupta\\Documents\\Tasks\\Filters\\All_Tasks.kff")
 	if f then
 		setfenv(f,safeenv)
 		f()

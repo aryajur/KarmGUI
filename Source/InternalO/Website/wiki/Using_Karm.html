@@ -1,0 +1,331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html><head>
+<meta name="description" content="Task Manager, Project Manager, Lua">
+<meta name="keywords" content="Tasks, Project, Lua">
+<meta name="revisit-after" content="7 days">
+<meta name="ROBOTS" content="Index, ALL">
+<meta name="ROBOTS" content="Index, FOLLOW">
+  <title>Karm: Using Karm</title>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-34168845-1']);
+  _gaq.push(['_setDomainName', 'amved.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+  
+  
+  <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+
+  
+  <style type="text/css"><!--
+h1 { font-family: Arial, sans-serif; font-size: 30px; color: #004080;}
+h2 { font-family: Arial, sans-serif; font-size: 18px; color: #004080;}
+
+body,p,b,i,em,dt,dd,dl,sl,caption,th,td,tr,u,blink,select,option,form,div,li { font-family: Arial, sans-serif; font-size: 12px; }
+
+/* IE Specific */
+body, textarea {
+  scrollbar-3dlight-color: #808080;
+  scrollbar-highlight-color: #808080;
+  scrollbar-face-color: #004080;
+  scrollbar-shadow-color: #808080;
+  scrollbar-darkshadow-color: #805B32;
+  scrollbar-arrow-color: #000000;
+  scrollbar-track-color: #F8EFE2;
+}
+/* END IE Specific */
+-->
+	</style>
+	<style>
+pre {
+    white-space: -moz-pre-wrap; /* Mozilla, supported since 1999 */
+    white-space: -pre-wrap; /* Opera */
+    white-space: -o-pre-wrap; /* Opera */
+    white-space: pre-wrap; /* CSS3 - Text module (Candidate Recommendation) http://www.w3.org/TR/css3-text/#white-space */
+    word-wrap: break-word; /* IE 5.5+ */
+	font-size:1.2em; line-height:1.4em;
+	border:1px solid #fe8; background:#ffc;
+}	
+body{padding:0;margin:0;}
+.myFloatBar{
+   bottom:0;
+   left:0;
+   width:100%;
+   position:fixed;
+   border-top: 1px solid black;
+   background-color:rgb(192, 192, 192);
+   text-align: center;
+}
+.TiddlerTitle{
+	color: rgb(255, 102, 0); 
+	font-family: Arial Black;
+	font-size: 18pt; 
+}
+img{
+    max-width:600px;
+}
+li dl dd img {margin-left: -80px;} 
+</style>
+<style>
+/* stylesheet=StyleSheetTableOfContents */
+/*{{{*/
+.dcTOC {
+	float: left; /* auto-width */
+	margin: 0 2em 2em 0;
+	border: 1px solid #aaa;
+	padding: 5px;
+	background-color: #eee;
+}
+
+.dcTOC ul {
+	margin: 0 1em;
+}
+
+h1 {
+	clear: left;
+}
+/*}}}*/
+
+</style>
+<style>
+a {color:#04b;}
+a:hover {background-color:#04b; color:#fff;}
+a img {border:0;}
+
+h1,h2,h3,h4,h5,h6 {color:#841; background:transparent;}
+h1 {border-bottom:2px solid #ccc;}
+h2,h3 {border-bottom:1px solid #ccc;}
+
+h1,h2,h3,h4,h5,h6 {font-weight:bold; text-decoration:none;}
+h1,h2,h3 {padding-bottom:1px; margin-top:1.2em;margin-bottom:0.3em;}
+h4,h5,h6 {margin-top:1em;}
+h1 {font-size:1.35em;}
+h2 {font-size:1.25em;}
+h3 {font-size:1.1em;}
+h4 {font-size:1em;}
+h5 {font-size:.9em;}
+
+.viewer table, table.twtable {border-collapse:collapse; margin:0.8em 1.0em;}
+.viewer th, .viewer td, .viewer tr,.viewer caption,.twtable th, .twtable td, .twtable tr,.twtable caption {padding:3px;}
+table.listView {font-size:0.85em; margin:0.8em 1.0em;}
+table.listView th, table.listView td, table.listView tr {padding:0 3px 0 3px;}
+
+
+.viewer table, table.twtable {border:2px solid #666;}
+.viewer th, .viewer thead td, .twtable th, .twtable thead td {background:#db4; border:1px solid #666; color:#fff;}
+.viewer td, .viewer tr, .twtable td, .twtable tr {border:1px solid #666;}
+</style>
+</head><body style="background-color: rgb(255, 255, 255);" onload="setSideAds();">
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+<p>&nbsp;</p>
+
+<div class="myFloatBar" id="myFloatBar"><div style="margin-right:30px;" class="fb-like" data-href="http://www.amved.com/karm/wiki/Using_Karm.html" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false"></div>
+		     <a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="Karm">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<!-- Place this tag where you want the +1 button to render. -->
+<div class="g-plusone" data-size="medium"></div>
+
+<script src="//platform.linkedin.com/in.js" type="text/javascript">
+ lang: en_US
+</script>
+<script type="IN/Share" data-counter="right"></script></div>
+
+<table style="width: 960px; text-align: left; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr>
+      <td style="height: 40px;">
+      <h1><span style="font-size: 48px;"><strong><span style="color: rgb(51, 102, 204);"><span style="font-family: courier new,courier,monospace;">Karm - Project Manager</span></span></strong></span></h1>
+      </td>
+      <td style="vertical-align: top; width: 300px; height: 40px;">
+      <div>
+	  <!-- Google Search Box-->
+<script>
+  (function() {
+    var cx = '001508158039401328138:il4_4hz_hay';
+    var gcse = document.createElement('script');
+    gcse.type = 'text/javascript';
+    gcse.async = true;
+    gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
+        '//www.google.com/cse/cse.js?cx=' + cx;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(gcse, s);
+  })();
+</script>
+<gcse:searchbox-only resultsUrl="http://www.amved.com/karm/wiki/searchResults.html"></gcse:searchbox-only></div>
+      <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr style="height: 30px;">
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 60px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/index.html">Home</a><br>
+      </td>
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 90px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/Using_Karm.html">Using karm</a><br>
+      </td>
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 90px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/Developer.html">Developer</a><br>
+      </td>
+      <td style="vertical-align: top; background-color: rgb(51, 102, 204); width: 720px;"><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Table for all the content and the side ads -->
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;border-right:none; border-top:none; border-bottom:none; border-left:none;" border="2" cellpadding="1" cellspacing="1">
+
+  <tbody>
+  <tr id="ContentRow">
+      <td valign="top" style="padding-right:10px; border-right:none; border-top:none; border-bottom:none; border-left:none;">&nbsp;<br>
+            <div id="SocialM" style="text-align: center;"><div style="margin-right:30px;" class="fb-like" data-href="http://www.amved.com/karm/wiki/Using_Karm.html" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false"></div>
+		     <a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="Karm">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<!-- Place this tag where you want the +1 button to render. -->
+<div class="g-plusone" data-size="medium"></div>
+
+<!-- Place this tag after the last +1 button tag. -->
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script>
+<script type="IN/Share" data-counter="right"></script></div> <!-- SocialM div element ends -->
+	  <br><br>
+	  <div id="TiddlerTitle" class="TiddlerTitle">Using Karm</div>
+	  <div id="tiddler" class="viewer"><div class="dcTOC"><a name="dcTOC">Table Of Contents</a><div><ul><li><span><a href="#L1"> Karm Files</a></span></li><li><span><a href="#L2"> Basic Usage Flow</a></span><ul><li><span><a href="#L3"> Creating and Managing Tasks</a></span></li></ul></li><li><span><a href="#L4"> Karm Interface</a></span><ul><li><span><a href="#L5"> Menu Bar</a></span></li><li><span><a href="#L6"> Toolbar</a></span></li><li><span><a href="#L7"> Task Tree Pane</a></span></li><li><span><a href="#L8"> Gantt Chart Pane</a></span></li><li><span><a href="#L9"> Task Details Pane</a></span></li><li><span><a href="#L10"> Filter Criteria Pane</a></span></li><li><span><a href="#L11"> Start and Stop Dates selection</a></span></li></ul></li><li><span><a href="#L12"> Task Entry Form</a></span><ul><li><span><a href="#L13"> Basic Info Tab</a></span></li><li><span><a href="#L14"> Classification Tab</a></span></li><li><span><a href="#L15"> People Tab</a></span></li><li><span><a href="#L16"> Schedules Tab</a></span><ul><li><span><a href="#L17"> Actual Work Done</a></span></li><li><span><a href="#L18"> Planned Schedule</a></span></li></ul></li></ul></li><li><span><a href="#L19"> Filter Criteria Form </a></span><ul><li><span><a href="#L20"> Task and Category</a></span></li><li><span><a href="#L21"> Priorities,Status and Tags</a></span></li><li><span><a href="#L22"> Dates:Due,Started,Finished </a></span></li><li><span><a href="#L23"> Access</a></span></li><li><span><a href="#L24"> Schedules</a></span></li><li><span><a href="#L25"> Custom Script</a></span></li><li><span><a href="#L26"> Logically Combine Filters</a></span></li></ul></li></ul></div></div><br><br>You can begin using Karm by simply following these steps:<br><br><ol><li> Downloading it <a class="externalLink" href="http://www.amved.com/karm/ccount/click.php?id=2" title="External link to http://www.amved.com/karm/ccount/click.php?id=2" target="_blank">here</a>. Unzip the package to any directory.</li><li> If you are using windows start Karm.exe, if linux 32 bit then KarmLinux32.exe, if linux 64 bit then linux64\KarmLinux64.exe</li><li> The interface comes up with the a sample <a title="Spore - karm, 5/11/2013 12:27:00 AM" href="http://www.amved.com/karm/wiki/Spore.html">Spore</a> of tasks already loaded, you can expand the tree to look at the various tasks entered in the Spore.</li></ol><br><h1><a name="L1"> Karm Files</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1>Here we look at all the files in the Karm Directory:<br><ol><li> Karm.exe is the windows executable</li><li> KarmLinux.exe is the linux executable</li><li> LuaXML_lib.dll, LuaXML_lib.so are support libraries for Karm</li><li> Readme1st.txt is a text file containing information to get started and useful links</li><li> <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a> is a Karm configuration file which is not necessary to have. It allows you to customize Karm the way you want it.</li><li> Filters is a directory containing sample filter files to filter out tasks</li><li> images is a directory containing image files that the Karm program needs</li><li> Tasks is a directory containing sample task <a title="Spore - karm, 5/11/2013 12:27:00 AM" href="http://www.amved.com/karm/wiki/Spore.html">Spore</a> files</li></ol><br><h1><a name="L2"> Basic Usage Flow</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1>The basic way to use Karm is as follows:<br><ol><li> Create and manage tasks and their properties/schedules/etc.</li><li> Update task data as tasks progress</li><li> Track task progress by looking at the work done and/or filtering out relevant tasks</li></ol><br>To do this use the filtering engine to shortlist or filter out relevant tasks that you want to see from a sea of tasks.<br><br><h2><a name="L3"> Creating and Managing Tasks</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><strong>Root Node</strong><br>The Karm task tree consist of a root node called 'Task Spores'. This node will still be there if you don't have any task. In the download package a <a title="Spore - karm, 5/11/2013 12:27:00 AM" href="http://www.amved.com/karm/wiki/Spore.html">Spore</a> is already loaded in you task Tree. A Spore is a file containing many tasks. The preloaded file is loaded automatically because of the setting in <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a> which loads that file. You can unload it by pressing the unload spore toolbar button <img title="Unload Spore Icon" src="images/Icon_unloadspore.jpg"> as mentioned below in the interface discussion. Once unloaded you will be left with the root node.<br><br><strong>Create Tasks</strong><br><ol><li> Create task under any node (even the root node) by pressing the create task button <img title="New Task Under Icon" src="images/New_under.png">. If you are creating it under the root node then Karm will automatically create a Spore for you which can be saved on your computer.</li><li> Edit task by launching the task edit form using the the toolbar button <img title="Edit Task Icon" src="images/Icon_edittask.jpg">. This form will allow you to edit all task properties using the GUI.</li><li> Launch the Filter Criteria setting form using the toolbar button <img title="Filter Icon" src="images/Filter.png">. This form will allow you to create, save, load and apply any type of complex filtering criteria. There are already examples supplied in the Download package in the Filter sub-directory.</li></ol><br><h1><a name="L4"> Karm Interface</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1>The Karm interface consists of:<br><img title="Main Karm Window Components" src="images/Karm_Main_Window_Components.jpg" style="width: 800px; height: 600px; cursor: move;"><br><ol><li> Menu Bar (A) - Contains a customized menu structure as defined in the file <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a></li><li> Toolbar (B) - Contains useful tool buttons to manage the tasks</li><li> A task tree Pane (C)</li><li> A Gantt Chart Pane (D)</li><li> Task details section (E)</li><li> Filter Criteria Section (F)</li><li> A Start date selection box (G)</li><li> A End date selection box (H)</li></ol><br><h2><a name="L5"> Menu Bar</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Menu Bar" src="images/Karm_Menu.jpg"><br><br>The Menu bar consists of the menu items defined in <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a> (The Karm configuration file). If there is no configuration file then you will only see File and Help menu's. This Menu bar is totally customizable in <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a> and you can associate some code with each menu item or an entire lua script file which is executed when the menu item is clicked by the user.<br><br><h2><a name="L6"> Toolbar</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Tool Bar" src="images/Karm_Toolbar.JPG"><br><br>The icons may look a little different in windows but the tool tips will make it clear what they represent. Starting from left to right here is what the icons mean:<br><br><ul><li> <img title="Load XML Icon" src="images/Load_xml.png"> - This icon allows you to load a XML spore into Karm. Currently the XML export functionality has not been added so this is not of much use</li><li> <img title="Load Spore Icon" src="images/Icon_loadspore.jpg"> - This allows you to load any saved spores into Karm</li><li> <img title="Unload Spore Icon" src="images/Icon_unloadspore.jpg"> - This unloads a currently selected Spore from Karm</li><li> <img title="Save all spores Icon" src="images/Icon_saveallspores.jpg"> - This saves all spores to disk. If there is a newly created spore it will prompt where to save it</li><li> <img title="Save current Spore Icon" src="images/Icon_savecurrspore.jpg"> - This saves the currently selected Spore</li><li> <img title="Open Filter Form Icon" src="images/Filter.png"> - This opens up the Filter criteria form</li><li> <img title="Create New child Task Icon" src="images/New_under.png"> - This creates a new task under (child) the current selected task and opens the task form to set task information</li><li> <img title="Create new task below Icon" src="images/New_below.png"> - This creates a new task below (sibling) the current selected task and opens the task form to set task information</li><li> <img title="Create new Task Above Icon" src="images/New_above.png"> - This creates a new task above (sibling) the current selected task and opens the task form to set task information</li><li> <img title="Edit Task Icon" src="images/Icon_edittask.jpg"> - This opens up the currently selected task for editing in the Task Form</li><li> <img title="Delete Task Icon" src="images/Delete.png"> - This deletes the currently selected task and all its sub tasks</li><li> <img title="Move Task under Icon" src="images/Move_under.png"> - This moves the selected task under (child) a task that is clicked by the user next</li><li> <img title="Move Task Below Icon" src="images/Move_below.png"> - This moves the selected task below (sibling) a task that is clicked by the user next</li><li> <img title="Move Task above Icon" src="images/Move_above.png"> - This moves the selected task above (sibling) a task that is clicked by the user next</li><li> <img title="Copy Task Under Icon" src="images/Copy_under.png"> - This copies the selected task under a task that is clicked by the user next</li><li> <img title="Copy Task Below Icon" src="images/Copy_below.png"> - This copies the selected task below (sibling) a task that is clicked by the user next</li><li> <img title="Copy Task Above Icon" src="images/Copy_above.png"> - This copies the selected task above (sibling) a task that is clicked by the user next</li><li> <img title="Run Lua Macro Icon" src="images/Lua_macro.png"> - This opens up a Form which can be used to run a script either from a file or by typing directly on the form. So this is used to execute a Macro</li></ul><br><h2><a name="L7"> Task Tree Pane</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Task Tree Pane" src="images/Karm_Task_Tree_Pane.jpg"><br><br>This pane shows all the tasks as a indented tree. It has the following main points:<br><br><ul><li> A '-' on the row label means a tree is expanded. It can be collapsed by clicking on the '-'</li><li> A '+' on the row label means a tree is collapsed. It can be expanded by clicking on the '+'</li><li> The checkbox on the left of the task title if checked indicates the task is already done.</li><li> In the displayed color scheme Done tasks are blue, obsolete are Grayed, not started are green.</li></ul><br><h2><a name="L8"> Gantt Chart Pane</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Gantt Chart Pane" src="images/Karm_Gantt_Chart_Pane.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br>The Gantt chart pane shows the Gantt chart for the list of tasks in the task tree pane on the left. Here are the main features of the Gantt Chart<br><br><ul><li> The top left shows the Month and Year for the date visible on the 1st column of the Gantt Chart.</li><li> The column titles show the date and the weekday first letter So for example the 1st column represents  1st July 2012 which is a Sunday and so on.</li><li> To Row labels identify what type of schedule is visible in the GanttChart"<ul><li> X - means no schedule is there for this task</li><li> E - Schedule entered as an estimate</li><li> C - Schedule entered as a Committed schedule</li><li> R - A committed schedule revised</li><li> A - Actual work done on the task</li></ul><dl><dd> The number after the letter represents the number of that schedule in that category. For example R2 would mean it is the second revision.</dd></dl><ul><li> (P) - this prefix means that this task is put in planning mode which allows the schedule days to be toggled by mouse clicks</li></ul></li><li> The Sundays are marked by a darker color in this color scheme. The color scheme can be changed using <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a></li></ul><br><h2><a name="L9"> Task Details Pane</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Task Details Pane" src="images/Karm_Task_Details_Pane.jpg"><br><br>This pane consists of the details of the task selected in the Task Tree Pane above. It shows a lot of information about the task that is present in the task. The information bit title is all upper case followed by a ':' and then the data from the task itself. You can expect to see the following information bits in this pane:<br><br><ul><li> ID - Task ID which is unique in all loaded <a title="Spore - karm, 5/11/2013 12:27:00 AM" href="http://www.amved.com/karm/wiki/Spore.html">Spore</a> (collection of tasks) files. This is generated automatically for all tasks except for those tasks which are created directly in a <a title="Spore - karm, 5/11/2013 12:27:00 AM" href="http://www.amved.com/karm/wiki/Spore.html">Spore</a></li><li> TITLE - The title for the task which is actually visible in the Task Tree Pane</li><li> START DATE - The date when the task is decided to begin</li><li> DUE DATE - Task due date</li><li> STATUS - Task Status (On Track, Behind, Done, Obsolete, Not Started)</li><li> PEOPLE - People responsible for the task categorized as ACTIVE or INACTIVE members</li><li> LOCKED - If YES then the task is locked and this is followed by a List of people having READ ACCESS to the task and READ/WRITE ACCESS to the task</li><li> ASSIGNEE - List of people who assigned the task</li><li> PRIORITY - Task Priority</li><li> PRIVATE TASK - If this is displayed this is marked as a private task</li><li> CATEGORY - Category of the task</li><li> SUB-CATEGORY - Sub-category of the task</li><li> TAGS - All tags associated with the task separated by ,</li><li> COMMENTS - Any comments added to the task</li></ul><br><h2><a name="L10"> Filter Criteria Pane</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Filter Criteria Pane" src="images/Kartm_Filter_Criteria_Pane.jpg"><br><br>This section shows the details of any filtering criteria applied to all loaded tasks to display the tasks you are seeing in the task tree pane.<br><br><h2><a name="L11"> Start and Stop Dates selection</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Karm Start/Stop Dates Selector" src="images/Karm_Start_Stop_Dates.jpg"><br><br>The 2 drop down date selection boxes allow you to select the start and stop dates that are displayed in the Gantt Chart area above. As soon as you change the date the Gantt Chart areas is updated.<br><br><h1><a name="L12"> Task Entry Form</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1>The task entry form provides an interface to enter/edit task details. It consists of a number of tabs to better organize all the task details.<br><br><h2><a name="L13"> Basic Info Tab</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Basic Task Info Tab" src="images/Task_BasicInfo.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br>This tab has the basic information for the task:<br><ol><li> <strong>Title</strong>: Descriptive name of the task (This is compulsory)</li><li> <strong>Start Date</strong>: By default it is set to the current date</li><li> <strong>Due Date</strong>: If the checkbox beside it is checked then the due date can be set and is recorded in the task details</li><li> <strong>Priority</strong>: (1-9) a priority number for the task. Does not have any meaning to the software so can be interpreted the way the user wants it</li><li> <strong>Private/Public</strong>: Allows the task to be declared Public or Private. For a task management system with lots of users using a common task database, private tasks would be personal tasks not visible to others</li><li> <strong>Status</strong>: Can be one of these:<ol><li> <em>Not Started</em>: Task is not started. This is the default for a new task.</li><li> <em>On Track</em>: Task progress is on track</li><li> <em>Behind</em>: Task is behind schedule</li><li> <em>Pending</em>: The task has been put on hold after being started indefinitely</li><li> <em>Obsolete</em>: The task is obsolete now</li><li> <em>Done</em>: The task is done</li></ol><dl><dd> The status of the task plays an important role and helps in reviewing the project status. The colors of the tasks as seen in the task Tree interface change with the status.</dd></dl></li><li> <strong>Comment</strong>: Any comment to be associated with the task</li></ol><br><h2><a name="L14"> Classification Tab</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Task Classification Tab" src="images/Task_Classification.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br>This tab has information about classification/categorization of the task<br><ol><li> <strong>Category</strong>: Is a drop down list to choose a category of the task. Categories and Sub-Categories are fixed in <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a></li><li> <strong>Sub-Category</strong>: Is a drop down list to choose a sub-category of the task. Categories and Sub-Categories are fixed in <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a></li><li> <strong>Tags</strong>: The 2 list interface allows choosing of tags to tag the task with. A new tag can also be created to tag the task with by entering it in the text box in the lower left corner.</li></ol><br><h2><a name="L15"> People Tab</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="People tab" src="images/Task_People.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br>This tab allows you to select people for the task. There are 3 fields where you can put people into and each field can have multiple people:<br><ol><li> <strong>Who</strong>: These are the people who are responsible for the task. When you add a person here it comes with a check box. You can right click the person to toggle the check box. A check box checked means that the person is no longer actively responsible for the task. This may be a situation where this person was responsible for the task but the responsibility has been released.</li><li> <strong>Access</strong>: These are people who are not responsible for the task but have access to the task data. This field will be important when Karm has implemented the permissions algorithm for <a title="Distributed Task Management - karm, 5/10/2013 4:51:00 PM" href="http://www.amved.com/karm/wiki/Distributed_Task_Management.html">Distributed Task Management</a>.      <ol><li> If you have write permission on a task through Who then you can read/edit that and all child hierarchy tasks in any way.</li><li> If you have write permission on a task through Assigning then you can edit that task obviously you had assignment privileges because you owned a parent/ancestor making this rule unnecessary</li><li> If you have read/write permission from Access you can only read/write that task but read all child hierarchy tasks.</li></ol></li><li> <strong>Assignee</strong>: These are people who are assigning the task to the people who are responsible. If a task has been assigned then it cannot be changed by the responsible people ('Who'), they can only be modified by the people who Assigned them or the people with write permission in the Access listing. The access locking has not been implemented yet in Karm and will be done when <a title="Distributed Task Management - karm, 5/10/2013 4:51:00 PM" href="http://www.amved.com/karm/wiki/Distributed_Task_Management.html">Distributed Task Management</a> is implemented.</li></ol><br><h2><a name="L16"> Schedules Tab</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Schedules tab" src="images/Task_Schedules.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br>The schedules tab allows you to plan out the task working days. It consists of 2 Gantt Charts. One on the top and one below. It also has 2 date fields which set the starting and ending dates of the Gantt Charts.<br><ol><li> <strong>Actual Work Done</strong>: This is the one on the top and is to record the actual work you did on the task</li><li> <strong>Planned Schedule</strong>: This is the one on the bottom and is to record the planned schedule for the task</li></ol><br>Both Gantt Charts show (P)X in the left label when there is no date set at all for either chart. <br><br><h3><a name="L17"> Actual Work Done</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h3><ol><li> You can click on any date on this top chart and it will be marked. Also the left label will become (P)A1 - A indicating it is an Actual work done date.</li><li> Clicking it again will unmark it.</li><li> Double clicking it will bring the form shown below:<dl><dd> <img title="Actual work done hours and comment form" src="images/Task_Actual_Hours.jpg"></dd><dd> In this form you can set the number of hours you worked on the task on the highlighted day and any associated comment</dd></dl></li></ol><br><h3><a name="L18"> Planned Schedule</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h3><ol><li> Same as the upper Gantt Chart, clicking on any date will mark it. And the left label will also change. The left label will show a letter and a number instead of a 'X' to indicate a type of schedule.<ol><li> E - This is an estimated schedule. There can be many revisions of an estimated schedule and the revision number is the number following E. So (P)E1 means the 1st estimated schedule and (P)E10 means the 10th estimated schedule.</li><li> C - This is a committed schedule. There can be only 1 committed schedule</li><li> R - These are revision schedules normally after a committed schedule (Although Karm does not force this, it can be forced by adding a macro to <a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a></li></ol><dl><dd> All the above types of schedules can be cycled by clicking on the left label.</dd></dl></li><li> The hold planning check box on the right side after the second Gantt Chart when clicked will tell Karm not to write the Planned Schedule data to the task data just yet and remain in Planning mode. So you can keep planning this task schedule either by turning on Planning mode in the main GUI or by re-editing the task.</li><li> The comment box at the bottom is to store a comment with the latest planning schedule (Note this currently will be ignored if you select Hold Planning)</li></ol><br><h1><a name="L19"> Filter Criteria Form </a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1>This form allows you to create complex filteration criteria to filter out the task you are most interested in. Using this you can create complex filters, save them, manually edit them (they are saved as text files), load them automatically into Karm by a shortcut key. This form has the following tabs:<br><br><h2><a name="L20"> Task and Category</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filter entry task and category tab" src="images/Filter_Task_Cat.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br>This tab allows selecting the following:<br><br><ol><li> A task and its sub task. If you click on 'Select Task' you see the following tree:<dl><dd> <img title="Select task dialog" src="images/Filter_Select_Task.jpg" style="width: 800px; height: 600px; cursor: move;"></dd><dd> Here you can select any task and click on Subtasks check box. This will tell the filter that you want to see that particular task and all its subtasks.</dd></dl></li><li> You can select Categories and Sub-Categories that the task must have in order to be seen. If all the loaded tasks do not have any Category or Sub-Category assigned to them the boxes will be empty. The boxes automatically show the Categories and Sub-Categories in the current task collection.</li><li> The 'None Also Passes' check box if checked will also show tasks without any Category or Sub-Category when you have selected a list of Categories/Sub-Categories. If you have not selected anything then obviously the tasks without any Category/Sub-Category will be shown.</li></ol><br><h2><a name="L21"> Priorities,Status and Tags</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filterform priority, status and tags tab" src="images/Filter_Pri_Stat_Tags.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br><h2><a name="L22"> Dates:Due,Started,Finished </a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filterform dates tab" src="images/Filter_Due_Started_Finished.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br><h2><a name="L23"> Access</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filter Form Access tab" src="images/Filter_Access.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br><h2><a name="L24"> Schedules</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filter Form schedules tab" src="images/Filter_Schedules.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br><h2><a name="L25"> Custom Script</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filter Form custom script tab" src="images/Filter_Script.jpg" style="width: 800px; height: 600px; cursor: move;"><br><br><h2><a name="L26"> Logically Combine Filters</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><img title="Filter Form logical filter combination tab" src="images/Filter_Combination.jpg" style="width: 800px; height: 600px; cursor: move;"><br></div>
+	  <br>
+      <div id="RecentA"></div>
+      <br>
+      </td>
+      <td style="width: 336px; border-right:none; border-top:none; border-bottom:none; " valign="top" align="left">&nbsp;
+	  <script type="text/javascript">
+			<!--
+				function setSideAds() {
+					for(var i=3;i<=31;i++)
+					{ 
+						if (document.getElementById('ContentRow').offsetHeight>(i*260))
+						{
+							document.getElementById('sideAd'+i).style.display="inline";
+						}
+						else
+						{
+							break;
+						}
+					}
+				}
+			//-->
+    </script>
+		<div id="sideAd1" style="margin-bottom: 3em;"><h3>Recent Articles:</h3> <big><a href="http://www.amved.com/karm/wiki/index.html">index</a><br><small> Welcome to the Karm wiki:Karm is a flexible, exte...</small><br><a href="http://www.amved.com/karm/wiki/Contributing_to_Karm.html">Contributing to Karm</a><br><small> Help is needed!:You can contribute to Karm in man...</small><br><a href="http://www.amved.com/karm/wiki/Developer.html">Developer</a><br><small>This page contains a lot of developer resources fo...</small><br><a href="http://www.amved.com/karm/wiki/Feature_Wish_List.html">Feature Wish List</a><br><small> Keyboard shortcut keys catching Karm Server devel...</small><br><a href="http://www.amved.com/karm/wiki/Karm_Object_Hierarchy.html">Karm Object Hierarchy</a><br><small>Here is an alphabetical list of all Objects in the...</small><br></big></div>
+		<div id="sideAd2" style="margin-bottom: 3em;">
+		</div>
+		<div id="sideAd3" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd4" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd5" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd6" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd7" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd8" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd9" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd10" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd11" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd12" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd13" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd14" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd15" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd16" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd17" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd18" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd19" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd20" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd21" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd22" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd23" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd24" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd25" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd26" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd27" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd28" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd29" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd30" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="unused">
+		</div>
+	  </td>
+    </tr>
+	</tbody>
+</table>
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr>
+      <td style="height: 30px; text-align: center; background-color: rgb(51, 102, 204);" colspan="2" rowspan="1"><span style="color: white;">Copyright 2013
+<a style="color: white;"
+href="mailto:karm@amved.com">Milind Gupta</a></span> 
+<a href="https://twitter.com/KarmTask" class="twitter-follow-button" data-show-count="false">Follow @KarmTask</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Blank table to give space to the floating div bar and not to overlap the page when scrolled to the end -->
+<table style="text-align: left; width: 960px; height: 40px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+	<tbody>
+		<tr>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+
+<div id="BotContent1"></div>
+<div id="BotContent2"></div>
+<div id="BotContent3"></div>
+</body></html>

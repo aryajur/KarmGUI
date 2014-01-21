@@ -1,0 +1,331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html><head>
+<meta name="description" content="Task Manager, Project Manager, Lua">
+<meta name="keywords" content="Tasks, Project, Lua">
+<meta name="revisit-after" content="7 days">
+<meta name="ROBOTS" content="Index, ALL">
+<meta name="ROBOTS" content="Index, FOLLOW">
+  <title>Karm: KarmConfig.lua</title>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-34168845-1']);
+  _gaq.push(['_setDomainName', 'amved.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+  
+  
+  <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+
+  
+  <style type="text/css"><!--
+h1 { font-family: Arial, sans-serif; font-size: 30px; color: #004080;}
+h2 { font-family: Arial, sans-serif; font-size: 18px; color: #004080;}
+
+body,p,b,i,em,dt,dd,dl,sl,caption,th,td,tr,u,blink,select,option,form,div,li { font-family: Arial, sans-serif; font-size: 12px; }
+
+/* IE Specific */
+body, textarea {
+  scrollbar-3dlight-color: #808080;
+  scrollbar-highlight-color: #808080;
+  scrollbar-face-color: #004080;
+  scrollbar-shadow-color: #808080;
+  scrollbar-darkshadow-color: #805B32;
+  scrollbar-arrow-color: #000000;
+  scrollbar-track-color: #F8EFE2;
+}
+/* END IE Specific */
+-->
+	</style>
+	<style>
+pre {
+    white-space: -moz-pre-wrap; /* Mozilla, supported since 1999 */
+    white-space: -pre-wrap; /* Opera */
+    white-space: -o-pre-wrap; /* Opera */
+    white-space: pre-wrap; /* CSS3 - Text module (Candidate Recommendation) http://www.w3.org/TR/css3-text/#white-space */
+    word-wrap: break-word; /* IE 5.5+ */
+	font-size:1.2em; line-height:1.4em;
+	border:1px solid #fe8; background:#ffc;
+}	
+body{padding:0;margin:0;}
+.myFloatBar{
+   bottom:0;
+   left:0;
+   width:100%;
+   position:fixed;
+   border-top: 1px solid black;
+   background-color:rgb(192, 192, 192);
+   text-align: center;
+}
+.TiddlerTitle{
+	color: rgb(255, 102, 0); 
+	font-family: Arial Black;
+	font-size: 18pt; 
+}
+img{
+    max-width:600px;
+}
+li dl dd img {margin-left: -80px;} 
+</style>
+<style>
+/* stylesheet=StyleSheetTableOfContents */
+/*{{{*/
+.dcTOC {
+	float: left; /* auto-width */
+	margin: 0 2em 2em 0;
+	border: 1px solid #aaa;
+	padding: 5px;
+	background-color: #eee;
+}
+
+.dcTOC ul {
+	margin: 0 1em;
+}
+
+h1 {
+	clear: left;
+}
+/*}}}*/
+
+</style>
+<style>
+a {color:#04b;}
+a:hover {background-color:#04b; color:#fff;}
+a img {border:0;}
+
+h1,h2,h3,h4,h5,h6 {color:#841; background:transparent;}
+h1 {border-bottom:2px solid #ccc;}
+h2,h3 {border-bottom:1px solid #ccc;}
+
+h1,h2,h3,h4,h5,h6 {font-weight:bold; text-decoration:none;}
+h1,h2,h3 {padding-bottom:1px; margin-top:1.2em;margin-bottom:0.3em;}
+h4,h5,h6 {margin-top:1em;}
+h1 {font-size:1.35em;}
+h2 {font-size:1.25em;}
+h3 {font-size:1.1em;}
+h4 {font-size:1em;}
+h5 {font-size:.9em;}
+
+.viewer table, table.twtable {border-collapse:collapse; margin:0.8em 1.0em;}
+.viewer th, .viewer td, .viewer tr,.viewer caption,.twtable th, .twtable td, .twtable tr,.twtable caption {padding:3px;}
+table.listView {font-size:0.85em; margin:0.8em 1.0em;}
+table.listView th, table.listView td, table.listView tr {padding:0 3px 0 3px;}
+
+
+.viewer table, table.twtable {border:2px solid #666;}
+.viewer th, .viewer thead td, .twtable th, .twtable thead td {background:#db4; border:1px solid #666; color:#fff;}
+.viewer td, .viewer tr, .twtable td, .twtable tr {border:1px solid #666;}
+</style>
+</head><body style="background-color: rgb(255, 255, 255);" onload="setSideAds();">
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+<p>&nbsp;</p>
+
+<div class="myFloatBar" id="myFloatBar"><div style="margin-right:30px;" class="fb-like" data-href="http://www.amved.com/karm/wiki/KarmConfig_lua.html" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false"></div>
+		     <a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="Karm">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<!-- Place this tag where you want the +1 button to render. -->
+<div class="g-plusone" data-size="medium"></div>
+
+<script src="//platform.linkedin.com/in.js" type="text/javascript">
+ lang: en_US
+</script>
+<script type="IN/Share" data-counter="right"></script></div>
+
+<table style="width: 960px; text-align: left; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr>
+      <td style="height: 40px;">
+      <h1><span style="font-size: 48px;"><strong><span style="color: rgb(51, 102, 204);"><span style="font-family: courier new,courier,monospace;">Karm - Project Manager</span></span></strong></span></h1>
+      </td>
+      <td style="vertical-align: top; width: 300px; height: 40px;">
+      <div>
+	  <!-- Google Search Box-->
+<script>
+  (function() {
+    var cx = '001508158039401328138:il4_4hz_hay';
+    var gcse = document.createElement('script');
+    gcse.type = 'text/javascript';
+    gcse.async = true;
+    gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
+        '//www.google.com/cse/cse.js?cx=' + cx;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(gcse, s);
+  })();
+</script>
+<gcse:searchbox-only resultsUrl="http://www.amved.com/karm/wiki/searchResults.html"></gcse:searchbox-only></div>
+      <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr style="height: 30px;">
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 60px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/index.html">Home</a><br>
+      </td>
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 90px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/Using_Karm.html">Using karm</a><br>
+      </td>
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 90px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/Developer.html">Developer</a><br>
+      </td>
+      <td style="vertical-align: top; background-color: rgb(51, 102, 204); width: 720px;"><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Table for all the content and the side ads -->
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;border-right:none; border-top:none; border-bottom:none; border-left:none;" border="2" cellpadding="1" cellspacing="1">
+
+  <tbody>
+  <tr id="ContentRow">
+      <td valign="top" style="padding-right:10px; border-right:none; border-top:none; border-bottom:none; border-left:none;">&nbsp;<br>
+            <div id="SocialM" style="text-align: center;"><div style="margin-right:30px;" class="fb-like" data-href="http://www.amved.com/karm/wiki/KarmConfig_lua.html" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false"></div>
+		     <a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="Karm">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<!-- Place this tag where you want the +1 button to render. -->
+<div class="g-plusone" data-size="medium"></div>
+
+<!-- Place this tag after the last +1 button tag. -->
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script>
+<script type="IN/Share" data-counter="right"></script></div> <!-- SocialM div element ends -->
+	  <br><br>
+	  <div id="TiddlerTitle" class="TiddlerTitle">KarmConfig.lua</div>
+	  <div id="tiddler" class="viewer">This is a Lua script file which allows Karm to be customized by the user. The file is executed after the GUI is initialized so the user can <br><ol><li> Add/remove stuff from the GUI</li><li> Modify the menu or the toolbar to add custom commands</li><li> Load plugins</li><li> Load Task <a title="Spore - karm, 5/11/2013 12:27:00 AM" href="http://www.amved.com/karm/wiki/Spore.html">Spore</a> files</li><li> Load a default filter</li></ol><br>A default configuration file is provided in the installation package but Karm would work just fine without it and revert to defaults coded in the core code</div>
+	  <br>
+      <div id="RecentA"></div>
+      <br>
+      </td>
+      <td style="width: 336px; border-right:none; border-top:none; border-bottom:none; " valign="top" align="left">&nbsp;
+	  <script type="text/javascript">
+			<!--
+				function setSideAds() {
+					for(var i=3;i<=31;i++)
+					{ 
+						if (document.getElementById('ContentRow').offsetHeight>(i*260))
+						{
+							document.getElementById('sideAd'+i).style.display="inline";
+						}
+						else
+						{
+							break;
+						}
+					}
+				}
+			//-->
+    </script>
+		<div id="sideAd1" style="margin-bottom: 3em;"><h3>Recent Articles:</h3> <big><a href="http://www.amved.com/karm/wiki/index.html">index</a><br><small> Welcome to the Karm wiki:Karm is a flexible, exte...</small><br><a href="http://www.amved.com/karm/wiki/Contributing_to_Karm.html">Contributing to Karm</a><br><small> Help is needed!:You can contribute to Karm in man...</small><br><a href="http://www.amved.com/karm/wiki/Developer.html">Developer</a><br><small>This page contains a lot of developer resources fo...</small><br><a href="http://www.amved.com/karm/wiki/Feature_Wish_List.html">Feature Wish List</a><br><small> Keyboard shortcut keys catching Karm Server devel...</small><br><a href="http://www.amved.com/karm/wiki/Karm_Object_Hierarchy.html">Karm Object Hierarchy</a><br><small>Here is an alphabetical list of all Objects in the...</small><br></big></div>
+		<div id="sideAd2" style="margin-bottom: 3em;">
+		</div>
+		<div id="sideAd3" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd4" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd5" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd6" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd7" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd8" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd9" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd10" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd11" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd12" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd13" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd14" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd15" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd16" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd17" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd18" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd19" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd20" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd21" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd22" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd23" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd24" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd25" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd26" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd27" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd28" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd29" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd30" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="unused">
+		</div>
+	  </td>
+    </tr>
+	</tbody>
+</table>
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr>
+      <td style="height: 30px; text-align: center; background-color: rgb(51, 102, 204);" colspan="2" rowspan="1"><span style="color: white;">Copyright 2013
+<a style="color: white;"
+href="mailto:karm@amved.com">Milind Gupta</a></span> 
+<a href="https://twitter.com/KarmTask" class="twitter-follow-button" data-show-count="false">Follow @KarmTask</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Blank table to give space to the floating div bar and not to overlap the page when scrolled to the end -->
+<table style="text-align: left; width: 960px; height: 40px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+	<tbody>
+		<tr>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+
+<div id="BotContent1"></div>
+<div id="BotContent2"></div>
+<div id="BotContent3"></div>
+</body></html>

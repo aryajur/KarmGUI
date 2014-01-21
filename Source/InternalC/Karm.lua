@@ -426,9 +426,11 @@ Karm.Globals = {
 	-- CONSTANTS
 	NEXT_SIBLING = 0,
 	PREV_SIBLING = 1,
-	CHILD = 2
-	
+	CHILD = 2,
+	safeenv = {}
 }
+
+setmetatable(Karm.Globals.safeenv,{__index = _G})
 
 -- Generate a unique new wxWindowID
 do

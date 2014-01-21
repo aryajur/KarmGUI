@@ -1,0 +1,331 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html><head>
+<meta name="description" content="Task Manager, Project Manager, Lua">
+<meta name="keywords" content="Tasks, Project, Lua">
+<meta name="revisit-after" content="7 days">
+<meta name="ROBOTS" content="Index, ALL">
+<meta name="ROBOTS" content="Index, FOLLOW">
+  <title>Karm: Developer</title>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-34168845-1']);
+  _gaq.push(['_setDomainName', 'amved.com']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+  
+  
+  <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+
+  
+  <style type="text/css"><!--
+h1 { font-family: Arial, sans-serif; font-size: 30px; color: #004080;}
+h2 { font-family: Arial, sans-serif; font-size: 18px; color: #004080;}
+
+body,p,b,i,em,dt,dd,dl,sl,caption,th,td,tr,u,blink,select,option,form,div,li { font-family: Arial, sans-serif; font-size: 12px; }
+
+/* IE Specific */
+body, textarea {
+  scrollbar-3dlight-color: #808080;
+  scrollbar-highlight-color: #808080;
+  scrollbar-face-color: #004080;
+  scrollbar-shadow-color: #808080;
+  scrollbar-darkshadow-color: #805B32;
+  scrollbar-arrow-color: #000000;
+  scrollbar-track-color: #F8EFE2;
+}
+/* END IE Specific */
+-->
+	</style>
+	<style>
+pre {
+    white-space: -moz-pre-wrap; /* Mozilla, supported since 1999 */
+    white-space: -pre-wrap; /* Opera */
+    white-space: -o-pre-wrap; /* Opera */
+    white-space: pre-wrap; /* CSS3 - Text module (Candidate Recommendation) http://www.w3.org/TR/css3-text/#white-space */
+    word-wrap: break-word; /* IE 5.5+ */
+	font-size:1.2em; line-height:1.4em;
+	border:1px solid #fe8; background:#ffc;
+}	
+body{padding:0;margin:0;}
+.myFloatBar{
+   bottom:0;
+   left:0;
+   width:100%;
+   position:fixed;
+   border-top: 1px solid black;
+   background-color:rgb(192, 192, 192);
+   text-align: center;
+}
+.TiddlerTitle{
+	color: rgb(255, 102, 0); 
+	font-family: Arial Black;
+	font-size: 18pt; 
+}
+img{
+    max-width:600px;
+}
+li dl dd img {margin-left: -80px;} 
+</style>
+<style>
+/* stylesheet=StyleSheetTableOfContents */
+/*{{{*/
+.dcTOC {
+	float: left; /* auto-width */
+	margin: 0 2em 2em 0;
+	border: 1px solid #aaa;
+	padding: 5px;
+	background-color: #eee;
+}
+
+.dcTOC ul {
+	margin: 0 1em;
+}
+
+h1 {
+	clear: left;
+}
+/*}}}*/
+
+</style>
+<style>
+a {color:#04b;}
+a:hover {background-color:#04b; color:#fff;}
+a img {border:0;}
+
+h1,h2,h3,h4,h5,h6 {color:#841; background:transparent;}
+h1 {border-bottom:2px solid #ccc;}
+h2,h3 {border-bottom:1px solid #ccc;}
+
+h1,h2,h3,h4,h5,h6 {font-weight:bold; text-decoration:none;}
+h1,h2,h3 {padding-bottom:1px; margin-top:1.2em;margin-bottom:0.3em;}
+h4,h5,h6 {margin-top:1em;}
+h1 {font-size:1.35em;}
+h2 {font-size:1.25em;}
+h3 {font-size:1.1em;}
+h4 {font-size:1em;}
+h5 {font-size:.9em;}
+
+.viewer table, table.twtable {border-collapse:collapse; margin:0.8em 1.0em;}
+.viewer th, .viewer td, .viewer tr,.viewer caption,.twtable th, .twtable td, .twtable tr,.twtable caption {padding:3px;}
+table.listView {font-size:0.85em; margin:0.8em 1.0em;}
+table.listView th, table.listView td, table.listView tr {padding:0 3px 0 3px;}
+
+
+.viewer table, table.twtable {border:2px solid #666;}
+.viewer th, .viewer thead td, .twtable th, .twtable thead td {background:#db4; border:1px solid #666; color:#fff;}
+.viewer td, .viewer tr, .twtable td, .twtable tr {border:1px solid #666;}
+</style>
+</head><body style="background-color: rgb(255, 255, 255);" onload="setSideAds();">
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+<p>&nbsp;</p>
+
+<div class="myFloatBar" id="myFloatBar"><div style="margin-right:30px;" class="fb-like" data-href="http://www.amved.com/karm/wiki/Developer.html" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false"></div>
+		     <a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="Karm">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<!-- Place this tag where you want the +1 button to render. -->
+<div class="g-plusone" data-size="medium"></div>
+
+<script src="//platform.linkedin.com/in.js" type="text/javascript">
+ lang: en_US
+</script>
+<script type="IN/Share" data-counter="right"></script></div>
+
+<table style="width: 960px; text-align: left; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr>
+      <td style="height: 40px;">
+      <h1><span style="font-size: 48px;"><strong><span style="color: rgb(51, 102, 204);"><span style="font-family: courier new,courier,monospace;">Karm - Project Manager</span></span></strong></span></h1>
+      </td>
+      <td style="vertical-align: top; width: 300px; height: 40px;">
+      <div>
+	  <!-- Google Search Box-->
+<script>
+  (function() {
+    var cx = '001508158039401328138:il4_4hz_hay';
+    var gcse = document.createElement('script');
+    gcse.type = 'text/javascript';
+    gcse.async = true;
+    gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
+        '//www.google.com/cse/cse.js?cx=' + cx;
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(gcse, s);
+  })();
+</script>
+<gcse:searchbox-only resultsUrl="http://www.amved.com/karm/wiki/searchResults.html"></gcse:searchbox-only></div>
+      <br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr style="height: 30px;">
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 60px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/index.html">Home</a><br>
+      </td>
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 90px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/Using_Karm.html">Using karm</a><br>
+      </td>
+      <td style="vertical-align: middle; background-color: rgb(51, 102, 204); width: 90px; text-align: center;"><a style="color: white;" href="http://www.amved.com/karm/wiki/Developer.html">Developer</a><br>
+      </td>
+      <td style="vertical-align: top; background-color: rgb(51, 102, 204); width: 720px;"><br>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Table for all the content and the side ads -->
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;border-right:none; border-top:none; border-bottom:none; border-left:none;" border="2" cellpadding="1" cellspacing="1">
+
+  <tbody>
+  <tr id="ContentRow">
+      <td valign="top" style="padding-right:10px; border-right:none; border-top:none; border-bottom:none; border-left:none;">&nbsp;<br>
+            <div id="SocialM" style="text-align: center;"><div style="margin-right:30px;" class="fb-like" data-href="http://www.amved.com/karm/wiki/Developer.html" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false"></div>
+		     <a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="Karm">Tweet</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+<!-- Place this tag where you want the +1 button to render. -->
+<div class="g-plusone" data-size="medium"></div>
+
+<!-- Place this tag after the last +1 button tag. -->
+<script type="text/javascript">
+  (function() {
+    var po = document.createElement('script'); po.type = 'text/javascript'; po.async = true;
+    po.src = 'https://apis.google.com/js/plusone.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(po, s);
+  })();
+</script>
+<script type="IN/Share" data-counter="right"></script></div> <!-- SocialM div element ends -->
+	  <br><br>
+	  <div id="TiddlerTitle" class="TiddlerTitle">Developer</div>
+	  <div id="tiddler" class="viewer"><div class="dcTOC"><a name="dcTOC">Table Of Contents</a><div><ul><li><span><a href="#L1"> Features in Queue</a></span></li><li><span><a href="#L2"> Getting Started on development</a></span></li><li><span><a href="#L3"> The Source Code</a></span><ul><li><span><a href="#L4"> The Source Files</a></span></li><li><span><a href="#L5"> Shared Libraries </a></span></li><li><span><a href="#L6"> The Utility Files </a></span></li><li><span><a href="#L7"> Other Files </a></span></li></ul></li><li><span><a href="#L8"> Creating a Deploy package </a></span></li><li><span><a href="#L9"> See Also</a></span></li></ul></div></div><br><br>This page contains a lot of developer resources for Karm development.<br><br><h1><a name="L1"> Features in Queue</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1><span refresh="content" tiddler="Feature Wish List"><ul><li> Keyboard shortcut keys catching</li><li> Karm Server development to sync various client Karm modules to a central database<ul><li> Have real time multi user task planning</li></ul></li><li> Network diagram creation and maintainence</li><li> Add code to enter inter dependencies of tasks</li><li> Live terminal to control Karm with a command line</li></ul><br><h1><a name="L9"> See Also</a></h1><ul><li> <a title="Developer - karm, 5/11/2013 1:04:00 AM" href="http://www.amved.com/karm/wiki/Developer.html">Developer</a> page</li></ul></span><br><br><h1><a name="L2"> Getting Started on development</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1><br>Note: These steps are for full development. You don't need to follow these if you are making small macros. If you are writing complex Macros it is good to have the following steps since they provide the system to debug them.<br><ol><li> Download and install Lua and wxLua</li><li> Download and install Eclipse LDT (IDE for development)</li><li> Download the Karm Source Code</li><li> Karm.lua is the main file of the Source code open that in Eclipse and you can debug from there using the standard Eclipse LDT method</li><li> Have a look at the included Sample Macros to see examples of Macros and the code</li><li> Have the <a title="Karm Object Hierarchy - karm, 5/11/2013 1:03:00 AM" href="http://www.amved.com/karm/wiki/Karm_Object_Hierarchy.html">Karm Object Hierarchy</a> page handy to look up the Objects available for use in your code.</li></ol><br><h1><a name="L3"> The Source Code</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1><br>The source code in Karm SVN is the core Karm code. The files are :<br><br><h2><a name="L4"> The Source Files</a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><br><ol><li> <strong>CustomWidgets.lua</strong> - Module that contains some customized GUI widgets used in the forms</li><li> <strong>Datahandler.lua</strong> - Contains code on handling all task object data</li><li> <strong>Filter.lua</strong> - Contains code on handling the Filter object</li><li> <strong>FilterForm.lua</strong> - module containing code to execute the Filter setting form</li><li> <strong>Karm.lua</strong> - The main file where execution starts containing the main GUI code</li><li> <strong>LuaXML.lua</strong> - LuaXML module code file to handle XMLs used by Karm to read XML task spores</li><li> <strong>TaskForm.lua</strong> - module containing code to execute the Task entry form</li></ol><br>The files listed above are sufficient to have all the Lua code for Karm<br><br><h2><a name="L5"> Shared Libraries </a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><ol><li> <strong>liblua5.1_32.so</strong> - Lua shared library for linux 32 bit</li><li> <strong>liblua5.1_64.so</strong> - Lua shared library for linux 64 bit</li><li> <strong>lua51.dll</strong> - Lua shared library for windows</li><li> <strong>LuaXML_lib.dll</strong> - LuaXML shared library for windows</li><li> <strong>LuaXML_lib32.so</strong> - LuaXML shared library for Linux 32 bit</li><li> <strong>LuaXML_lib64.so</strong> - LuaXML shared library for Linux 64 bit</li><li> <strong>wx.dll</strong> - Wxwidgets shared library for windows(only required when executing the Lua script, not required by the executables)</li><li> <strong>wx.so</strong> - Wxwidgets shared library for windows(only required when executing the Lua script, not required by the executables)</li></ol><br>The files listed above are all the shared libraries needed by Karm to run.<br><br><h2><a name="L6"> The Utility Files </a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><br><ol><li> <strong><a title="KarmConfig.lua - karm, 5/11/2013 12:26:00 AM" href="http://www.amved.com/karm/wiki/KarmConfig_lua.html">KarmConfig.lua</a></strong> - An optional configuration file for Karm that configures a bunch of things in the software to custom settings</li><li> <strong>many2one.lua</strong> - A small script that looks at the config.lua file and is configured to read in all the lua code files and convert them to a single lua script.</li><li> <strong>config.lua</strong> - Configuration file for many2one.lua</li><li> <strong>wxluafreeze.lua</strong> - lua script to merge a lua script into the wxluafreeze executable so that it can run stand alone</li><li> <strong>wxluafreeze.exe, wxluafreeze32, wxluafreeze64</strong> - Executables of wxluafreeze for windows, linux (32 bit) and linux (64 bit).</li></ol><br><h2><a name="L7"> Other Files </a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h2><br><ol><li> <strong>Task_Spore.xsd</strong> - XSD file defining the task data structure for XML spore files (Useful to visualize the data content of each task object)</li><li> <strong>Readme1st.txt</strong> - Readme file to be ported in each deploy package</li><li> <strong>Karm.exe, KarmLinux32.exe, KarmLinux64.exe</strong> - Executables for Karm for windows, linux (32 bit) and linux (64 bit).</li></ol><br><h1><a name="L8"> Creating a Deploy package </a><div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1>The deploy package creation has some steps as detailed below. All that is needed is a computer (linux/windows/mac) that runs lua.<br><br><ol><li> Prepare windows files: <ol><li> Make sure the 1st code line in Karm.lua is:<dl><dd> <span><pre> package.cpath = ";./?.dll;" </pre></span></dd></dl></li><li> Make a single Lua script using many2one:<dl><dd> <span><pre> &gt; lua many2one.lua </pre></span></dd></dl></li><li> Make the lua script executable:<dl><dd> <span><pre> &gt; lua wxluafreeze.lua wxluafreeze.exe KarmApp.lua Karm.exe </pre></span></dd><dd> Now we have the windows executable <strong>Karm.exe</strong></dd></dl></li></ol></li><li> Prepare Linux 32 bit files:<ol><li> Make sure the 1st code line in Karm.lua is:<dl><dd> <span><pre> package.cpath = ";./?.so;/usr/lib/?.so;/usr/local/lib/?.so;" </pre></span></dd></dl></li><li> Make a single Lua script using many2one:<dl><dd> <span><pre> &gt; lua many2one.lua </pre></span></dd></dl></li><li> Make the 32 bit linux executable:<dl><dd> <span><pre> &gt; lua wxluafreeze.lua wxluafreeze32 KarmApp.lua KarmLinux32.exe </pre></span></dd><dd> Now we have the 32 bit linux executable <strong>KarmLinux32.exe</strong></dd></dl></li></ol></li><li> Prepare Linux 64 bit files<ol><li> Make sure the 1st code line in Karm.lua is:<dl><dd> <span><pre> package.cpath = ";./?.so;/usr/lib/?.so;/usr/local/lib/?.so;" </pre></span></dd></dl></li><li> Make a single Lua script using many2one:<dl><dd> <span><pre> &gt; lua many2one.lua </pre></span></dd></dl></li><li> Make the 64 bit linux executable:<dl><dd> <span><pre> &gt; lua wxluafreeze.lua wxluafreeze64 KarmApp.lua KarmLinux64.exe </pre></span></dd><dd> Now we have the 32 bit linux executable <strong>KarmLinux64.exe</strong></dd></dl></li></ol></li><li> Put the following files and directories in the Deploy directory:<ol><li> Karm.exe</li><li> KarmLinux32.exe</li><li> lua51.dll</li><li> liblua5.1_32.so renamed as liblua5.1.so</li><li> LuaXML_lib.dll</li><li> LuaXML_lib32.so renamed as LuaXML_lib.so</li><li> KarmConfig.lua (optional)</li><li> Readme1st.txt</li></ol></li><li> In the linux64 subdirectory put the following files<ol><li> KarmLinux64.exe</li><li> liblua5.1_64.so renamed as liblua5.1.so</li><li> LuaXML_lib64.so renamed as LuaXML_lib.so</li><li> KarmConfig.lua (optional)</li></ol></li><li> Update the images, Filters, Sample Macros and Tasks folders if there are any updates</li><li> This finishes the Deploy folder preparation</li></ol><br><h1> See Also<div style="font-size: 0.5em; color: blue;"><a href="#dcTOC" title="Go to Table of Contents"> [top]</a></div></h1><ul><li> <a title="Feature Wish List - karm, 5/11/2013 12:40:00 AM" href="http://www.amved.com/karm/wiki/Feature_Wish_List.html">Feature Wish List</a></li><li> <a title="Karm Object Hierarchy - karm, 5/11/2013 1:03:00 AM" href="http://www.amved.com/karm/wiki/Karm_Object_Hierarchy.html">Karm Object Hierarchy</a></li></ul><br></div>
+	  <br>
+      <div id="RecentA"></div>
+      <br>
+      </td>
+      <td style="width: 336px; border-right:none; border-top:none; border-bottom:none; " valign="top" align="left">&nbsp;
+	  <script type="text/javascript">
+			<!--
+				function setSideAds() {
+					for(var i=3;i<=31;i++)
+					{ 
+						if (document.getElementById('ContentRow').offsetHeight>(i*260))
+						{
+							document.getElementById('sideAd'+i).style.display="inline";
+						}
+						else
+						{
+							break;
+						}
+					}
+				}
+			//-->
+    </script>
+		<div id="sideAd1" style="margin-bottom: 3em;"><h3>Recent Articles:</h3> <big><a href="http://www.amved.com/karm/wiki/index.html">index</a><br><small> Welcome to the Karm wiki:Karm is a flexible, exte...</small><br><a href="http://www.amved.com/karm/wiki/Contributing_to_Karm.html">Contributing to Karm</a><br><small> Help is needed!:You can contribute to Karm in man...</small><br><a href="http://www.amved.com/karm/wiki/Developer.html">Developer</a><br><small>This page contains a lot of developer resources fo...</small><br><a href="http://www.amved.com/karm/wiki/Feature_Wish_List.html">Feature Wish List</a><br><small> Keyboard shortcut keys catching Karm Server devel...</small><br><a href="http://www.amved.com/karm/wiki/Karm_Object_Hierarchy.html">Karm Object Hierarchy</a><br><small>Here is an alphabetical list of all Objects in the...</small><br></big></div>
+		<div id="sideAd2" style="margin-bottom: 3em;">
+		</div>
+		<div id="sideAd3" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd4" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd5" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd6" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd7" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd8" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd9" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd10" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd11" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd12" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd13" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd14" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd15" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd16" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd17" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd18" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd19" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd20" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd21" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd22" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd23" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd24" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd25" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd26" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd27" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd28" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd29" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="sideAd30" style="display:none; margin-bottom: 3em;">
+		</div>
+		<div id="unused">
+		</div>
+	  </td>
+    </tr>
+	</tbody>
+</table>
+<table style="text-align: left; width: 960px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+
+  <tbody>
+    <tr>
+      <td style="height: 30px; text-align: center; background-color: rgb(51, 102, 204);" colspan="2" rowspan="1"><span style="color: white;">Copyright 2013
+<a style="color: white;"
+href="mailto:karm@amved.com">Milind Gupta</a></span> 
+<a href="https://twitter.com/KarmTask" class="twitter-follow-button" data-show-count="false">Follow @KarmTask</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');</script>
+</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Blank table to give space to the floating div bar and not to overlap the page when scrolled to the end -->
+<table style="text-align: left; width: 960px; height: 40px; margin-left: auto; margin-right: auto;" border="0" cellpadding="1" cellspacing="1">
+	<tbody>
+		<tr>
+			<td>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+
+<div id="BotContent1"></div>
+<div id="BotContent2"></div>
+<div id="BotContent3"></div>
+</body></html>
