@@ -413,7 +413,7 @@ function Karm.Utility.tableToString2(t)
 					key = "t"..rL[rL.cL].tabIndex.."["..tostring(k).."]"
 					rL[rL.cL].str = rL[rL.cL].str.."\n"..key.."="
 				elseif type(k) == "string" then
-					key = "t"..rL[rL.cL].tabIndex.."."..tostring(k)
+					key = "t"..rL[rL.cL].tabIndex.."[\""..k.."\"]"
 					rL[rL.cL].str = rL[rL.cL].str.."\n"..key.."="
 				else
 					-- Table key
