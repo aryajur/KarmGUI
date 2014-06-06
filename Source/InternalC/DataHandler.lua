@@ -205,7 +205,7 @@ function Karm.TaskObject.IsValidTask(task)
 		return nil
 	elseif not task.Title then
 		return nil
-	elseif not task.Who then
+	elseif not task.Who and task[0] == "Task" then
 		return nil
 	elseif getmetatable(task) ~= Karm.TaskObject then
 		return nil

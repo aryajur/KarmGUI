@@ -25,23 +25,6 @@ local combineDateRanges = Karm.Utility.combineDateRanges
 
 local NewID = Karm.NewID    -- This is a function to generate a unique wxID for the application this module is used in
 
-local modname = ...
-----------------------------------------------------------
---module(modname)
--- NOT USING THE module KEYWORD SINCE IT DOES THIS ALSO _G[modname] = M
-local M = {}
-package.loaded[modname] = M
-setfenv(1,M)
-----------------------------------------------------------
-
-if not NewID then
-	local ID_IDCOUNTER = wx.wxID_HIGHEST + 1
-	function NewID()
-	    ID_IDCOUNTER = ID_IDCOUNTER + 1
-	    return ID_IDCOUNTER
-	end
-end
-	
 -- Object to generate and manage a check list 
 do
 	local objMap = {}		-- private static variable
