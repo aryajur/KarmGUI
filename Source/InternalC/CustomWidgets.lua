@@ -9,6 +9,7 @@ local prin
 if Karm.Globals.__DEBUG then
 	prin = print
 end
+local modname = ...
 local error = error
 local print = prin 
 local wx = wx
@@ -24,6 +25,17 @@ local combineDateRanges = Karm.Utility.combineDateRanges
 
 
 local NewID = Karm.NewID    -- This is a function to generate a unique wxID for the application this module is used in
+
+-- Setup the module environment
+----------------------------------------------------------
+local M = {}
+package.loaded[modname] = M
+if setfenv then
+	setfenv(1,M)
+else
+	_ENV = M
+end
+----------------------------------------------------------
 
 -- Object to generate and manage a check list 
 do

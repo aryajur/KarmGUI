@@ -1280,18 +1280,6 @@ function Karm.TaskObject.togglePlanningDate(task,xmlDate,type)
 	return 1
 end		-- function togglePlanningDate ends
 
-function Karm.TaskObject.add2Spore(task,dataStruct)
-	if not task.SubTasks then
-		task.SubTasks = {parent = dataStruct, tasks = 0, [0]="SubTasks"}
-	end
-	dataStruct.tasks = dataStruct.tasks + 1
-	dataStruct[dataStruct.tasks] = task 
-	if dataStruct.tasks > 1 then
-		dataStruct[dataStruct.tasks - 1].Next = dataStruct[dataStruct.tasks]
-		dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks-1]
-	end
-end
-
 function Karm.TaskObject.getNewChildTaskID(parent)
 	local taskID
 	if not parent.SubTasks then
@@ -1308,6 +1296,23 @@ function Karm.TaskObject.getNewChildTaskID(parent)
 		taskID = parent.TaskID.."_"..tostring(intVar1)
 	end
 	return taskID
+end
+
+function Karm.TaskObject.add2Spore(task,dataStruct)
+	if not task.SubTasks then
+		task.SubTasks = {parent = dataStruct, tasks = 0, [0]="SubTasks"}
+	else
+		task.SubTasks.parent = dataStruct
+	end
+	dataStruct.tasks = dataStruct.tasks + 1
+	dataStruct[dataStruct.tasks] = task 
+	if dataStruct.tasks > 1 then
+		dataStruct[dataStruct.tasks - 1].Next = dataStruct[dataStruct.tasks]
+		dataStruct[dataStruct.tasks].Previous = dataStruct[dataStruct.tasks-1]
+	else
+		dataStruct[dataStruct.tasks].Previous = nil
+	end
+	dataStruct[dataStruct.tasks].Next = nil
 end
 
 -- Function to add a task to a parent as a subtask
@@ -1343,6 +1348,8 @@ function Karm.TaskObject.add2Parent(task, parent, Spore)
 	parent.SubTasks[parent.SubTasks.tasks].Next = nil
 	if task.SubTasks then 
 		task.SubTasks.parent = parent.SubTasks
+	else
+		task.SubTasks = {parent = parent.SubTasks, tasks = 0, [0]="SubTasks"}		
 	end
 end
 

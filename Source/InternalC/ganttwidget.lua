@@ -16,17 +16,13 @@ local togglePlanningDate = Karm.TaskObject.togglePlanningDate
 local wx = wx
 local type = type
 local pairs = pairs
-local flag
-if getfenv and setfenv and loadstring then
-	flag = {getfenv,setfenv,loadstring}
-end
-local getfenv, setfenv, loadstring
-if flag then
-	getfenv = flag[1]
-	setfenv = flag[2]
-	loadstring = flag[3]
-end
+local getfenv = getfenv
+local setfenv = setfenv
+local loadstring = loadstring
 local load = load
+local string = string
+local pcall = pcall
+local tostring = tostring
 	
 ----------------------------------------------------------
 local M = {}
@@ -80,7 +76,11 @@ do
 								},
 								{
 									Type = "String",
-									Code = "return string.rep(' ',hierLevel*4)..taskNode.Title",
+									Code = [[	local spc = ""
+												for i = 1,hierLevel do
+													spc = spc.."    "
+												end
+												return spc..taskNode.Title]],
 									--Code = "return taskNode.Title",
 									Title = "Tasks",
 									Width = -1		-- Width=-1 means whatever width is left after other columns and the space we have
@@ -392,7 +392,7 @@ do
 			typ = typ or "NORMAL"
 		end
 		if typ ~= "NORMAL" and typ ~= "WORKDONE" then
-			return nil,"enablePlanningMode: Planning type should either be 'NORMAL' or 'WORKDONE'.",2)
+			return nil,"enablePlanningMode: Planning type should either be 'NORMAL' or 'WORKDONE'."
 		end
 		oTree.Planning = {Type = typ, requireSameClick = requireSameClick}
 		-- Work done planning is stored in PlanWorkDone table while schedule planning is stored in Planning table
