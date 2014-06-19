@@ -101,7 +101,7 @@ Karm.GUI = {
 												{Text = "&Finalize all Planning Schedules\tCtrl-F", HelpText = "Finalize all Planning schedules in the tasks in the UI", Code = [[
 	if Karm.GUI.taskTree.taskList then
 		while #Karm.GUI.taskTree.taskList > 0 do
-			Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1].Task, Karm.GUI.taskTree.Planning.type)
+			Karm.finalizePlanning(Karm.GUI.taskTree.taskList[1].Task, Karm.GUI.taskTree.Planning.Type)
 		end
 	end
 												]]},
@@ -387,7 +387,7 @@ end
 -- Global Declarations
 Karm.Globals = {
 	ROOTKEY = "T0",
-	KARM_VERSION = "1.13.7.8",
+	KARM_VERSION = "1.14.6.18",
 	PriorityList = {'1','2','3','4','5','6','7','8','9'},
 	EstimateUnit = "H", -- This can be H or D indicating Hours or Days
 	StatusList = {'Not Started','On Track','Behind','Done','Obsolete', 'Pending'},
